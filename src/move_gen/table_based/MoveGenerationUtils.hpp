@@ -5,11 +5,11 @@
 #ifndef MOVEGENERATION_H
 #define MOVEGENERATION_H
 
-#include <array>
-#include <bit>
+#include "../../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/array"
+#include "../../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/bit"
 
-#include "../../../utilities/BitOperations.hpp"
-#include "../Board.hpp"
+#include "../../utilities/BitOperations.hpp"
+#include "Board.hpp"
 
 [[nodiscard]] constexpr std::array<uint64_t, Board::BitBoardFields>
 GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *rowCords)

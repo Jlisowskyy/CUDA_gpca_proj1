@@ -8,7 +8,7 @@
 #include <array>
 
 #include "../../../utilities/BitOperations.hpp"
-#include "MoveGenerationUtils.hpp"
+#include "../MoveGenerationUtils.hpp"
 
 class RookMapGenerator {
     static constexpr size_t DirectedMaskCount = 4;

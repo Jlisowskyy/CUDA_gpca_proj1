@@ -31,6 +31,8 @@ constexpr int ConvertToReversedPos(const int x)
     return x ^ 63; // equals to 63 - x;
 }
 
+constexpr int SwapColor(const int col) { return col ^ 1; }
+
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
 constexpr int ExtractMsbReversedPos(const uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }
 
