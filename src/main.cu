@@ -13,6 +13,7 @@
 #include "move_gen/table_based/tables/WhitePawnMap.hpp"
 #include "move_gen/table_based/tables/BlackPawnMap.hpp"
 #include "move_gen/table_based/tables/QueenMap.hpp"
+#include "move_gen/table_based/Move.hpp"
 
 int main() {
     std::cout << "Hello, World!" << std::endl;
