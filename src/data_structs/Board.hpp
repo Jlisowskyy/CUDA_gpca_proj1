@@ -5,12 +5,12 @@
 #ifndef BOARD_H
 #define BOARD_H
 
-#include <array>
-#include <bitset>
-#include <cinttypes>
-#include <unordered_map>
+#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/array"
+#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/bitset"
+#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/cinttypes"
+#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/unordered_map"
 
-#include "../../utilities/BitOperations.hpp"
+#include "../utilities/BitOperations.hpp"
 
 /*
  * Given enum defines values and order of both colors. All indexing schemes used across the projects follows given

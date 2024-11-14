@@ -7,7 +7,7 @@
 
 #include "RookMapGenerator.hpp"
 #include "BaseMoveHashMap.hpp"
-#include "../Board.hpp"
+#include "../../../data_structs/Board.hpp"
 
 class FancyMagicRookMap {
     using _underlyingMapT = BaseMoveHashMap<RookMapGenerator::MaxRookPossibleNeighborsWithOverlap>;

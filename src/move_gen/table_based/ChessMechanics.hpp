@@ -6,10 +6,10 @@
 #define CHESSMECHANICS_H
 
 #include "../../utilities/BitOperations.hpp"
-#include "Board.hpp"
+#include "../../data_structs/Board.hpp"
 
 #include "tables/BishopMap.hpp"
-#include "Move.hpp"
+#include "../../data_structs/Move.hpp"
 #include "tables/RookMap.hpp"
 
 #include <cassert>

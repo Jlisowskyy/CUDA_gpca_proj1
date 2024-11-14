@@ -5,7 +5,7 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include <array>
+#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/array"
 
 #include "Board.hpp"
 
