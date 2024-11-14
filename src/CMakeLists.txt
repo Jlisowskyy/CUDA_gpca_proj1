@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.29)
-project(src CUDA)
+project(src CUDA CXX)
 
 set(CMAKE_CUDA_STANDARD 20)
+set(CMAKE_CXX_STANDARD 20)
 
-add_executable(src main.cu
+set(CXX_SOURCES
         utilities/BitOperations.hpp
         move_gen/table_based/base_tables/BaseMoveHashMap.hpp
         move_gen/table_based/base_tables/FancyMagicRookMap.hpp
@@ -15,7 +16,13 @@ add_executable(src main.cu
         move_gen/table_based/tables/BishopMap.hpp
         move_gen/table_based/tables/RookMap.hpp
         move_gen/table_based/tables/RookMap.cpp
-        move_gen/table_based/tables/KingMap.hpp)
+        move_gen/table_based/tables/KingMap.hpp
+        move_gen/table_based/ChessMechanics.hpp)
+
+set(CUDA_SOURCES main.cu)
+
+add_executable(src ${CUDA_SOURCES} ${CXX_SOURCES})
+add_executable(src_test main.cpp ${CXX_SOURCES})
 
 set_target_properties(src PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)

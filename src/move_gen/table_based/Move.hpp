@@ -9,8 +9,6 @@
 
 #include "Board.hpp"
 
-// TODO: repair description
-
 /*      Class encodes chess move and heuristic evaluation
  *  together inside some uint64_t value. Encoding corresponds to value below:
  *  (bit indexed from lsb to msb manner)
