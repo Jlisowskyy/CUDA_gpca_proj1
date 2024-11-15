@@ -3,7 +3,7 @@
 //
 
 #include "cli/cli.hpp"
-#include "cpu_core/cpu_core.hpp"
+#include "cpu_core/cpu_core.cuh"
 
 int main() {
     cpu_core core{};

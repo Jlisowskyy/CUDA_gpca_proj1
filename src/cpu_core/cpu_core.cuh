@@ -7,6 +7,8 @@
 
 #include "../data_structs/Board.hpp"
 
+struct cudaDeviceProp;
+
 class cpu_core final {
     // ------------------------------
     // Class creation
@@ -31,11 +33,23 @@ public:
     void init();
 
     // ------------------------------
-    // Class fields
+    // Class private methods
     // ------------------------------
 private:
 
-    Board m_board;
+    std::pair<int, int> _pickGpu();
+
+    void _dumpGPUInfo(int idx, const cudaDeviceProp &props);
+
+    void _runSimpleMoveGen();
+
+    // ------------------------------
+    // Class fields
+    // ------------------------------
+
+    Board m_board{};
+
+    int m_deviceThreads{};
 };
 
 

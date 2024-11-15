@@ -10,7 +10,7 @@
 #include <cassert>
 
 #include "FenTranslator.hpp"
-#include "../cpu_core/cpu_core.hpp"
+#include "../cpu_core/cpu_core.cuh"
 
 cli::~cli() = default;
 

@@ -25,15 +25,17 @@ set(CXX_SOURCES
         cli/CompilationConstants.hpp
         cli/ParseTools.cpp
         cli/ParseTools.hpp
-        cpu_core/cpu_core.hpp
-        cpu_core/cpu_core.cpp
         cli/cli.cpp
         cli/cli.hpp
         move_gen/table_based/MoveGenerator.hpp
         move_gen/table_based/MoveGenerator.cpp
 )
 
-set(CUDA_SOURCES main.cu)
+set(CUDA_SOURCES main.cu
+        cuda_core/helpers.cu
+        cuda_core/helpers.cuh
+        cpu_core/cpu_core.cuh
+        cpu_core/cpu_core.cu)
 
 add_executable(src ${CUDA_SOURCES} ${CXX_SOURCES})
 add_executable(src_test main.cpp ${CXX_SOURCES})
