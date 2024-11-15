@@ -3,6 +3,7 @@
 //
 
 #include "MoveGenerator.hpp"
+#include "../../data_structs/Move.hpp"
 
 std::map<std::string, uint64_t> MoveGenerator::GetCountedMoves(const int depth)
 {

@@ -5,9 +5,8 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/array"
-
 #include "Board.hpp"
+#include "../cli/EngineUtils.hpp"
 
 /*      Class encodes chess move and heuristic evaluation
  *  together inside some uint64_t value. Encoding corresponds to value below:
@@ -94,7 +93,23 @@ struct PackedMove
     // debugging tool
     [[nodiscard]] bool IsOkeyMove() const { return !IsEmpty() && GetTargetField() != GetStartField(); }
 
-    [[nodiscard]] std::string GetLongAlgebraicNotation() const;
+    [[nodiscard]] std::string GetLongAlgebraicNotation() const {
+        static constexpr char PromoFigs[] = {'q', 'r', 'b', 'n'};
+        std::string rv;
+
+        auto [c1, c2] = ConvertToCharPos((int) GetStartField());
+        rv += c1;
+        rv += c2;
+        auto [c3, c4] = ConvertToCharPos((int) GetTargetField());
+        rv += c3;
+        rv += c4;
+
+        if (IsPromo())
+            rv += PromoFigs[GetMoveType() & PromoSpecBits];
+
+        return rv;
+    }
+
 
     // ------------------------------
     // Class fields

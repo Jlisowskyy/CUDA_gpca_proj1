@@ -11,6 +11,10 @@
 #include "tables/BishopMap.hpp"
 #include "../../data_structs/Move.hpp"
 #include "tables/RookMap.hpp"
+#include "tables/KnightMap.hpp"
+#include "tables/KingMap.hpp"
+#include "tables/WhitePawnMap.hpp"
+#include "tables/BlackPawnMap.hpp"
 
 #include <cassert>
 #include <cinttypes>

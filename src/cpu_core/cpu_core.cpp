@@ -8,6 +8,14 @@ cpu_core::cpu_core() = default;
 
 cpu_core::~cpu_core() = default;
 
-void cpu_core::run() {
+void cpu_core::runCVC() {
+
+}
+
+void cpu_core::runPVC() {
+
+}
+
+void cpu_core::init() {
 
 }

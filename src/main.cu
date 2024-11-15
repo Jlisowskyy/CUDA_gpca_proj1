@@ -7,7 +7,7 @@
 
 int main() {
     cpu_core core{};
-    core.run();
+    core.init();
 
     cli cli{&core};
     cli.run();
