@@ -5,8 +5,6 @@
 #ifndef SRC_CPU_CORE_H
 #define SRC_CPU_CORE_H
 
-#include <cassert>
-
 struct cudaDeviceProp;
 struct cpu_Board;
 
@@ -23,10 +21,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    void setBoard(cpu_Board *board) {
-        assert(board != nullptr && "cpu_Board cannot be nullptr");
-        m_board = board;
-    }
+    void setBoard(cpu_Board *board);
 
     void runCVC();
 

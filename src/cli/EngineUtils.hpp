@@ -59,7 +59,7 @@ uint64_t ExtractPosFromStr(int x, int y);
 // return scheme: [ oldMap, newMap ]
 std::pair<uint64_t, uint64_t> ExtractPositionsFromEncoding(const std::string &encoding);
 
-// Move to strings converting functions
+// cuda_Move to strings converting functions
 std::pair<char, char> ConvertToCharPos(int boardPosMsb);
 
 /* Function converts the given integer to string encoding the field accordingly to typical chess notation [A-H][1-8]*/

@@ -6,6 +6,7 @@
 #define CUDA_MOVE_CUH
 
 #include <cuda_runtime.h>
+#include <thrust/pair.h>
 
 #include "cuda_Board.cuh"
 
@@ -19,7 +20,7 @@
 /*      Class encodes chess move and heuristic evaluation
  *  together inside some uint64_t value. Encoding corresponds to value below:
  *  - bits  0-15 - encodes simplistic heuristic evaluation of the move used inside inflight move sorting,
- *  - bits 16-31 - contains PackedMove instance
+ *  - bits 16-31 - contains cuda_PackedMove instance
  *  - bits 32-35 - encodes board index from which figure moved
  *  - bits 36-39 - encodes board index to which figure moved - differs from StartBoardIndex only in case of promotion
  *  - bits 40-43 - encodes board index on which figure was killed used in case of attacking move
@@ -35,46 +36,63 @@
  *  ON BY DEFAULT INITIALIZED OBJECTS EVERY ONE OF THEM WORKS ONCE
  */
 
-class alignas(16) Move;
+__device__ static constexpr uint16_t PromoFlag = 0b1000;
+__device__ static constexpr uint16_t CaptureFlag = 0b100;
+__device__ static constexpr uint16_t CastlingFlag = 0b10;
+__device__ static constexpr uint16_t QueenFlag = 0;
+__device__ static constexpr uint16_t RookFlag = 0b1;
+__device__ static constexpr uint16_t BishopFlag = 0b10;
+__device__ static constexpr uint16_t KnightFlag = 0b11;
+__device__ static constexpr uint16_t PromoSpecBits = 0b11;
 
-struct alignas(16) PackedMove {
+__device__ static constexpr uint16_t MoveTypeBits = 0xF << 12;
+__device__ static constexpr uint16_t Bit6 = 0b111111;
+__device__ static constexpr uint16_t Bit4 = 0b1111;
+__device__ static constexpr uint16_t Bit3 = 0b111;
+__device__ static constexpr uint16_t PromoBit = PromoFlag << 12;
+__device__ static constexpr uint16_t CaptureBit = CaptureFlag << 12;
+__device__ static constexpr uint16_t CastlingBits = CastlingFlag << 12;
+
+class alignas(16) cuda_Move;
+
+struct alignas(16) cuda_PackedMove {
     // ------------------------------
     // Class creation
     // ------------------------------
 
-    PackedMove() = default;
+    cuda_PackedMove() = default;
 
-    ~PackedMove() = default;
+    ~cuda_PackedMove() = default;
 
-    PackedMove(const PackedMove &other) = default;
+    cuda_PackedMove(const cuda_PackedMove &other) = default;
 
-    PackedMove &operator=(const PackedMove &other) = default;
+    cuda_PackedMove &operator=(const cuda_PackedMove &other) = default;
 
-    PackedMove(PackedMove &&other) = default;
+    cuda_PackedMove(cuda_PackedMove &&other) = default;
 
-    PackedMove &operator=(PackedMove &&other) = default;
+    cuda_PackedMove &operator=(cuda_PackedMove &&other) = default;
 
     // ------------------------------
     // Class interaction
     // ------------------------------
 
-    __device__ friend bool operator==(const PackedMove a, const PackedMove b) { return a._packedMove == b._packedMove; }
+    __device__ friend bool operator==(const cuda_PackedMove a, const cuda_PackedMove b) {
+        return a._packedMove == b._packedMove;
+    }
 
-    __device__ friend bool operator!=(const PackedMove a, const PackedMove b) { return !(a == b); }
+    __device__ friend bool operator!=(const cuda_PackedMove a, const cuda_PackedMove b) { return !(a == b); }
 
     __device__ void SetStartField(const uint16_t startField) { _packedMove |= startField; }
 
     __device__ uint16_t GetStartField() const {
-        static constexpr uint16_t
-        StartFieldMask = Bit6;
+        static constexpr uint16_t StartFieldMask = Bit6;
         return StartFieldMask & _packedMove;
     }
 
     __device__ void SetTargetField(const uint16_t targetField) { _packedMove |= targetField << 6; }
 
     __device__ uint16_t GetTargetField() const {
-        static constexpr uint16_t
-        TargetFieldMask = Bit6 << 6;
+        static constexpr uint16_t TargetFieldMask = Bit6 << 6;
         return (_packedMove & TargetFieldMask) >> 6;
     }
 
@@ -101,38 +119,9 @@ struct alignas(16) PackedMove {
     // Class fields
     // ------------------------------
 
-    static constexpr uint16_t
-    PromoFlag = 0b1000;
-    static constexpr uint16_t
-    CaptureFlag = 0b100;
-    static constexpr uint16_t
-    CastlingFlag = 0b10;
-    static constexpr uint16_t
-    QueenFlag = 0;
-    static constexpr uint16_t
-    RookFlag = 0b1;
-    static constexpr uint16_t
-    BishopFlag = 0b10;
-    static constexpr uint16_t
-    KnightFlag = 0b11;
-    static constexpr uint16_t
-    PromoSpecBits = 0b11;
-
 private:
-    static constexpr uint16_t
-    MoveTypeBits = 0xF << 12;
-    static constexpr uint16_t
-    Bit6 = 0b111111;
 
-    static constexpr uint16_t
-    PromoBit = PromoFlag << 12;
-    static constexpr uint16_t
-    CaptureBit = CaptureFlag << 12;
-
-    static constexpr uint16_t
-    CastlingBits = CastlingFlag << 12;
-
-    friend Move;
+    friend cuda_Move;
 
     uint16_t _packedMove{};
 };
@@ -149,36 +138,45 @@ struct VolatileBoardData {
     const uint64_t OldElPassant;
 };
 
-class alignas(16) Move {
+__device__ static constexpr size_t move_CastlingIdxArr[5]{
+        SentinelBoardIndex, wRooksIndex, wRooksIndex, bRooksIndex, bRooksIndex
+};
+
+__device__ static constexpr uint64_t move_CastlingNewKingPos[5]{
+        1LLU, CastlingNewRookMaps[0], CastlingNewRookMaps[1],
+        CastlingNewRookMaps[2], CastlingNewRookMaps[3]
+};
+
+class alignas(16) cuda_Move {
 public:
 // ------------------------------
 // Class creation
 // ------------------------------
 
-// This construction does not initialize crucial fields what must be done
-    __device__ explicit Move(const PackedMove mv) : _packedMove(mv) {}
+    // This construction does not initialize crucial fields what must be done
+    __device__ explicit cuda_Move(const cuda_PackedMove mv) : _packedMove(mv) {}
 
-    Move() = default;
+    cuda_Move() = default;
 
-    ~Move() = default;
+    ~cuda_Move() = default;
 
-    Move(const Move &other) = default;
+    cuda_Move(const cuda_Move &other) = default;
 
-    Move &operator=(const Move &other) = default;
+    cuda_Move &operator=(const cuda_Move &other) = default;
 
-    Move(Move &&other) = default;
+    cuda_Move(cuda_Move &&other) = default;
 
-    Move &operator=(Move &&other) = default;
+    cuda_Move &operator=(cuda_Move &&other) = default;
 
 // ------------------------------
 // Class interaction
 // ------------------------------
 
-    __device__ friend bool operator==(const Move a, const Move b) { return a._packedMove == b._packedMove; }
+    __device__ friend bool operator==(const cuda_Move a, const cuda_Move b) { return a._packedMove == b._packedMove; }
 
-    __device__ friend bool operator!=(const Move a, const Move b) { return !(a == b); }
+    __device__ friend bool operator!=(const cuda_Move a, const cuda_Move b) { return !(a == b); }
 
-    __device__ PackedMove GetPackedMove() const { return _packedMove; }
+    __device__ cuda_PackedMove GetPackedMove() const { return _packedMove; }
 
     __device__ void SetMoveType(const uint16_t MoveType) { _packedMove.SetMoveType(MoveType); }
 
@@ -191,25 +189,26 @@ public:
     // debugging tool
     __device__ bool IsOkeyMove() const { return _packedMove.IsOkeyMove(); }
 
-    __device__ static void MakeMove(const Move mv, cuda_Board &bd) {
+    __device__ static void MakeMove(const cuda_Move mv, cuda_Board &bd) {
         // removing the old piece from the board
-        bd.BitBoards[mv.GetStartBoardIndex()] ^= MaxMsbPossible >> mv.GetStartField();
+        bd.BitBoards[mv.GetStartBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetStartField();
 
         // placing the figure on new field
-        bd.BitBoards[mv.GetTargetBoardIndex()] |= MaxMsbPossible >> mv.GetTargetField();
+        bd.BitBoards[mv.GetTargetBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetTargetField();
 
         // removing the killed figure in case no figure is killed index should be indicating to the sentinel
-        bd.BitBoards[mv.GetKilledBoardIndex()] ^= MaxMsbPossible >> mv.GetKilledFigureField();
+        bd.BitBoards[mv.GetKilledBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetKilledFigureField();
 
         // applying new castling rights
         bd.Castlings = mv.GetCastlingRights();
 
         // applying new el passant field
-        bd.ElPassantField = MaxMsbPossible >> mv.GetElPassantField();
+        bd.ElPassantField = cuda_MaxMsbPossible >> mv.GetElPassantField();
 
         // applying additional castling operation
-        const auto [boardIndex, field] = CastlingActions[mv.GetCastlingType()];
-        bd.BitBoards[boardIndex] |= field;
+        const size_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
+        const uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
+        bd.BitBoards[boardIndex] |= newKingPos;
 
         bd.ChangePlayingColor();
     }
@@ -218,17 +217,17 @@ public:
 
     __device__ bool IsEmpty() const { return _packedMove.IsEmpty(); }
 
-    __device__ static void UnmakeMove(const Move mv, cuda_Board &bd, const VolatileBoardData &data) {
+    __device__ static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
         bd.ChangePlayingColor();
 
         // placing the piece on old board
-        bd.BitBoards[mv.GetStartBoardIndex()] |= MaxMsbPossible >> mv.GetStartField();
+        bd.BitBoards[mv.GetStartBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetStartField();
 
         // removing the figure from the new field
-        bd.BitBoards[mv.GetTargetBoardIndex()] ^= MaxMsbPossible >> mv.GetTargetField();
+        bd.BitBoards[mv.GetTargetBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetTargetField();
 
         // placing the killed figure in good place
-        bd.BitBoards[mv.GetKilledBoardIndex()] |= MaxMsbPossible >> mv.GetKilledFigureField();
+        bd.BitBoards[mv.GetKilledBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetKilledFigureField();
 
         // recovering old castlings
         bd.Castlings = data.Castlings;
@@ -237,8 +236,10 @@ public:
         bd.ElPassantField = data.OldElPassant;
 
         // reverting castling operation
-        const auto [boardIndex, field] = CastlingActions[mv.GetCastlingType()];
-        bd.BitBoards[boardIndex] ^= field;
+        const size_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
+        const uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
+
+        bd.BitBoards[boardIndex] ^= newKingPos;
     }
 
     __device__ void SetEval(const int32_t eval) { _eval = eval; }
@@ -247,7 +248,7 @@ public:
 
     __device__ void SetStartField(const uint16_t startField) { _packedMove.SetStartField(startField); }
 
-    uint16_t GetStartField() const { return _packedMove.GetStartField(); }
+    __device__ uint16_t GetStartField() const { return _packedMove.GetStartField(); }
 
     __device__ void SetTargetField(const uint16_t targetField) { _packedMove.SetTargetField(targetField); }
 
@@ -313,18 +314,17 @@ public:
         return (_packedMisc & ElPassantFieldMask) >> 6;
     }
 
-    __device__ void SetCasltingRights(const std::bitset<Board::CastlingCount + 1> arr) {
-        const uint16_t rights = arr.to_ullong() & 0xFLLU;
+    __device__ void SetCasltingRights(const uint32_t arr) {
+        const uint16_t rights = arr & 0xFLLU;
         _packedMisc |= rights << 12;
     }
 
-    __device__ std::bitset<Board::CastlingCount + 1> GetCastlingRights() const {
-        static constexpr uint16_t
+    __device__ uint32_t GetCastlingRights() const {
+        static constexpr uint32_t
         CastlingMask = Bit4 << 12;
-        const uint16_t rights = (_packedMisc & CastlingMask) >> 12;
-        const std::bitset<Board::CastlingCount + 1> arr{rights};
+        const uint32_t rights = (_packedMisc & CastlingMask) >> 12;
 
-        return arr;
+        return rights;
     }
 
 // ------------------------------
@@ -336,37 +336,11 @@ public:
 // ------------------------------
 
 private:
-    static constexpr uint16_t
-    Bit4 = 0b1111;
-    static constexpr uint16_t
-    Bit6 = 0b111111;
-    static constexpr uint16_t
-    Bit3 = 0b111;
 
     int32_t _eval{};
-    PackedMove _packedMove{};
+    cuda_PackedMove _packedMove{};
     uint16_t _packedIndexes{};
     uint16_t _packedMisc{};
-
-public:
-    static constexpr std::pair<size_t, uint64_t>
-    CastlingActions[] = {
-        {
-            Board::SentinelBoardIndex, 1LLU
-        },
-        {
-            wRooksIndex, Board::CastlingNewRookMaps[0]
-        },
-        {
-            wRooksIndex, Board::CastlingNewRookMaps[1]
-        },
-        {
-            bRooksIndex, Board::CastlingNewRookMaps[2]
-        },
-        {
-            bRooksIndex, Board::CastlingNewRookMaps[3]
-        },
-    };
 };
 
 #endif // CUDA_MOVE_CUH

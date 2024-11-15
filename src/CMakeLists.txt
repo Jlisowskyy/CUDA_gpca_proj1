@@ -29,7 +29,8 @@ set(CXX_SOURCES
 #        move_gen/table_based/MoveGenerator.hpp
 #        move_gen/table_based/MoveGenerator.cpp
         data_structs/cpu_Board.hpp
-#        data_structs/Move.hpp
+#        data_structs/cuda_Move.hpp
+        utilities/BoardDefs.hpp
 )
 
 set(CUDA_SOURCES main.cu

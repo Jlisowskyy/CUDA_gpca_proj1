@@ -12,6 +12,7 @@
 
 #include "../utilities/BitOperations.hpp"
 #include "../utilities/CompilationConstants.hpp"
+#include "../utilities/BoardDefs.hpp"
 
 /*
  *  The most important class used around the project.

@@ -336,7 +336,7 @@ size_t FenTranslator::_processMovesCounts(size_t pos, const std::string &fenPos,
     size_t rv = ParseTools::ExtractNextNumeric<int, convert>(fenPos, pos, counter);
 
     if (rv == ParseTools::InvalidNextWorldRead)
-        throw std::runtime_error("Move counter has not been found!");
+        throw std::runtime_error("cuda_Move counter has not been found!");
 
     return rv;
 }

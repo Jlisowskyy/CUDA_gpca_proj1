@@ -124,3 +124,8 @@ void CpuCore::_runSimpleMoveGen() {
     assert(m_deviceThreads > 0 && "No device threads available");
 }
 
+void CpuCore::setBoard(cpu_Board *board) {
+    assert(board != nullptr && "cpu_Board cannot be nullptr");
+    m_board = board;
+}
+

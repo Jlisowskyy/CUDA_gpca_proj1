@@ -7,8 +7,7 @@
 
 #include "cuda_BitOperations.cuh"
 #include "Helpers.cuh"
-
-#include "../utilities/CompilationConstants.hpp"
+#include "../utilities/BoardDefs.hpp"
 
 /*
  *  The most important class used around the project.
@@ -25,7 +24,45 @@
  *
  * */
 
-class alignas(16) cuda_Board {
+__device__ static constexpr __uint32_t BitBoardsCount = 12;
+__device__ static constexpr __uint32_t CastlingCount = 4;
+__device__ static constexpr __uint32_t BitBoardFields = 64;
+__device__ static constexpr __uint32_t BitBoardsPerCol = 6;
+__device__ static constexpr __uint32_t KingPosCount = 2;
+__device__ static constexpr __uint32_t CastlingsPerColor = 2;
+__device__ static constexpr __uint64_t InvalidElPassantField = 1;
+__device__ static constexpr __uint64_t InvalidElPassantBitBoard = cuda_MaxMsbPossible >> InvalidElPassantField;
+__device__ static constexpr __uint32_t SentinelBoardIndex = 12;
+__device__ static constexpr __uint32_t SentinelCastlingIndex = 4;
+
+__device__ static constexpr __uint64_t DefaultKingBoards[KingPosCount]{
+        cuda_MaxMsbPossible >> ConvertToReversedPos(4), cuda_MaxMsbPossible >> ConvertToReversedPos(60)
+};
+
+__device__ static constexpr __int32_t CastlingNewKingPos[CastlingCount]{
+        ConvertToReversedPos(6), ConvertToReversedPos(2), ConvertToReversedPos(62), ConvertToReversedPos(58)
+};
+
+__device__ static constexpr __uint64_t CastlingsRookMaps[CastlingCount]{
+        cuda_MinMsbPossible << 7, cuda_MinMsbPossible, cuda_MinMsbPossible << 63, cuda_MinMsbPossible << 56
+};
+
+__device__ static constexpr __uint64_t CastlingNewRookMaps[CastlingCount]{
+        cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 3, cuda_MinMsbPossible << 61, cuda_MinMsbPossible << 59
+};
+
+__device__ static constexpr __uint64_t CastlingSensitiveFields[CastlingCount]{
+        cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3,
+        cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62, cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59
+};
+
+__device__ static constexpr __uint64_t CastlingTouchedFields[CastlingCount]{
+        cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3 | cuda_MinMsbPossible << 1,
+        cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62,
+        cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
+};
+
+class cuda_Board {
 public:
     // ------------------------------
     // Class creation
@@ -49,67 +86,26 @@ public:
         return ExtractMsbPos(BitBoards[col * BitBoardsPerCol + kingIndex]);
     }
 
-    __device__ uint64_t GetFigBoard(int col, uint32_t figDesc) const {
+    __device__ __uint64_t GetFigBoard(int col, __uint32_t figDesc) const {
         return BitBoards[col * BitBoardsPerCol + figDesc];
     }
 
     __device__ void SetCastlingRight(size_t castlingIndex, bool value) {
-        Castlings = (value << castlingIndex) & (Castlings & ~(MinMsbPossible << castlingIndex));
+        Castlings = (value << castlingIndex) & (Castlings & ~(cuda_MinMsbPossible << castlingIndex));
     }
 
     __device__ bool GetCastlingRight(size_t castlingIndex) const {
-        return Castlings & (MinMsbPossible << castlingIndex);
+        return Castlings & (cuda_MinMsbPossible << castlingIndex);
     }
-
-    // ------------------------------
-    // Class fields
-    // ------------------------------
-
-    static constexpr uint32_t BitBoardsCount = 12;
-    static constexpr uint32_t CastlingCount = 4;
-    static constexpr uint32_t BitBoardFields = 64;
-    static constexpr uint32_t BitBoardsPerCol = 6;
-    static constexpr uint32_t KingPosCount = 2;
-    static constexpr uint32_t CastlingsPerColor = 2;
-    static constexpr uint64_t InvalidElPassantField = 1;
-    static constexpr uint64_t InvalidElPassantBitBoard = MaxMsbPossible >> InvalidElPassantField;
-    static constexpr uint32_t SentinelBoardIndex = 12;
-    static constexpr uint32_t SentinelCastlingIndex = 4;
-
-    static inline uint64_t DefaultKingBoards[KingPosCount]{
-            MaxMsbPossible >> ConvertToReversedPos(4), MaxMsbPossible >> ConvertToReversedPos(60)
-    };
-    static inline int32_t CastlingNewKingPos[CastlingCount]{
-            ConvertToReversedPos(6), ConvertToReversedPos(2), ConvertToReversedPos(62), ConvertToReversedPos(58)
-    };
-
-    static constexpr uint64_t CastlingsRookMaps[CastlingCount]{
-            MinMsbPossible << 7, MinMsbPossible, MinMsbPossible << 63, MinMsbPossible << 56
-    };
-
-    static constexpr uint64_t CastlingNewRookMaps[CastlingCount]{
-            MinMsbPossible << 5, MinMsbPossible << 3, MinMsbPossible << 61, MinMsbPossible << 59
-    };
-
-    static constexpr uint64_t CastlingSensitiveFields[CastlingCount]{
-            MinMsbPossible << 6 | MinMsbPossible << 5, MinMsbPossible << 2 | MinMsbPossible << 3,
-            MinMsbPossible << 61 | MinMsbPossible << 62, MinMsbPossible << 58 | MinMsbPossible << 59
-    };
-
-    static constexpr uint64_t CastlingTouchedFields[CastlingCount]{
-            MinMsbPossible << 6 | MinMsbPossible << 5, MinMsbPossible << 2 | MinMsbPossible << 3 | MinMsbPossible << 1,
-            MinMsbPossible << 61 | MinMsbPossible << 62,
-            MinMsbPossible << 58 | MinMsbPossible << 59 | MinMsbPossible << 57
-    };
 
     // --------------------------------
     // Main processing components
     // --------------------------------
 
-    uint64_t BitBoards[BitBoardsCount + 1]{}; // additional sentinel board
-    uint64_t ElPassantField{MaxMsbPossible >> InvalidElPassantField};
-    uint32_t Castlings{0}; // additional sentinel field
-    uint32_t MovingColor{WHITE};
+    __uint64_t BitBoards[BitBoardsCount + 1]{}; // additional sentinel board
+    __uint64_t ElPassantField{cuda_MaxMsbPossible >> InvalidElPassantField};
+    __uint32_t Castlings{0}; // additional sentinel field
+    __uint32_t MovingColor{WHITE};
 };
 
 #endif // CUDA_BOARD_CUH

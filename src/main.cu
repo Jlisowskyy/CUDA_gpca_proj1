@@ -5,7 +5,8 @@
 #include "cli/Cli.hpp"
 #include "cpu_core/CpuCore.cuh"
 
-//#include "cuda_core/cuda_Board.cuh"
+#include "cuda_core/Move.cuh"
+
 
 int main() {
     CpuCore core{};
