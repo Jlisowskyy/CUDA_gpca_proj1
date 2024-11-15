@@ -2,24 +2,27 @@
 // Created by Jlisowskyy on 14/11/24.
 //
 
-#include "cli.hpp"
+#include "Cli.hpp"
 
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <cassert>
 
+#include "../data_structs/cpu_Board.hpp"
 #include "FenTranslator.hpp"
-#include "../cpu_core/cpu_core.cuh"
+#include "../cpu_core/CpuCore.cuh"
 
-cli::~cli() = default;
+Cli::~Cli() {
+    delete m_board;
+}
 
-void cli::run() {
+void Cli::run() {
     _displayWelcomeMessage();
 
     RC_BoardLoad rc;
     do {
-        rc = _loadPosition(m_board);
+        rc = _loadPosition(*m_board);
     } while (rc == RC_BoardLoad::FAILURE);
 
     if (rc == RC_BoardLoad::EXIT) {
@@ -40,11 +43,11 @@ void cli::run() {
     _runGame(rc1);
 }
 
-cli::cli(cpu_core *core) : m_core(core) {
-
+Cli::Cli(CpuCore *core) : m_core(core), m_board(new cpu_Board()) {
+    assert(m_core != nullptr && "Core must be provided!");
 }
 
-cli::RC_BoardLoad cli::_loadPosition(Board &board) const {
+Cli::RC_BoardLoad Cli::_loadPosition(cpu_Board &board) const {
     std::string input;
     std::getline(std::cin, input);
 
@@ -67,7 +70,7 @@ cli::RC_BoardLoad cli::_loadPosition(Board &board) const {
     return RC_BoardLoad::SUCCESS;
 }
 
-void cli::_displayWelcomeMessage() {
+void Cli::_displayWelcomeMessage() {
     static constexpr std::string_view welcomeMsg = R"(
 Welcome to Checkmate-Chariot-MCTS-Cuda!
 Simplistic Chess Engine written for University project for
@@ -81,7 +84,7 @@ Provide input:)";
     std::cout << welcomeMsg << std::endl;
 }
 
-void cli::_runGame(cli::RC_GameTypeLod gameType) {
+void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
     m_core->setBoard(m_board);
 
     switch (gameType) {
@@ -96,7 +99,7 @@ void cli::_runGame(cli::RC_GameTypeLod gameType) {
     }
 }
 
-cli::RC_GameTypeLod cli::_loadGameType() const {
+Cli::RC_GameTypeLod Cli::_loadGameType() const {
     std::string input;
     std::getline(std::cin, input);
 
@@ -116,10 +119,10 @@ cli::RC_GameTypeLod cli::_loadGameType() const {
     }
 
     std::cout << "Invalid game type provided!" << std::endl;
-    return cli::RC_GameTypeLod::FAILURE;
+    return Cli::RC_GameTypeLod::FAILURE;
 }
 
-void cli::_displayGameTypeMessage() {
+void Cli::_displayGameTypeMessage() {
     static constexpr std::string_view gameTypeMsg = R"(
 Choose game type:
 - 'cvc' for Computer vs Computer

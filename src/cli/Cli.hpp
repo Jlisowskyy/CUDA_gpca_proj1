@@ -6,11 +6,11 @@
 #define SRC_CLI_H
 
 /* Forward declaration */
-class cpu_core;
+class CpuCore;
 
-#include "../data_structs/Board.hpp"
+struct cpu_Board;
 
-class cli final {
+class Cli final {
     // ------------------------------
     // internal types
     // ------------------------------
@@ -33,8 +33,9 @@ class cli final {
     // ------------------------------
 public:
 
-    explicit cli(cpu_core* core);
-    ~cli();
+    explicit Cli(CpuCore *core);
+
+    ~Cli();
 
     // ------------------------------
     // Class interaction
@@ -51,18 +52,18 @@ private:
 
     static void _displayGameTypeMessage();
 
-    [[nodiscard]] RC_BoardLoad _loadPosition(Board &board) const;
+    [[nodiscard]] RC_BoardLoad _loadPosition(cpu_Board &board) const;
 
     [[nodiscard]] RC_GameTypeLod _loadGameType() const;
 
-    void _runGame(cli::RC_GameTypeLod gameType);
+    void _runGame(Cli::RC_GameTypeLod gameType);
 
     // ------------------------------
     // Class fields
     // ------------------------------
 
-    cpu_core* m_core{};
-    Board m_board{};
+    CpuCore *m_core{};
+    cpu_Board *m_board;
 };
 
 

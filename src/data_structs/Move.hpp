@@ -5,7 +5,7 @@
 #ifndef MOVE_H
 #define MOVE_H
 
-#include "Board.hpp"
+#include "cpu_Board.hpp"
 #include "../cli/EngineUtils.hpp"
 
 /*      Class encodes chess move and heuristic evaluation

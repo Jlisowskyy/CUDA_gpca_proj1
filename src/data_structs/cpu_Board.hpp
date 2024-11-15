@@ -2,8 +2,8 @@
 // Created by Jlisowskyy on 3/4/24.
 //
 
-#ifndef BOARD_H
-#define BOARD_H
+#ifndef BOARD_HPP
+#define BOARD_HPP
 
 #include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/array"
 #include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/bitset"
@@ -11,73 +11,7 @@
 #include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/unordered_map"
 
 #include "../utilities/BitOperations.hpp"
-
-/*
- * Given enum defines values and order of both colors. All indexing schemes used across the projects follows given
- * order. It is important to keep it consistent across the project. It is also very useful when performing some indexing
- * and color switching operations.
- * */
-
-enum Color : int {
-    WHITE,
-    BLACK,
-};
-
-/*
- * Given enum defines indexing order of all BitBoards inside the board.
- * It is important to keep this order consistent across the project.
- * Again very useful when performing some indexing and color switching operations.
- * */
-
-enum ColorlessDescriptors : size_t {
-    pawnsIndex,
-    knightsIndex,
-    bishopsIndex,
-    rooksIndex,
-    queensIndex,
-    kingIndex,
-};
-
-/*
- * Given enum defines indexing order of all (color, piece) BitBoards inside the board.
- * It is important to keep it consistent across the project.
- * Used rather less frequently than previous ones but still defines order of all bitboards.
- * */
-
-enum Descriptors : size_t {
-    wPawnsIndex,
-    wKnightsIndex,
-    wBishopsIndex,
-    wRooksIndex,
-    wQueensIndex,
-    wKingIndex,
-    bPawnsIndex,
-    bKnightsIndex,
-    bBishopsIndex,
-    bRooksIndex,
-    bQueensIndex,
-    bKingIndex,
-};
-
-/*
- * Defines the order of castling indexes for given color.
- * */
-
-enum CastlingIndexes : size_t {
-    KingCastlingIndex,
-    QueenCastlingIndex,
-};
-
-/*
- * Defines indexes of all castling possibilities.
- * */
-
-enum CastlingPossibilities : size_t {
-    WhiteKingSide,
-    WhiteQueenSide,
-    BlackKingSide,
-    BlackQueenSide,
-};
+#include "../utilities/CompilationConstants.hpp"
 
 /*
  *  The most important class used around the project.
@@ -94,18 +28,18 @@ enum CastlingPossibilities : size_t {
  *
  * */
 
-struct Board {
+struct cpu_Board {
     // ------------------------------
     // Class creation
     // ------------------------------
 
-    Board() = default;
+    cpu_Board() = default;
 
-    ~Board() = default;
+    ~cpu_Board() = default;
 
-    Board(const Board &) = default;
+    cpu_Board(const cpu_Board &) = default;
 
-    Board &operator=(const Board &) = default;
+    cpu_Board &operator=(const cpu_Board &) = default;
 
     // ------------------------------
     // class interaction
@@ -121,6 +55,13 @@ struct Board {
         return BitBoards[col * BitBoardsPerCol + figDesc];
     }
 
+    void SetCastlingRight(size_t castlingIndex, bool value) {
+        Castlings = (value << castlingIndex) & (Castlings & ~(MinMsbPossible << castlingIndex));
+    }
+
+    [[nodiscard]] bool GetCastlingRight(size_t castlingIndex) const {
+        return Castlings & (MinMsbPossible << castlingIndex);
+    }
 
     // ------------------------------
     // Class fields
@@ -158,7 +99,8 @@ struct Board {
     };
 
     static constexpr std::array<uint64_t, CastlingCount> CastlingTouchedFields{
-            MinMsbPossible << 6 | MinMsbPossible << 5, MinMsbPossible << 2 | MinMsbPossible << 3 | MinMsbPossible << 1,
+            MinMsbPossible << 6 | MinMsbPossible << 5,
+            MinMsbPossible << 2 | MinMsbPossible << 3 | MinMsbPossible << 1,
             MinMsbPossible << 61 | MinMsbPossible << 62,
             MinMsbPossible << 58 | MinMsbPossible << 59 | MinMsbPossible << 57
     };
@@ -167,10 +109,10 @@ struct Board {
     // Main processing components
     // --------------------------------
 
-    std::bitset<CastlingCount + 1> Castlings{0}; // additional sentinel field
-    uint64_t ElPassantField = MaxMsbPossible >> InvalidElPassantField;
-    int MovingColor = WHITE;
-    std::array<uint64_t, BitBoardsCount + 1> BitBoards{}; // additional sentinel board
+    uint64_t BitBoards[BitBoardsCount + 1]{}; // additional sentinel board
+    uint64_t ElPassantField{MaxMsbPossible >> InvalidElPassantField};
+    uint32_t Castlings{0}; // additional sentinel field
+    uint32_t MovingColor{WHITE};// additional sentinel board
 };
 
-#endif // BOARD_H
+#endif // BOARD_HPP

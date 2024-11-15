@@ -2,14 +2,16 @@
 // Author: Jakub Lisowski 11.2024
 //
 
-#include "cli/cli.hpp"
-#include "cpu_core/cpu_core.cuh"
+#include "cli/Cli.hpp"
+#include "cpu_core/CpuCore.cuh"
+
+//#include "cuda_core/cuda_Board.cuh"
 
 int main() {
-    cpu_core core{};
+    CpuCore core{};
     core.init();
 
-    cli cli{&core};
+    Cli cli{&core};
     cli.run();
 
     return 0;

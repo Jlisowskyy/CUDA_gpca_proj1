@@ -11,7 +11,7 @@
 #include <numeric>
 #include <unordered_map>
 
-#include "../data_structs/Board.hpp"
+#include "../data_structs/cpu_Board.hpp"
 
 /*
  * Header gather various simple functions with different purposes,
@@ -44,7 +44,7 @@ void AlignedFree(void *ptr);
 void DisplayMask(uint64_t mask);
 
 /* Function simply pretty prints the given board */
-void DisplayBoard(const Board &bd);
+void DisplayBoard(const cpu_Board &bd);
 
 /* Function simply returns sting containing information about the current datetime, mostly used in logging*/
 std::string GetCurrentTimeStr();
@@ -69,7 +69,7 @@ std::string ConvertToStrPos(int boardPosMsb);
 std::string ConvertToStrPos(uint64_t boardMap);
 
 /* Table maps BitBoard index to character representing corresponding chess figure */
-extern const char IndexToFigCharMap[Board::BitBoardsCount];
+extern const char IndexToFigCharMap[cpu_Board::BitBoardsCount];
 
 /* Does the same thing as above but in reverse */
 /* This object must be inline due to problem with extern initialisation on startup  */

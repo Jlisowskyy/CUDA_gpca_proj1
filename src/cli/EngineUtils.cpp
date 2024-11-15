@@ -3,13 +3,13 @@
 //
 
 #include "EngineUtils.hpp"
-#include "CompilationConstants.hpp"
+#include "../utilities/CompilationConstants.hpp"
 
 #include <cstring>
 #include <format>
 #include <iostream>
 
-const char IndexToFigCharMap[Board::BitBoardsCount]{
+const char IndexToFigCharMap[cpu_Board::BitBoardsCount]{
         'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k',
 };
 
@@ -27,7 +27,7 @@ void DisplayMask(const uint64_t mask) {
     }
 }
 
-void DisplayBoard(const Board &bd) {
+void DisplayBoard(const cpu_Board &bd) {
     static constexpr size_t LastRowIndex = 7;
     static constexpr size_t CharsForFig = 3;
     static constexpr size_t FigsPerRow = 8;
@@ -40,7 +40,7 @@ void DisplayBoard(const Board &bd) {
             std::cout << ' ';
 
             bool found = false;
-            for (size_t desc = 0; desc < Board::BitBoardsCount; ++desc) {
+            for (size_t desc = 0; desc < cpu_Board::BitBoardsCount; ++desc) {
                 if ((bd.BitBoards[desc] & field) != 0) {
                     std::cout << IndexToFigCharMap[desc];
                     found = true;
@@ -76,12 +76,12 @@ void DisplayBoard(const Board &bd) {
     static constexpr const char *castlingNames[] = {
             "White King Side", "White Queen Side", "Black King Side", "Black Queen Side"
     };
-    for (size_t i = 0; i < Board::CastlingCount; ++i) {
-        std::cout << castlingNames[i] << ": " << bd.Castlings[i] << std::endl;
+    for (size_t i = 0; i < cpu_Board::CastlingCount; ++i) {
+        std::cout << castlingNames[i] << ": " << bd.GetCastlingRight(i) << std::endl;
     }
 
     std::cout << "El passant field: "
-              << (bd.ElPassantField == Board::InvalidElPassantBitBoard
+              << (bd.ElPassantField == cpu_Board::InvalidElPassantBitBoard
                   ? "-"
                   : ConvertToStrPos(bd.ElPassantField))
               << std::endl;

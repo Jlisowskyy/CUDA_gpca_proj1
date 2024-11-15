@@ -5,24 +5,26 @@
 #ifndef SRC_CPU_CORE_H
 #define SRC_CPU_CORE_H
 
-#include "../data_structs/Board.hpp"
+#include <cassert>
 
 struct cudaDeviceProp;
+struct cpu_Board;
 
-class cpu_core final {
+class CpuCore final {
     // ------------------------------
     // Class creation
     // ------------------------------
 public:
 
-    cpu_core();
-    ~cpu_core();
+    CpuCore();
+    ~CpuCore();
 
     // ------------------------------
     // Class interaction
     // ------------------------------
 
-    void setBoard(const Board &board) {
+    void setBoard(cpu_Board *board) {
+        assert(board != nullptr && "cpu_Board cannot be nullptr");
         m_board = board;
     }
 
@@ -47,7 +49,7 @@ private:
     // Class fields
     // ------------------------------
 
-    Board m_board{};
+    cpu_Board* m_board{};
 
     int m_deviceThreads{};
 };

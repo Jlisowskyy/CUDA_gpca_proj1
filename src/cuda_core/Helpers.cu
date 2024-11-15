@@ -2,7 +2,7 @@
 // Created by Jlisowskyy on 15/11/24.
 //
 
-#include "helpers.cuh"
+#include "Helpers.cuh"
 
 #include <iostream>
 #include <format>

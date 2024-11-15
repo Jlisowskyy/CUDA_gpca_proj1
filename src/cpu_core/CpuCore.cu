@@ -2,9 +2,9 @@
 // Created by Jlisowskyy on 14/11/24.
 //
 
-#include "cpu_core.cuh"
+#include "CpuCore.cuh"
 
-#include "../cuda_core/helpers.cuh"
+#include "../cuda_core/Helpers.cuh"
 
 #include <cuda_runtime.h>
 
@@ -14,25 +14,25 @@
 #include <string>
 #include <cassert>
 
-cpu_core::cpu_core() = default;
+CpuCore::CpuCore() = default;
 
-cpu_core::~cpu_core() = default;
+CpuCore::~CpuCore() = default;
 
-void cpu_core::runCVC() {
+void CpuCore::runCVC() {
     _runSimpleMoveGen();
 }
 
-void cpu_core::runPVC() {
+void CpuCore::runPVC() {
     _runSimpleMoveGen();
 }
 
-void cpu_core::init() {
+void CpuCore::init() {
     const auto [bestDeviceIdx, deviceHardwareThreads] = _pickGpu();
     CUDA_ASSERT_SUCCESS(cudaSetDevice(bestDeviceIdx));
     m_deviceThreads = deviceHardwareThreads;
 }
 
-std::pair<int, int> cpu_core::_pickGpu() {
+std::pair<int, int> CpuCore::_pickGpu() {
     int deviceCount;
 
     std::cout << "Processing CUDA devices..." << std::endl;
@@ -74,7 +74,7 @@ std::pair<int, int> cpu_core::_pickGpu() {
     return {bestDeviceIdx, bestDeviceScore};
 }
 
-void cpu_core::_dumpGPUInfo(const int idx, const cudaDeviceProp &prop) {
+void CpuCore::_dumpGPUInfo(const int idx, const cudaDeviceProp &prop) {
     static constexpr std::string_view INFO_FORMAT =
             R"(Device {}: "{}"
           Compute Capability: {}.{}
@@ -93,7 +93,7 @@ void cpu_core::_dumpGPUInfo(const int idx, const cudaDeviceProp &prop) {
           Compute Mode: {}
           Concurrent Kernels: {}
           ECC Enabled: {}
-          Multi-GPU Board: {}
+          Multi-GPU cpu_Board: {}
           Unified Addressing: {}
 )";
 
@@ -120,7 +120,7 @@ void cpu_core::_dumpGPUInfo(const int idx, const cudaDeviceProp &prop) {
     );
 }
 
-void cpu_core::_runSimpleMoveGen() {
+void CpuCore::_runSimpleMoveGen() {
     assert(m_deviceThreads > 0 && "No device threads available");
 }
 

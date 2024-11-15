@@ -9,12 +9,12 @@
 #include "../../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/bit"
 
 #include "../../utilities/BitOperations.hpp"
-#include "../../data_structs/Board.hpp"
+#include "../../data_structs/cpu_Board.hpp"
 
-[[nodiscard]] constexpr std::array<uint64_t, Board::BitBoardFields>
+[[nodiscard]] constexpr std::array<uint64_t, cpu_Board::BitBoardFields>
 GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *rowCords)
 {
-    std::array<uint64_t, Board::BitBoardFields> movesRet{};
+    std::array<uint64_t, cpu_Board::BitBoardFields> movesRet{};
 
     for (int x = 0; x < 8; ++x)
     {

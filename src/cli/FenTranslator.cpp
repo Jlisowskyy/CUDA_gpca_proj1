@@ -11,9 +11,9 @@
 #include "../move_gen/table_based/tables/BlackPawnMap.hpp"
 #include "../move_gen/table_based/tables/WhitePawnMap.hpp"
 
-bool FenTranslator::Translate(const std::string &fenPos, Board &bd)
+bool FenTranslator::Translate(const std::string &fenPos, cpu_Board &bd)
 {
-    Board workBoard{};
+    cpu_Board workBoard{};
 
     try
     {
@@ -39,7 +39,7 @@ bool FenTranslator::Translate(const std::string &fenPos, Board &bd)
     return true;
 }
 
-std::string FenTranslator::Translate(const Board &board)
+std::string FenTranslator::Translate(const cpu_Board &board)
 {
     std::string fenPos{};
     _extractFiguresEncoding(board, fenPos);
@@ -55,7 +55,7 @@ std::string FenTranslator::Translate(const Board &board)
                                                     : BlackPawnMap::GetElPassantMoveField(board.ElPassantField);
 
     fenPos +=
-        board.ElPassantField == Board::InvalidElPassantBitBoard ? "-" : ConvertToStrPos(FenCompatibleElPassantPosition);
+            board.ElPassantField == cpu_Board::InvalidElPassantBitBoard ? "-" : ConvertToStrPos(FenCompatibleElPassantPosition);
 
 //    fenPos += ' ';
 //    fenPos += std::to_string(board.HalfMoves);
@@ -70,11 +70,11 @@ std::string FenTranslator::Translate(const Board &board)
     return fenPos;
 }
 
-std::string FenTranslator::_extractCastling(const Board &bd)
+std::string FenTranslator::_extractCastling(const cpu_Board &bd)
 {
     std::string str{};
-    for (size_t i = 0; i < Board::CastlingCount; ++i)
-        if (bd.Castlings[i])
+    for (size_t i = 0; i < cpu_Board::CastlingCount; ++i)
+        if (bd.GetCastlingRight(i))
             str += CastlingNames[i];
 
     if (str.empty())
@@ -82,7 +82,7 @@ std::string FenTranslator::_extractCastling(const Board &bd)
     return str;
 }
 
-void FenTranslator::_extractFiguresEncoding(const Board &bd, std::string &fenPos)
+void FenTranslator::_extractFiguresEncoding(const cpu_Board &bd, std::string &fenPos)
 {
     int inSeries{};
 
@@ -120,18 +120,18 @@ void FenTranslator::_extractFiguresEncoding(const Board &bd, std::string &fenPos
 }
 
 std::tuple<FenTranslator::FieldOccup, char, Color>
-FenTranslator::_extractSingleEncoding(const Board &bd, const int bInd)
+FenTranslator::_extractSingleEncoding(const cpu_Board &bd, const int bInd)
 {
     const uint64_t map = 1LLU << bInd;
 
-    for (size_t i = 0; i < Board::BitBoardsCount; ++i)
+    for (size_t i = 0; i < cpu_Board::BitBoardsCount; ++i)
     {
         if ((map & bd.BitBoards[i]) != 0)
         {
-            Color col = i >= Board::BitBoardsPerCol ? BLACK : WHITE;
+            Color col = i >= cpu_Board::BitBoardsPerCol ? BLACK : WHITE;
             char fig;
 
-            switch (i % Board::BitBoardsPerCol)
+            switch (i % cpu_Board::BitBoardsPerCol)
             {
             case pawnsIndex:
                 fig = 'p';
@@ -160,7 +160,7 @@ FenTranslator::_extractSingleEncoding(const Board &bd, const int bInd)
     return {empty, {}, {}};
 }
 
-size_t FenTranslator::_processElPassant(Board &bd, const size_t pos, const std::string &fenPos)
+size_t FenTranslator::_processElPassant(cpu_Board &bd, const size_t pos, const std::string &fenPos)
 {
     if (pos >= fenPos.length())
         throw std::runtime_error("[ ERROR ] Fen position has invalid castling specified!\n");
@@ -192,7 +192,7 @@ size_t FenTranslator::_processElPassant(Board &bd, const size_t pos, const std::
     return pos + 2;
 }
 
-size_t FenTranslator::_processCastlings(Board &bd, size_t pos, const std::string &fenPos)
+size_t FenTranslator::_processCastlings(cpu_Board &bd, size_t pos, const std::string &fenPos)
 {
     if (pos >= fenPos.length())
         throw std::runtime_error("[ ERROR ] Fen position does not contain information about castling!\n");
@@ -231,12 +231,12 @@ size_t FenTranslator::_processCastlings(Board &bd, size_t pos, const std::string
             throw std::runtime_error(std::format("[ ERROR ] Unrecognized castling specifier: {0}!\n", fenPos[pos]));
         }
 
-        if (bd.Castlings[ind])
+        if (bd.GetCastlingRight(ind))
         {
             throw std::runtime_error("[ ERROR ] Repeated same castling at least two time!\n");
         }
 
-        bd.Castlings[ind] = true;
+        bd.SetCastlingRight(ind, true);
         ++processedPos;
         ++pos;
     }
@@ -248,7 +248,7 @@ size_t FenTranslator::_processCastlings(Board &bd, size_t pos, const std::string
     return pos;
 }
 
-size_t FenTranslator::_processMovingColor(Board &bd, const size_t pos, const std::string &fenPos)
+size_t FenTranslator::_processMovingColor(cpu_Board &bd, const size_t pos, const std::string &fenPos)
 {
     // Too short fenPos string or too long moving color specyfing substring.
     if (pos >= fenPos.length() || (pos + 1 < fenPos.length() && !std::isblank(fenPos[pos + 1])))
@@ -267,7 +267,7 @@ size_t FenTranslator::_processMovingColor(Board &bd, const size_t pos, const std
     return pos + 1;
 }
 
-size_t FenTranslator::_processPositions(Board &bd, size_t pos, const std::string &fenPos)
+size_t FenTranslator::_processPositions(cpu_Board &bd, size_t pos, const std::string &fenPos)
 {
     int processedFields   = 0;
     std::string posBuffer = "00";
@@ -288,19 +288,19 @@ size_t FenTranslator::_processPositions(Board &bd, size_t pos, const std::string
             ++processedFields;
         }
 
-        if (processedFields > static_cast<int>(Board::BitBoardFields))
+        if (processedFields > static_cast<int>(cpu_Board::BitBoardFields))
             throw std::runtime_error(std::format("[ ERROR ] Too much fields are used inside passed fen position!\n"));
 
         ++pos;
     }
 
-    if (processedFields < static_cast<int>(Board::BitBoardFields))
+    if (processedFields < static_cast<int>(cpu_Board::BitBoardFields))
         throw std::runtime_error(std::format("[ ERROR ] Not enugh fields are used inside passed fen position!\n"));
 
     return pos;
 }
 
-void FenTranslator::_addFigure(const std::string &pos, char fig, Board &bd)
+void FenTranslator::_addFigure(const std::string &pos, char fig, cpu_Board &bd)
 {
     const auto field = ExtractPosFromStr(pos[0], pos[1]);
 
@@ -341,9 +341,9 @@ size_t FenTranslator::_processMovesCounts(size_t pos, const std::string &fenPos,
     return rv;
 }
 
-Board FenTranslator::GetTranslated(const std::string &fenPos)
+cpu_Board FenTranslator::GetTranslated(const std::string &fenPos)
 {
-    Board rv;
+    cpu_Board rv;
     if (!Translate(fenPos, rv))
         rv = GetDefault();
     return rv;

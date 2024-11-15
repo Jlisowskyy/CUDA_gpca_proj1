@@ -9,7 +9,7 @@
 #include <string>
 #include <vector>
 
-#include "CompilationConstants.hpp"
+#include "../utilities/CompilationConstants.hpp"
 
 /*
  * Class gathers various tools and utilities used to parse strings.

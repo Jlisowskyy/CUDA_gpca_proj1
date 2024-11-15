@@ -6,7 +6,7 @@
 #define CHESSMECHANICS_H
 
 #include "../../utilities/BitOperations.hpp"
-#include "../../data_structs/Board.hpp"
+#include "../../data_structs/cpu_Board.hpp"
 
 #include "tables/BishopMap.hpp"
 #include "../../data_structs/Move.hpp"
