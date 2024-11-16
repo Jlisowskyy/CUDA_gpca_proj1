@@ -15,7 +15,7 @@ struct cudaDeviceProp;
 using TestFunc = void (*)(int, const cudaDeviceProp &deviceProps);
 
 /* test funcs */
-void FancyMagicTest(int blockSize, const cudaDeviceProp &deviceProps);
+void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps);
 
 /* test mapping */
 static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> CudaTestsMap = {
@@ -27,15 +27,6 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
                         &FancyMagicTest
                 )
         }
-        // Add more test entries here in the same format:
-        // {
-        //     "TestIdentifier",
-        //     std::make_tuple(
-        //         "Test Display Name",
-        //         "Test Description",
-        //         &TestFunctionName
-        //     )
-        // }
 };
 
 #endif //SRC_CUDATESTS_CUH

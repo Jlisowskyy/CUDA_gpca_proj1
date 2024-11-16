@@ -67,10 +67,10 @@ std::tuple<int, int, cudaDeviceProp *> CpuCore::_pickGpu() {
 
         _dumpGPUInfo(i, prop);
 
-        const int MaxThreadsPerBlock = prop.maxThreadsPerBlock * prop.multiProcessorCount;
+        const int MaxThreadsPerSM = prop.maxThreadsPerMultiProcessor * prop.multiProcessorCount;
 
-        if (MaxThreadsPerBlock > bestDeviceScore) {
-            bestDeviceScore = MaxThreadsPerBlock;
+        if (MaxThreadsPerSM > bestDeviceScore) {
+            bestDeviceScore = MaxThreadsPerSM;
             bestDeviceIdx = i;
             bestDeviceName = prop.name;
         }
