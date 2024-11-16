@@ -9,7 +9,7 @@
 #include "../../data_structs/cpu_Board.hpp"
 
 #include "tables/BishopMap.hpp"
-#include "../../data_structs/Move.hpp"
+#include "../../data_structs/cpu_Move.hpp"
 #include "tables/RookMap.hpp"
 #include "tables/KnightMap.hpp"
 #include "tables/KingMap.hpp"

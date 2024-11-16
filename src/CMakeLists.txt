@@ -41,6 +41,7 @@ set(CUDA_SOURCES main.cu
         cuda_core/cuda_BitOperations.cuh
         cuda_core/cuda_Board.cuh
         cuda_core/Move.cuh
+        cuda_core/BaseMoveHashMap.cuh
 )
 
 

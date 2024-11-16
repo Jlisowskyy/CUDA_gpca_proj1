@@ -14,7 +14,7 @@
 #include "tables/KnightMap.hpp"
 #include "tables/QueenMap.hpp"
 #include "tables/RookMap.hpp"
-#include "../../data_structs/Move.hpp"
+#include "../../data_structs/cpu_Move.hpp"
 
 #include <array>
 #include <map>

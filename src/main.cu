@@ -7,6 +7,8 @@
 
 #include "cuda_core/Move.cuh"
 
+#include "cuda_core/BaseMoveHashMap.cuh"
+
 
 int main() {
     CpuCore core{};
