@@ -13,7 +13,7 @@
 #include "MoveGenerationUtils.cuh"
 #include "Helpers.cuh"
 
-__device__ static constexpr size_t DirectedMaskCount = 4;
+__device__ static constexpr size_t rook_DirectedMaskCount = 4;
 __device__ static constexpr size_t MaxRookPossibleNeighborsWoutOverlap = 144;
 __device__ static constexpr size_t MaxRookPossibleNeighborsWithOverlap = 4096;
 __device__ static constexpr int NorthOffset = 8;
@@ -23,7 +23,7 @@ __device__ static constexpr int EastOffset = 1;
 
 class RookMapGenerator {
 public:
-    using MasksT = cuda_Array<__uint64_t, DirectedMaskCount>;
+    using MasksT = cuda_Array<__uint64_t, rook_DirectedMaskCount>;
 
     // ---------------------------------------
     // Class creation and initialization
@@ -39,7 +39,7 @@ public:
         constexpr int SouthBarrier = 7;
         constexpr int NorthBarrier = 56;
 
-        cuda_Array<__uint64_t, DirectedMaskCount> ret{};
+        cuda_Array<__uint64_t, rook_DirectedMaskCount> ret{};
 
         // Mask generation.
         const int westBarrier = (bInd / 8) * 8;

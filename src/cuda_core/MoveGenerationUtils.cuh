@@ -96,7 +96,7 @@ GenSlidingMoves(const __uint64_t neighbors, const int bInd, const int offset, co
 template<class MoveGeneratorT, class NeighborGeneratorT, class NeigborStripT, class MapT>
 __device__ constexpr void
 MoveInitializer(MapT &map, MoveGeneratorT mGen, NeighborGeneratorT nGen, NeigborStripT nStrip, const int bInd) {
-    const auto [possibilities, posSize] = nGen(bInd, map.getMasks());
+    const auto [possibilities, posSize] = nGen(map.getMasks());
 
     for (size_t j = 0; j < posSize; ++j) {
         const __uint64_t strippedNeighbors = nStrip(possibilities[j], map.getMasks());

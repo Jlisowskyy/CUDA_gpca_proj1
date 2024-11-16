@@ -5,8 +5,7 @@
 #include "cli/Cli.hpp"
 #include "cpu_core/CpuCore.cuh"
 
-//#include "cuda_core/FancyMagicBishopMap.cuh"
-#include "cuda_core/FancyMagicRookMap.cuh"
+#include "cuda_core/BishopMap.cuh"
 
 int main() {
     CpuCore core{};

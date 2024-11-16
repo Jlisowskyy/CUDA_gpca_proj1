@@ -161,15 +161,9 @@ public:
 
             MoveInitializer(
                     _maps[i],
-                    [](const __uint64_t n, const int ind) constexpr {
-                        return BishopMapGenerator::GenMoves(n, ind);
-                    },
-                    []([[maybe_unused]] const int, const BishopMapGenerator::MasksT &m) constexpr {
-                        return BishopMapGenerator::GenPossibleNeighborsWithOverlap(m);
-                    },
-                    [](const __uint64_t b, const BishopMapGenerator::MasksT &m) constexpr {
-                        return BishopMapGenerator::StripBlockingNeighbors(b, m);
-                    },
+                    &BishopMapGenerator::GenMoves,
+                    &BishopMapGenerator::GenPossibleNeighborsWithOverlap,
+                    &BishopMapGenerator::StripBlockingNeighbors,
                     boardIndex
             );
         }

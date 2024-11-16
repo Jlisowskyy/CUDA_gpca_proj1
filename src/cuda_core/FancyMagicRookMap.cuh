@@ -157,15 +157,9 @@ public:
 
             MoveInitializer(
                     m_maps[i],
-                    [](const uint64_t n, const int ind) constexpr {
-                        return RookMapGenerator::GenMoves(n, ind);
-                    },
-                    []([[maybe_unused]] const int, const RookMapGenerator::MasksT &m) constexpr {
-                        return RookMapGenerator::GenPossibleNeighborsWithOverlap(m);
-                    },
-                    [](const uint64_t b, const RookMapGenerator::MasksT &m) constexpr {
-                        return RookMapGenerator::StripBlockingNeighbors(b, m);
-                    },
+                    &RookMapGenerator::GenMoves,
+                    &RookMapGenerator::GenPossibleNeighborsWithOverlap,
+                    &RookMapGenerator::StripBlockingNeighbors,
                     boardIndex
             );
         }
