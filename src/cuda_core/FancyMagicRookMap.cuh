@@ -147,7 +147,7 @@ class FancyMagicRookMap {
     using _underlyingMapT = BaseMoveHashMap<MaxRookPossibleNeighborsWithOverlap>;
 
 public:
-    __device__ constexpr FancyMagicRookMap() {
+    HYBRID constexpr FancyMagicRookMap() {
         for (int i = 0; i < static_cast<int>(BitBoardFields); ++i) {
             const int boardIndex = ConvertToReversedPos(i);
             const __uint64_t magic = MAGICS_ROOK_PARAMS[i];
@@ -165,7 +165,7 @@ public:
         }
     }
 
-    [[nodiscard]] __device__ constexpr uint64_t GetMoves(int msbInd, uint64_t fullBoard) const {
+    [[nodiscard]] HYBRID constexpr uint64_t GetMoves(int msbInd, uint64_t fullBoard) const {
         const uint64_t neighbors = fullBoard & m_maps[msbInd].getFullMask();
         return m_maps[msbInd][neighbors];
     }

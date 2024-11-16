@@ -35,7 +35,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ constexpr static MasksT InitMasks(int bInd) {
+    [[nodiscard]] HYBRID constexpr static MasksT InitMasks(int bInd) {
         constexpr int SouthBarrier = 7;
         constexpr int NorthBarrier = 56;
 
@@ -60,7 +60,7 @@ public:
         return ret;
     }
 
-    [[nodiscard]] __device__ constexpr static __uint64_t GenMoves(__uint64_t neighborsWoutOverlap, int bInd) {
+    [[nodiscard]] HYBRID constexpr static __uint64_t GenMoves(__uint64_t neighborsWoutOverlap, int bInd) {
         constexpr int northBarrier = 64;
         constexpr int southBarrier = -1;
         const int westBarrier = (bInd / 8) * 8 - 1;
@@ -92,7 +92,7 @@ public:
     }
 
 
-    [[nodiscard]] __device__ constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap>, size_t>
+    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap>, size_t>
     GenPossibleNeighborsWoutOverlap(int bInd, const MasksT &masks) {
         cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap> ret{};
         size_t usedFields = 0;
@@ -133,7 +133,7 @@ public:
         return {ret, usedFields};
     }
 
-    [[nodiscard]] __device__ constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap>, size_t>
+    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap>, size_t>
     GenPossibleNeighborsWithOverlap(const MasksT &masks) {
         cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap> ret{};
         const __uint64_t fullMask = masks[nMask] | masks[sMask] | masks[eMask] | masks[wMask];
@@ -143,7 +143,7 @@ public:
         return {ret, usedFields};
     }
 
-    [[nodiscard]] __device__ static constexpr size_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
+    [[nodiscard]] HYBRID static constexpr size_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
         const int westCount = cuda_max(1, x);
         const int southCount = cuda_max(1, y);
         const int northCount = cuda_max(1, 7 - y);
@@ -152,7 +152,7 @@ public:
         return westCount * eastCount * southCount * northCount;
     }
 
-    [[nodiscard]] __device__ static constexpr __uint64_t
+    [[nodiscard]] HYBRID static constexpr __uint64_t
     StripBlockingNeighbors(__uint64_t fullBoard, const MasksT &masks) {
         const __uint64_t northPart = ExtractLsbBit(fullBoard & masks[nMask]);
         const __uint64_t southPart = ExtractMsbBitConstexpr(fullBoard & masks[sMask]);

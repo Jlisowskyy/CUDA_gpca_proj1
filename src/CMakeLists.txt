@@ -43,12 +43,16 @@ set(CUDA_SOURCES main.cu
 
 
 add_executable(src ${CUDA_SOURCES} ${CXX_SOURCES})
-add_executable(src_test main.cpp ${CXX_SOURCES})
+#add_executable(src_test main.cpp ${CXX_SOURCES})
 
 set_target_properties(src PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON)
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
 set_source_files_properties(
         ${CUDA_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "--extended-lambda"
+        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr"
 )
+
+# custom compile define
+target_compile_definitions(src PRIVATE -DTESTING=\"magic_test\")

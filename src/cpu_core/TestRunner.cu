@@ -24,7 +24,7 @@ void TestRunner::runTests() {
         TestFunc testFunc{};
 
         while ((parseResult = _parseTestInput(testFunc)) == TestParseResult::FAILURE) {
-            std::cerr << "Invalid input, please try again" << std::endl;
+            std::cout << "Invalid input, please try again" << std::endl;
         }
 
         if (parseResult == TestParseResult::SUCCESS) {
@@ -57,8 +57,10 @@ void TestRunner::_displayWelcomeMessage() {
 }
 
 TestRunner::TestParseResult TestRunner::_parseTestInput(TestFunc &out_testFunc) {
+    std::cout << "Enter test code: ";
+
     std::string input;
-    std::cin >> input;
+    std::getline(std::cin, input);
 
     if (input == "exit") {
         return TestRunner::TestParseResult::EXIT;

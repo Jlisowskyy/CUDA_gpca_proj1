@@ -17,32 +17,32 @@ bool TraceError(cudaError_t error, const char *file, int line);
 #define HYBRID __host__ __device__
 
 template<typename T>
-__device__ constexpr bool less_equal_comp(const T &a, const T &b) {
+HYBRID constexpr bool less_equal_comp(const T &a, const T &b) {
     return a <= b;
 }
 
 template<typename T>
-__device__ constexpr bool greater_equal_comp(const T &a, const T &b) {
+HYBRID constexpr bool greater_equal_comp(const T &a, const T &b) {
     return a >= b;
 }
 
 template<typename T>
-__device__ constexpr bool less_comp(const T &a, const T &b) {
+HYBRID constexpr bool less_comp(const T &a, const T &b) {
     return a < b;
 }
 
 template<typename T>
-__device__ constexpr bool greater_comp(const T &a, const T &b) {
+HYBRID constexpr bool greater_comp(const T &a, const T &b) {
     return a > b;
 }
 
 template<typename T>
-__device__ constexpr T cuda_min(T a, T b) {
+HYBRID constexpr T cuda_min(T a, T b) {
     return a < b ? a : b;
 }
 
 template<typename T>
-__device__ constexpr T cuda_max(T a, T b) {
+HYBRID constexpr T cuda_max(T a, T b) {
     return a > b ? a : b;
 }
 

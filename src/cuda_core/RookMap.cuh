@@ -7,7 +7,7 @@
 
 #include "FancyMagicRookMap.cuh"
 
-__device__ static constexpr FancyMagicBishopMap G_ROOK_FANCY_MAP_INSTANCE{};
+static __device__ FancyMagicRookMap* G_ROOK_FANCY_MAP_INSTANCE{};
 
 class RookMap {
     // ---------------------------------------
@@ -25,8 +25,8 @@ public:
 
     [[nodiscard]] __device__ static constexpr size_t GetBoardIndex(int color) { return BitBoardsPerCol * color + rooksIndex; }
 
-    [[nodiscard]] __device__ static constexpr uint64_t GetMoves(int msbInd, uint64_t fullBoard, [[maybe_unused]] uint64_t = 0) {
-        return G_ROOK_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
+    [[nodiscard]] __device__ static uint64_t GetMoves(int msbInd, uint64_t fullBoard, [[maybe_unused]] uint64_t = 0) {
+        return G_ROOK_FANCY_MAP_INSTANCE->GetMoves(msbInd, fullBoard);
     }
 
     [[nodiscard]] __device__ static constexpr size_t GetMatchingCastlingIndex(const cuda_Board &bd, uint64_t figBoard) {

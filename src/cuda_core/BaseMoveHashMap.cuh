@@ -24,7 +24,7 @@ public:
 
     constexpr ~BaseMoveHashMap() = default;
 
-    __device__ constexpr explicit BaseMoveHashMap(const cuda_Array<__uint64_t, MASKS_COUNT> &nMasks, __uint64_t nMagic,
+    HYBRID constexpr explicit BaseMoveHashMap(const cuda_Array<__uint64_t, MASKS_COUNT> &nMasks, __uint64_t nMagic,
                                                   __uint64_t nShift)
             : m_masks(nMasks), m_magic(nMagic), m_shift(nShift),
                 m_fullMask(nMasks[0] | nMasks[1] | nMasks[2] | nMasks[3]), m_map{0} {
@@ -42,21 +42,21 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ constexpr __uint64_t hashFunc(const __uint64_t val) const {
+    [[nodiscard]] HYBRID constexpr __uint64_t hashFunc(const __uint64_t val) const {
         return (val * m_magic) >> (64LLU - m_shift);
     }
 
-    [[nodiscard]] __device__ constexpr const __uint64_t &operator[](const __uint64_t neighbors) const {
+    [[nodiscard]] HYBRID constexpr const __uint64_t &operator[](const __uint64_t neighbors) const {
         return m_map[hashFunc(neighbors)];
     }
 
-    [[nodiscard]] __device__ constexpr __uint64_t &operator[](const __uint64_t neighbors) {
+    [[nodiscard]] HYBRID constexpr __uint64_t &operator[](const __uint64_t neighbors) {
         return m_map[hashFunc(neighbors)];
     }
 
-    [[nodiscard]] __device__ constexpr __uint64_t getFullMask() const { return m_fullMask; }
+    [[nodiscard]] HYBRID constexpr __uint64_t getFullMask() const { return m_fullMask; }
 
-    [[nodiscard]] __device__ constexpr const cuda_Array<__uint64_t, MASKS_COUNT> &getMasks() const { return m_masks; }
+    [[nodiscard]] HYBRID constexpr const cuda_Array<__uint64_t, MASKS_COUNT> &getMasks() const { return m_masks; }
 
     // ------------------------------
     // Class fields

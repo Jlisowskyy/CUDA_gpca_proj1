@@ -11,7 +11,7 @@
 #include "cuda_BitOperations.cuh"
 #include "cuda_Array.cuh"
 
-__device__ [[nodiscard]] constexpr cuda_Array<__uint64_t, BitBoardFields>
+HYBRID [[nodiscard]] constexpr cuda_Array<__uint64_t, BitBoardFields>
 GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *rowCords) {
     cuda_Array<__uint64_t, BitBoardFields> movesRet{};
 
@@ -38,7 +38,7 @@ GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *row
 }
 
 template<class NeighborCountingFuncT>
-__device__ [[nodiscard]] constexpr size_t
+HYBRID [[nodiscard]] constexpr size_t
 CalculateTotalOfPossibleHashMapElements(NeighborCountingFuncT func) {
     size_t sum{};
     for (int x = 0; x < 8; ++x) {
@@ -52,7 +52,7 @@ CalculateTotalOfPossibleHashMapElements(NeighborCountingFuncT func) {
 }
 
 template<class ComparisonMethodT>
-__device__ [[nodiscard]] constexpr __uint64_t
+HYBRID [[nodiscard]] constexpr __uint64_t
 GenMask(const int barrier, int boardIndex, const int offset, ComparisonMethodT comp) {
     __uint64_t mask = 0;
 
@@ -61,14 +61,14 @@ GenMask(const int barrier, int boardIndex, const int offset, ComparisonMethodT c
     return mask;
 }
 
-__device__ [[nodiscard]] constexpr __uint64_t
+HYBRID [[nodiscard]] constexpr __uint64_t
 GenMask(const int startInd, const int boarderIndex, const int offset) {
     __uint64_t ret = 0;
     for (int i = startInd; i < boarderIndex; i += offset) ret |= (1LLU << i);
     return ret;
 }
 
-__device__ [[nodiscard]] constexpr size_t
+HYBRID [[nodiscard]] constexpr size_t
 
 MyCeil(const double x) {
     return (static_cast<double>(static_cast<size_t>(x)) == x) ? static_cast<size_t>(x)
@@ -76,9 +76,9 @@ MyCeil(const double x) {
 }
 
 
-template<class BoundryCheckFuncT>
-__device__ constexpr __uint64_t
-GenSlidingMoves(const __uint64_t neighbors, const int bInd, const int offset, const int boundary, BoundryCheckFuncT boundaryCheck) {
+template<class BoundaryCheckFuncT>
+HYBRID constexpr __uint64_t
+GenSlidingMoves(const __uint64_t neighbors, const int bInd, const int offset, const int boundary, BoundaryCheckFuncT boundaryCheck) {
     __uint64_t ret = 0;
     int actPos = bInd;
 
@@ -93,9 +93,9 @@ GenSlidingMoves(const __uint64_t neighbors, const int bInd, const int offset, co
     return ret;
 }
 
-template<class MoveGeneratorT, class NeighborGeneratorT, class NeigborStripT, class MapT>
-__device__ constexpr void
-MoveInitializer(MapT &map, MoveGeneratorT mGen, NeighborGeneratorT nGen, NeigborStripT nStrip, const int bInd) {
+template<class MoveGeneratorT, class NeighborGeneratorT, class NeighborStripT, class MapT>
+HYBRID constexpr void
+MoveInitializer(MapT &map, MoveGeneratorT mGen, NeighborGeneratorT nGen, NeighborStripT nStrip, const int bInd) {
     const auto [possibilities, posSize] = nGen(map.getMasks());
 
     for (size_t j = 0; j < posSize; ++j) {
