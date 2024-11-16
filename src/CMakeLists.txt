@@ -3,6 +3,7 @@ project(src CUDA CXX C)
 
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CUDA_STANDARD 20)
 
 set(CXX_SOURCES
         cli/FenTranslator.hpp
@@ -51,7 +52,7 @@ set_target_properties(src PROPERTIES
 
 set_source_files_properties(
         ${CUDA_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr"
+        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-G"
 )
 
 # custom compile define
