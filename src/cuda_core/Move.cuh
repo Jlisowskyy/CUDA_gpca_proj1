@@ -6,7 +6,6 @@
 #define CUDA_MOVE_CUH
 
 #include <cuda_runtime.h>
-#include <thrust/pair.h>
 
 #include "cuda_Board.cuh"
 

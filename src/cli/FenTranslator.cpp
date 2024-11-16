@@ -8,8 +8,6 @@
 #include <format>
 
 #include "ParseTools.hpp"
-#include "../move_gen/table_based/tables/BlackPawnMap.hpp"
-#include "../move_gen/table_based/tables/WhitePawnMap.hpp"
 
 bool FenTranslator::Translate(const std::string &fenPos, cpu_Board &bd)
 {
@@ -51,8 +49,8 @@ std::string FenTranslator::Translate(const cpu_Board &board)
 
     // inner representation points to position made with long pawn move
     const auto FenCompatibleElPassantPosition = board.MovingColor == WHITE
-                                                    ? WhitePawnMap::GetElPassantMoveField(board.ElPassantField)
-                                                    : BlackPawnMap::GetElPassantMoveField(board.ElPassantField);
+                                                    ? board.ElPassantField << 8
+                                                    : board.ElPassantField >> 8;
 
     fenPos +=
             board.ElPassantField == cpu_Board::InvalidElPassantBitBoard ? "-" : ConvertToStrPos(FenCompatibleElPassantPosition);
@@ -186,8 +184,9 @@ size_t FenTranslator::_processElPassant(cpu_Board &bd, const size_t pos, const s
     bd.ElPassantField = boardPos;
 
     // inner representation points to position made with long pawn move
-    bd.ElPassantField = bd.MovingColor == WHITE ? BlackPawnMap::GetElPassantMoveField(bd.ElPassantField)
-                                                : WhitePawnMap::GetElPassantMoveField(bd.ElPassantField);
+    bd.ElPassantField = bd.MovingColor == WHITE
+                        ? bd.ElPassantField << 8
+                        : bd.ElPassantField >> 8;
 
     return pos + 2;
 }

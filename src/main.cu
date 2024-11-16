@@ -5,10 +5,7 @@
 #include "cli/Cli.hpp"
 #include "cpu_core/CpuCore.cuh"
 
-#include "cuda_core/Move.cuh"
-
-#include "cuda_core/BaseMoveHashMap.cuh"
-
+#include "cuda_core/RookMapGenerator.cuh"
 
 int main() {
     CpuCore core{};

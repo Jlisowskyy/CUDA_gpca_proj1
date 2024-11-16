@@ -5,18 +5,6 @@ set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
 
 set(CXX_SOURCES
-#        utilities/BitOperations.hpp
-#        move_gen/table_based/base_tables/BaseMoveHashMap.hpp
-#        move_gen/table_based/base_tables/FancyMagicRookMap.hpp
-#        move_gen/table_based/MoveGenerationUtils.hpp
-#        move_gen/table_based/base_tables/RookMapGenerator.hpp
-#        move_gen/table_based/base_tables/BishopMapGenerator.hpp
-#        move_gen/table_based/base_tables/FancyMagicBishopMap.hpp
-#        move_gen/table_based/tables/BishopMap.hpp
-#        move_gen/table_based/tables/RookMap.hpp
-#        move_gen/table_based/tables/RookMap.cpp
-#        move_gen/table_based/tables/KingMap.hpp
-#        move_gen/table_based/ChessMechanics.hpp
         cli/FenTranslator.hpp
         cli/FenTranslator.cpp
         cli/EngineUtils.cpp
@@ -26,10 +14,7 @@ set(CXX_SOURCES
         cli/ParseTools.hpp
         cli/Cli.cpp
         cli/Cli.hpp
-#        move_gen/table_based/MoveGenerator.hpp
-#        move_gen/table_based/MoveGenerator.cpp
         data_structs/cpu_Board.hpp
-#        data_structs/cuda_Move.hpp
         utilities/BoardDefs.hpp
 )
 
@@ -42,6 +27,10 @@ set(CUDA_SOURCES main.cu
         cuda_core/cuda_Board.cuh
         cuda_core/Move.cuh
         cuda_core/BaseMoveHashMap.cuh
+        cuda_core/MoveGenerationUtils.cuh
+        cuda_core/cuda_Array.cuh
+        cuda_core/BishopMapGenerator.cuh
+        cuda_core/RookMapGenerator.cuh
 )
 
 
@@ -50,3 +39,8 @@ add_executable(src_test main.cpp ${CXX_SOURCES})
 
 set_target_properties(src PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON)
+
+set_source_files_properties(
+        ${CUDA_SOURCES}
+        PROPERTIES COMPILE_OPTIONS "--extended-lambda"
+)

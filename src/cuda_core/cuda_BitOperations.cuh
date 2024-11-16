@@ -7,6 +7,9 @@
 
 #include "Helpers.cuh"
 
+#include <cuda_runtime.h>
+#include <cuda_device_runtime_api.h>
+
 /* This values should be used inside every shifting operation to ensure correct types under the operation */
 __device__ static constexpr __uint64_t cuda_MinMsbPossible = static_cast<__uint64_t>(1);
 __device__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible << 63;
@@ -28,7 +31,7 @@ HYBRID constexpr int ConvertToReversedPos(const int x) {
     return x ^ 63; // equals to 63 - x;
 }
 
-__device__ int SwapColor(const int col) { return col ^ 1; }
+__device__ constexpr int SwapColor(const int col) { return col ^ 1; }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
 __device__ int ExtractMsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }
@@ -40,7 +43,7 @@ __device__ int ExtractLsbPos(const __uint64_t x) { return __ffsll(static_cast<__
 __device__ int ExtractLsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractLsbPos(x)); }
 
 /* Function does nothing, simply returns given value */
-__device__ int NoOp(const int m) { return m; }
+__device__ constexpr int NoOp(const int m) { return m; }
 
 /* Functions returns BitMap with MsbPos as 1 */
 __device__ __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) { return cuda_MaxMsbPossible >> ExtractMsbPos(x); }
@@ -49,16 +52,16 @@ __device__ __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) { return cuda_Max
 __device__ __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) { return cuda_MinMsbPossible << ExtractLsbReversedPos(x); }
 
 /* Functions returns BitMap with LsbPos as 1 */
-__device__ __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
+__device__ constexpr __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
 
 /* Functions returns BitMap with MsbPos as 1, with additional check whether given argument is 0 */
-__device__ __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
+__device__ constexpr __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
 
 /* Functions returns BitMap with LsbPos as 1 */
-__device__ __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }
+__device__ constexpr __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }
 
 /* Function simply returns a map with remove all bits that are present on b*/
-__device__ __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) { return a ^ (a & b); }
+__device__ constexpr __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) { return a ^ (a & b); }
 
 /* Function simply counts ones on the given BitMap*/
 __device__ int CountOnesInBoard(const __uint64_t bitMap) { return __popcll(bitMap); }
@@ -73,7 +76,7 @@ __device__ int CountSameBits(const __uint64_t a, const __uint64_t b) { return __
  */
 
 template<class IndexableT>
-__device__ void
+__device__ constexpr void
 GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container, size_t &containerPos) {
     if (bitPos == -1 || number == 0)
         return;
@@ -95,7 +98,7 @@ GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, Inde
 }
 
 template<class IndexableT>
-__device__ size_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
+__device__ constexpr size_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
     container[0] = 0;
     size_t index = 1;
 
