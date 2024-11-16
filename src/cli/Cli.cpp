@@ -12,6 +12,7 @@
 #include "../data_structs/cpu_Board.hpp"
 #include "FenTranslator.hpp"
 #include "../cpu_core/CpuCore.cuh"
+#include "../cpu_core/TestRunner.cuh"
 
 Cli::~Cli() {
     delete m_board;
@@ -94,6 +95,9 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
         case RC_GameTypeLod::PLAYER_VS_COMPUTER:
             m_core->runPVC();
             break;
+        case RC_GameTypeLod::TEST:
+            TestRunner(m_core).runTests();
+            break;
         default:
             assert(false && "Invalid game type provided!");
     }
@@ -116,6 +120,11 @@ Cli::RC_GameTypeLod Cli::_loadGameType() const {
     if (input == "pvc") {
         std::cout << "Player vs Computer game started!" << std::endl;
         return RC_GameTypeLod::PLAYER_VS_COMPUTER;
+    }
+
+    if (input == "test") {
+        std::cout << "Entering dev tes mode!" << std::endl;
+        return RC_GameTypeLod::TEST;
     }
 
     std::cout << "Invalid game type provided!" << std::endl;

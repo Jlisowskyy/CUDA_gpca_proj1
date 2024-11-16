@@ -35,6 +35,10 @@ set(CUDA_SOURCES main.cu
         cuda_core/FancyMagicRookMap.cuh
         cuda_core/BishopMap.cuh
         cuda_core/RookMap.cuh
+        cpu_core/TestRunner.cu
+        cpu_core/TestRunner.cuh
+        tests/CudaTests.cuh
+        tests/FancyMagicTest.cu
 )
 
 

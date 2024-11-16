@@ -25,6 +25,7 @@ class Cli final {
         COMPUTER_VS_COMPUTER,
         PLAYER_VS_COMPUTER,
         FAILURE,
+        TEST,
         EXIT
     };
 

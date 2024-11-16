@@ -8,6 +8,8 @@
 struct cudaDeviceProp;
 struct cpu_Board;
 
+#include <tuple>
+
 class CpuCore final {
     // ------------------------------
     // Class creation
@@ -29,12 +31,20 @@ public:
 
     void init();
 
+    [[nodiscard]] int getDeviceThreads() const {
+        return m_deviceThreads;
+    }
+
+    [[nodiscard]] const cudaDeviceProp& getDeviceProps() const {
+        return *m_deviceProps;
+    }
+
     // ------------------------------
     // Class private methods
     // ------------------------------
 private:
 
-    std::pair<int, int> _pickGpu();
+    std::tuple<int, int, cudaDeviceProp *> _pickGpu();
 
     void _dumpGPUInfo(int idx, const cudaDeviceProp &props);
 
@@ -47,6 +57,8 @@ private:
     cpu_Board* m_board{};
 
     int m_deviceThreads{};
+
+    cudaDeviceProp *m_deviceProps{};
 };
 
 

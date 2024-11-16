@@ -16,7 +16,9 @@
 
 CpuCore::CpuCore() = default;
 
-CpuCore::~CpuCore() = default;
+CpuCore::~CpuCore() {
+    delete m_deviceProps;
+}
 
 void CpuCore::runCVC() {
     _runSimpleMoveGen();
@@ -27,12 +29,16 @@ void CpuCore::runPVC() {
 }
 
 void CpuCore::init() {
-    const auto [bestDeviceIdx, deviceHardwareThreads] = _pickGpu();
+    const auto [bestDeviceIdx, deviceHardwareThreads, deviceProps] = _pickGpu();
+
+    assert(deviceProps != nullptr && "Device properties cannot be nullptr");
     CUDA_ASSERT_SUCCESS(cudaSetDevice(bestDeviceIdx));
+
     m_deviceThreads = deviceHardwareThreads;
+    m_deviceProps = deviceProps;
 }
 
-std::pair<int, int> CpuCore::_pickGpu() {
+std::tuple<int, int, cudaDeviceProp *> CpuCore::_pickGpu() {
     int deviceCount;
 
     std::cout << "Processing CUDA devices..." << std::endl;
@@ -49,6 +55,8 @@ std::pair<int, int> CpuCore::_pickGpu() {
     int bestDeviceIdx = 0;
     int bestDeviceScore = 0;
     std::string bestDeviceName{};
+    cudaDeviceProp *bestDeviceProps = nullptr;
+    bestDeviceProps = new cudaDeviceProp;
 
     for (int i = 0; i < deviceCount; i++) {
         cudaDeviceProp prop{};
@@ -71,7 +79,8 @@ std::pair<int, int> CpuCore::_pickGpu() {
     std::cout << std::format("Device chosen for computation: {} ({}) with {} threads available.", bestDeviceName,
                              bestDeviceIdx, bestDeviceScore) << std::endl;
 
-    return {bestDeviceIdx, bestDeviceScore};
+    CUDA_ASSERT_SUCCESS(cudaGetDeviceProperties(bestDeviceProps, bestDeviceIdx));
+    return {bestDeviceIdx, bestDeviceScore, bestDeviceProps};
 }
 
 void CpuCore::_dumpGPUInfo(const int idx, const cudaDeviceProp &prop) {
