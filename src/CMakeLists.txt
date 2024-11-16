@@ -31,6 +31,8 @@ set(CUDA_SOURCES main.cu
         cuda_core/cuda_Array.cuh
         cuda_core/BishopMapGenerator.cuh
         cuda_core/RookMapGenerator.cuh
+        cuda_core/FancyMagicBishopMap.cuh
+        cuda_core/FancyMagicRookMap.cuh
 )
 
 
