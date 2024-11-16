@@ -158,8 +158,8 @@ public:
     StripBlockingNeighbors(__uint64_t fullBoard, const MasksT &masks) {
         const __uint64_t NWPart = ExtractLsbBit(fullBoard & masks[nwMask]);
         const __uint64_t NEPart = ExtractLsbBit(fullBoard & masks[neMask]);
-        const __uint64_t SWPart = ExtractMsbBit(fullBoard & masks[swMask]);
-        const __uint64_t SEPart = ExtractMsbBit(fullBoard & masks[seMask]);
+        const __uint64_t SWPart = ExtractMsbBitConstexpr(fullBoard & masks[swMask]);
+        const __uint64_t SEPart = ExtractMsbBitConstexpr(fullBoard & masks[seMask]);
         return NWPart | NEPart | SWPart | SEPart;
     }
 

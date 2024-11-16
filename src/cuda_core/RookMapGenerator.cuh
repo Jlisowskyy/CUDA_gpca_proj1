@@ -155,8 +155,8 @@ public:
     [[nodiscard]] __device__ static constexpr __uint64_t
     StripBlockingNeighbors(__uint64_t fullBoard, const MasksT &masks) {
         const __uint64_t northPart = ExtractLsbBit(fullBoard & masks[nMask]);
-        const __uint64_t southPart = ExtractMsbBit(fullBoard & masks[sMask]);
-        const __uint64_t westPart = ExtractMsbBit(fullBoard & masks[wMask]);
+        const __uint64_t southPart = ExtractMsbBitConstexpr(fullBoard & masks[sMask]);
+        const __uint64_t westPart = ExtractMsbBitConstexpr(fullBoard & masks[wMask]);
         const __uint64_t eastPart = ExtractLsbBit(fullBoard & masks[eMask]);
         return northPart | southPart | westPart | eastPart;
     }

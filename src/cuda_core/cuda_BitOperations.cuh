@@ -26,6 +26,22 @@ __device__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible
 /* Function efficiently computes MsbPos */
 __device__ int ExtractMsbPos(const __uint64_t x) { return __clzll(static_cast<int64_t>(x)); }
 
+__device__ constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
+    if (x == 0) {
+        return 0;
+    }
+
+    __uint64_t cursor = cuda_MaxMsbPossible;
+    int count = 0;
+
+    while ((cursor & x) == 0) {
+        cursor >>= 1;
+        ++count;
+    }
+
+    return count;
+}
+
 /* Nice way to reverse from MsbPos to LsbPos and other way around */
 HYBRID constexpr int ConvertToReversedPos(const int x) {
     return x ^ 63; // equals to 63 - x;
@@ -55,7 +71,11 @@ __device__ __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) { return cuda_Min
 __device__ constexpr __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
 
 /* Functions returns BitMap with MsbPos as 1, with additional check whether given argument is 0 */
-__device__ constexpr __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
+__device__ __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
+
+__device__ constexpr __uint64_t ExtractMsbBitConstexpr(const __uint64_t x) {
+    return x == 0 ? 0 : (cuda_MaxMsbPossible >> ExtractMsbPosConstexpr(x));
+}
 
 /* Functions returns BitMap with LsbPos as 1 */
 __device__ constexpr __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }

@@ -6,6 +6,7 @@
 #include "cpu_core/CpuCore.cuh"
 
 #include "cuda_core/BishopMap.cuh"
+#include "cuda_core/RookMap.cuh"
 
 int main() {
     CpuCore core{};

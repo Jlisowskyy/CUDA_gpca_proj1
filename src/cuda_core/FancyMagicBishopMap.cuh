@@ -151,6 +151,7 @@ class FancyMagicBishopMap {
     using _underlyingMapT = BaseMoveHashMap<MaxPossibleNeighborsWithOverlap>;
 
 public:
+
     __device__ constexpr FancyMagicBishopMap() {
         for (int i = 0; i < static_cast<int>(BitBoardFields); ++i) {
             const int boardIndex = ConvertToReversedPos(i);
