@@ -46,4 +46,8 @@ HYBRID constexpr T cuda_max(T a, T b) {
     return a > b ? a : b;
 }
 
+#define INLINE __forceinline__
+
+#define FAST_CALL INLINE HYBRID
+
 #endif //SRC_HELPERS_CUH

@@ -47,7 +47,7 @@ HYBRID constexpr int ConvertToReversedPos(const int x) {
     return x ^ 63; // equals to 63 - x;
 }
 
-HYBRID constexpr int SwapColor(const int col) { return col ^ 1; }
+HYBRID constexpr __uint32_t SwapColor(const __uint32_t col) { return col ^ 1; }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
 __device__ inline int ExtractMsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }

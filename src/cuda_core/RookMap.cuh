@@ -23,13 +23,13 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ static constexpr size_t GetBoardIndex(int color) { return BitBoardsPerCol * color + rooksIndex; }
+    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex(int color) { return BitBoardsPerCol * color + rooksIndex; }
 
-    [[nodiscard]] __device__ static uint64_t GetMoves(int msbInd, uint64_t fullBoard, [[maybe_unused]] uint64_t = 0) {
+    [[nodiscard]] FAST_CALL static __uint64_t GetMoves(__uint32_t msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
         return G_ROOK_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
     }
 
-    [[nodiscard]] __device__ static constexpr size_t GetMatchingCastlingIndex(const cuda_Board &bd, uint64_t figBoard) {
+    [[nodiscard]] FAST_CALL static constexpr size_t GetMatchingCastlingIndex(const cuda_Board &bd, __uint64_t figBoard) {
         for (size_t i = 0; i < CastlingsPerColor; ++i)
             if (const size_t index = bd.MovingColor * CastlingsPerColor + i;
                     bd.GetCastlingRight(index) && (CastlingsRookMaps[index] & figBoard) != 0)

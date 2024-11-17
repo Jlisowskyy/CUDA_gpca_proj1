@@ -80,21 +80,21 @@ public:
     // class interaction
     // ------------------------------
 
-    __device__ void ChangePlayingColor() { MovingColor ^= 1; }
+    FAST_CALL void ChangePlayingColor() { MovingColor ^= 1; }
 
-    __device__ int GetKingMsbPos(const int col) const {
+    [[nodiscard]] __device__ INLINE __uint32_t GetKingMsbPos(const __uint32_t col) const {
         return ExtractMsbPos(BitBoards[col * BitBoardsPerCol + kingIndex]);
     }
 
-    __device__ __uint64_t GetFigBoard(int col, __uint32_t figDesc) const {
+    [[nodiscard]] FAST_CALL __uint64_t GetFigBoard(int col, __uint32_t figDesc) const {
         return BitBoards[col * BitBoardsPerCol + figDesc];
     }
 
-    __device__ void SetCastlingRight(size_t castlingIndex, bool value) {
+    FAST_CALL void SetCastlingRight(size_t castlingIndex, bool value) {
         Castlings = (value << castlingIndex) & (Castlings & ~(cuda_MinMsbPossible << castlingIndex));
     }
 
-    __device__ bool GetCastlingRight(size_t castlingIndex) const {
+    [[nodiscard]] FAST_CALL bool GetCastlingRight(size_t castlingIndex) const {
         return Castlings & (cuda_MinMsbPossible << castlingIndex);
     }
 

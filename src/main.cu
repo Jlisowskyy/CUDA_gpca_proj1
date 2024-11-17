@@ -10,6 +10,12 @@
 #include <string>
 #include <iostream>
 
+#include "cuda_core/BlackPawnMap.cuh"
+#include "cuda_core/WhitePawnMap.cuh"
+#include "cuda_core/KingMap.cuh"
+#include "cuda_core/QueenMap.cuh"
+#include "cuda_core/KnightMap.cuh"
+
 int main() {
     CpuCore core{};
     core.init();

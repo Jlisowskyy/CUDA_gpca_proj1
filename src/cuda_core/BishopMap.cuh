@@ -23,12 +23,12 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ static constexpr size_t GetBoardIndex(int color) {
+    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex(__uint32_t color) {
         return BitBoardsPerCol * color + bishopsIndex;
     }
 
-    [[nodiscard]] __device__ static constexpr __uint64_t
-    GetMoves(int msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
+    [[nodiscard]] FAST_CALL static constexpr __uint64_t
+    GetMoves(__uint32_t msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
         return G_BISHOP_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
     }
 

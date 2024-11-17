@@ -172,8 +172,8 @@ public:
 
     constexpr FancyMagicRookMap(const FancyMagicRookMap &) = default;
 
-    [[nodiscard]] HYBRID constexpr uint64_t GetMoves(int msbInd, uint64_t fullBoard) const {
-        const uint64_t neighbors = fullBoard & m_maps[msbInd].getFullMask();
+    [[nodiscard]] HYBRID constexpr __uint64_t GetMoves(__uint32_t msbInd, __uint64_t fullBoard) const {
+        const __uint64_t neighbors = fullBoard & m_maps[msbInd].getFullMask();
         return m_maps[msbInd][neighbors];
     }
 

@@ -170,7 +170,7 @@ public:
         }
     }
 
-    [[nodiscard]] __device__ constexpr __uint64_t GetMoves(int msbInd, __uint64_t fullBoard) const {
+    [[nodiscard]] __device__ constexpr __uint64_t GetMoves(__uint32_t msbInd, __uint64_t fullBoard) const {
         const __uint64_t neighbors = fullBoard & _maps[msbInd].getFullMask();
         return _maps[msbInd][neighbors];
     }
