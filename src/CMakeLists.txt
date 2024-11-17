@@ -5,7 +5,10 @@ set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CUDA_STANDARD 20)
 
-set(CXX_SOURCES
+# Enable position independent code for shared libraries
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
+set(CUDA_CXX_SOURCES
         cli/FenTranslator.hpp
         cli/FenTranslator.cpp
         cli/EngineUtils.cpp
@@ -42,9 +45,28 @@ set(CUDA_SOURCES main.cu
         tests/FancyMagicTest.cu
 )
 
+set(CXX_SOURCES
+        tests/cpu/CpuTests.h
+        tests/cpu/FancyTest.cpp
+)
 
-add_executable(src ${CUDA_SOURCES} ${CXX_SOURCES})
-#add_executable(src_test main.cpp ${CXX_SOURCES})
+set(EXTERNAL_CXX_SOURCES
+
+)
+
+# CPU PART
+add_library(cpu_tests SHARED
+        ${CXX_SOURCES}
+        ${EXTERNAL_CXX_SOURCES}
+)
+
+target_include_directories(cpu_tests PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/tests/cpu
+)
+
+# CUDA PART
+add_executable(src ${CUDA_SOURCES} ${CUDA_CXX_SOURCES})
 
 set_target_properties(src PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
@@ -55,5 +77,11 @@ set_source_files_properties(
         PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-G"
 )
 
-# custom compile define
+target_link_libraries(src PRIVATE cpu_tests)
+
+target_include_directories(src PUBLIC
+        ${CMAKE_SOURCE_DIR}
+        ${CMAKE_SOURCE_DIR}/tests/cpu
+)
+
 target_compile_definitions(src PRIVATE -DTESTING=\"magic_test\")

@@ -17,6 +17,8 @@
 #include "../cuda_core/RookMap.cuh"
 #include "../cuda_core/BishopMap.cuh"
 
+#include "cpu/CpuTests.h"
+
 __device__ static constexpr unsigned TEST_SIZE = 1'000'000;
 
 __device__ __uint64_t rotl64(const __uint64_t x, int k) {
@@ -127,7 +129,8 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
 
 void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
-        FancyMagicTest_(threadsAvailable, deviceProps);
+//        FancyMagicTest_(threadsAvailable, deviceProps);
+        cpu::FancyMagicTest();
     } catch (const std::exception &e) {
         std::cerr << "Fancy Magic Test failed with exception: " << e.what() << std::endl;
     }
