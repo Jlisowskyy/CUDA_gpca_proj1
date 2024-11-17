@@ -111,7 +111,9 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     thrust::device_vector<__uint64_t> dSeeds(vSeeds);
     thrust::device_vector<__uint64_t> dResults(sizeThreads, 0);
 
-//    PerformTestOnMap_<RookMap>(blocks, threads, dSeeds, dResults, "RookMap");
+    std::cout << std::string(80, '-') << std::endl;
+    PerformTestOnMap_<RookMap>(blocks, threads, dSeeds, dResults, "RookMap");
+    std::cout << std::string(80, '-') << std::endl;
     PerformTestOnMap_<BishopMap>(blocks, threads, dSeeds, dResults, "BishopMap");
 
     std::cout << "Fancy Magic Test finished!" << std::endl;
@@ -206,14 +208,6 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
             cpu::DisplayBoardCPU(hResults[i]);
         }
 
-        if (i < 3) {
-            std::cout << "Correct CPU map: " << std::endl;
-            cpu::DisplayBoardCPU(cpuResults[i]);
-
-            std::cout << "Calculated GPU map: " << std::endl;
-            cpu::DisplayBoardCPU(hResults[i]);
-        }
-
         errors += cpuResults[i] != hResults[i];
     }
 
@@ -251,12 +245,12 @@ void FancyMagicTestCorrectness_() {
 
     std::cout << std::string(80, '-') << std::endl;
 
-//    try {
-//        const auto records = TryReadingFilePath(std::string(ROOK_PATH), " for the RookMap");
-//        RunCorrectnessTestOnMap<RookMap>(cpu::AccessCpuRookMap ,records, "RookMap");
-//    } catch (const std::exception &e) {
-//        std::cout << e.what();
-//    }
+    try {
+        const auto records = TryReadingFilePath(std::string(ROOK_PATH), " for the RookMap");
+        RunCorrectnessTestOnMap<RookMap>(cpu::AccessCpuRookMap ,records, "RookMap");
+    } catch (const std::exception &e) {
+        std::cout << e.what();
+    }
 }
 
 void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {

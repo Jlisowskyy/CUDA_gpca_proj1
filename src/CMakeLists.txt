@@ -8,52 +8,34 @@ set(CMAKE_CUDA_STANDARD 20)
 # Enable position independent code for shared libraries
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CUDA_CXX_SOURCES
-        cli/FenTranslator.hpp
-        cli/FenTranslator.cpp
-        cli/EngineUtils.cpp
-        cli/EngineUtils.hpp
-        utilities/CompilationConstants.hpp
-        cli/ParseTools.cpp
-        cli/ParseTools.hpp
-        cli/Cli.cpp
-        cli/Cli.hpp
-        data_structs/cpu_Board.hpp
-        utilities/BoardDefs.hpp
+file(GLOB_RECURSE CUDA_CXX_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/cli/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cli/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/utilities/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/data_structs/*.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/data_structs/*.cpp"
 )
 
-set(CUDA_SOURCES main.cu
-        cuda_core/Helpers.cu
-        cuda_core/Helpers.cuh
-        cpu_core/CpuCore.cuh
-        cpu_core/CpuCore.cu
-        cuda_core/cuda_BitOperations.cuh
-        cuda_core/cuda_Board.cuh
-        cuda_core/Move.cuh
-        cuda_core/BaseMoveHashMap.cuh
-        cuda_core/MoveGenerationUtils.cuh
-        cuda_core/cuda_Array.cuh
-        cuda_core/BishopMapGenerator.cuh
-        cuda_core/RookMapGenerator.cuh
-        cuda_core/FancyMagicBishopMap.cuh
-        cuda_core/FancyMagicRookMap.cuh
-        cuda_core/BishopMap.cuh
-        cuda_core/RookMap.cuh
-        cpu_core/TestRunner.cu
-        cpu_core/TestRunner.cuh
-        tests/CudaTests.cuh
-        tests/FancyMagicTest.cu
-)
-
-set(CXX_SOURCES
-        tests/cpu/CpuTests.h
-        tests/cpu/FancyTest.cpp
+file(GLOB_RECURSE CUDA_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/cpu_core/*.cu"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cpu_core/*.cuh"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cuda_core/*.cu"
+        "${CMAKE_CURRENT_SOURCE_DIR}/cuda_core/*.cuh"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cu"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cuh"
+        "${CMAKE_CURRENT_SOURCE_DIR}/main.cu"
 )
 
 file(GLOB_RECURSE EXTERNAL_CXX_SOURCES
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/include/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/include/**/*.h"
         "${CMAKE_CURRENT_SOURCE_DIR}/../engine/src/*.cpp"
+)
+
+file(GLOB_RECURSE CXX_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpu/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpu/*.h"
 )
 
 message(STATUS "External sources: ${EXTERNAL_CXX_SOURCES}")

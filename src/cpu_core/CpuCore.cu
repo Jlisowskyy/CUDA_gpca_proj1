@@ -15,38 +15,16 @@
 #include <string>
 #include <cassert>
 
-__global__ void initRookMapKernel(FancyMagicRookMap* deviceMap) {
-    if (threadIdx.x == 0 && blockIdx.x == 0) {
-        G_ROOK_FANCY_MAP_INSTANCE = deviceMap;
-    }
-}
-
 void initializeRookMap() {
-    FancyMagicRookMap hostMap{};
-
-    FancyMagicRookMap* deviceMap;
-    CUDA_ASSERT_SUCCESS(cudaMalloc(&deviceMap, sizeof(FancyMagicRookMap)));
-
-    CUDA_ASSERT_SUCCESS(cudaMemcpy(deviceMap, &hostMap, sizeof(FancyMagicRookMap), cudaMemcpyHostToDevice));
-
-    CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &deviceMap, sizeof(FancyMagicRookMap*)));
-}
-
-void cleanupRookMap() {
-    FancyMagicRookMap* deviceMap;
-    cudaMemcpyFromSymbol(&deviceMap, G_ROOK_FANCY_MAP_INSTANCE, sizeof(FancyMagicRookMap*));
-
-    // Free the device memory
-    if (deviceMap != nullptr) {
-        cudaFree(deviceMap);
-    }
+    FancyMagicRookMap hostMap{
+            false}; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
+    CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
 }
 
 CpuCore::CpuCore() = default;
 
 CpuCore::~CpuCore() {
     delete m_deviceProps;
-    cleanupRookMap();
 }
 
 void CpuCore::runCVC() {

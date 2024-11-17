@@ -22,6 +22,12 @@ public:
 
     constexpr ~cuda_Array() = default;
 
+    HYBRID constexpr explicit cuda_Array(T *data) {
+        for (size_t i = 0; i < Size; ++i) {
+            m_data[i] = data[i];
+        }
+    }
+
     HYBRID constexpr cuda_Array(const cuda_Array &other) {
         for (size_t i = 0; i < Size; ++i) {
             m_data[i] = other.m_data[i];
