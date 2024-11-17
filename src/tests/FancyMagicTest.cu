@@ -6,6 +6,7 @@
 
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 
 #include <iostream>
 #include <vector>
@@ -19,7 +20,7 @@
 
 #include "cpu/CpuTests.h"
 
-__device__ static constexpr unsigned TEST_SIZE = 1'000'000'0;
+__device__ static constexpr unsigned TEST_SIZE = 1'000'000;
 
 __device__ __forceinline__ __uint64_t simpleRand(__uint64_t &state) {
     state ^= state << 13;
@@ -39,7 +40,7 @@ __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
     __uint64_t sum{};
     for (unsigned i = 0; i < TEST_SIZE; ++i) {
         board = simpleRand(board);
-        randomPos = (randomPos + (board & 63)) & 64;
+        randomPos = (randomPos + (board & 63)) & 63;
 
         const auto result = MapT::GetMoves(randomPos, board);
 
@@ -92,7 +93,7 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
 
     const unsigned blocks = deviceProps.multiProcessorCount * 2;
     const unsigned threads = deviceProps.maxThreadsPerMultiProcessor / 2;
-    const double threadsUtilized = blocks * threads;;
+    const double threadsUtilized = blocks * threads;
     const auto sizeThreads = static_cast<size_t>(threadsUtilized);
 
     std::cout << "Utilizing " << blocks << " blocks..." << std::endl;
@@ -116,10 +117,157 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     std::cout << "Fancy Magic Test finished!" << std::endl;
 }
 
+template<class MapT>
+__global__ void
+AccessMapping(__uint64_t *results, const __uint64_t count, const __uint64_t *fullMaps, const __uint64_t *figureMaps) {
+    __uint64_t moveCount{};
+
+    for (__uint64_t idx = 0; idx < count; ++idx) {
+        const __uint64_t fullMap = fullMaps[idx];
+        __uint64_t figureMap = figureMaps[idx];
+
+        while (figureMap != 0) {
+            const int msbPos = ExtractMsbPos(figureMap);
+
+            const auto result = MapT::GetMoves(msbPos, fullMap);
+            results[moveCount++] = result;
+
+            figureMap ^= cuda_MaxMsbPossible >> msbPos;
+        }
+    }
+}
+
+std::vector<__uint64_t>
+AccessMappingCPU(__uint64_t (*func)(int, __uint64_t), const __uint64_t count, const std::vector<__uint64_t> &fullMaps,
+                 const std::vector<__uint64_t> &figureMaps) {
+    std::vector<__uint64_t> results{};
+
+    for (__uint64_t idx = 0; idx < count; ++idx) {
+        const __uint64_t fullMap = fullMaps[idx];
+        __uint64_t figureMap = figureMaps[idx];
+
+        while (figureMap != 0) {
+            const int msbPos = cpu::ExtractMsbPosCPU(figureMap);
+
+            const auto result = func(msbPos, fullMap);
+            results.push_back(result);
+
+            figureMap ^= cuda_MaxMsbPossible >> msbPos;
+        }
+    }
+
+    return results;
+}
+
+template<typename MapT>
+void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::MapCorrecntessRecordsPack &records,
+                             const std::string &title) {
+    static constexpr int MAX_DISPLAYS = 5;
+
+    std::cout << "Running correctness test on << " << title << "..." << std::endl;
+
+    auto [recordCount, fullMaps, figureMaps, correctnessMap] = records;
+    thrust::device_vector<__uint64_t> dFullMaps(fullMaps);
+    thrust::device_vector<__uint64_t> dFigureMaps(figureMaps);
+
+    __uint64_t mCount{};
+    for (size_t i = 0; i < recordCount; ++i) {
+        mCount += correctnessMap[i].size();
+    }
+
+    thrust::device_vector<__uint64_t> dResults(mCount, 0);
+
+    AccessMapping<MapT><<<1, 1>>>(thrust::raw_pointer_cast(dResults.data()), recordCount,
+                                  thrust::raw_pointer_cast(dFullMaps.data()),
+                                  thrust::raw_pointer_cast(dFigureMaps.data()));
+
+    const auto cpuResults = AccessMappingCPU(func, recordCount, fullMaps, figureMaps);
+
+    const thrust::host_vector<__uint64_t> hResults = dResults;
+
+
+    if (cpuResults.size() != hResults.size()) {
+        std::cerr << "Results size mismatch!" << std::endl;
+    }
+
+    const auto size = std::min(cpuResults.size(), hResults.size());
+
+    int displays = 0;
+    __uint64_t errors = 0;
+    for (size_t i = 0; i < size; ++i) {
+        if (displays < MAX_DISPLAYS && cpuResults[i] != hResults[i]) {
+            std::cerr << "Results mismatch at index " << i << std::endl;
+            displays++;
+
+            std::cout << "Correct CPU map: " << std::endl;
+            cpu::DisplayBoardCPU(cpuResults[i]);
+
+            std::cout << "Calculated GPU map: " << std::endl;
+            cpu::DisplayBoardCPU(hResults[i]);
+        }
+
+        if (i < 3) {
+            std::cout << "Correct CPU map: " << std::endl;
+            cpu::DisplayBoardCPU(cpuResults[i]);
+
+            std::cout << "Calculated GPU map: " << std::endl;
+            cpu::DisplayBoardCPU(hResults[i]);
+        }
+
+        errors += cpuResults[i] != hResults[i];
+    }
+
+    std::cout << std::format("Correctness test for {} finished with {} errors, where visited {} / {} moves", title,
+                             errors, size, mCount) << std::endl;
+}
+
+cpu::MapCorrecntessRecordsPack TryReadingFilePath(const std::string &defaultPath, const std::string &prompt) {
+    try {
+        return cpu::ReadMagicCorrectnessTestFile(defaultPath);
+    } catch (const std::exception &e) {}
+
+    std::string line;
+    std::cout << "Enter the path to the file with the correctness test data: " << prompt << std::endl;
+    std::cout << "Or press enter to exit" << std::endl;
+
+    if (line.empty()) {
+        throw std::runtime_error("No file path provided, exiting...");
+    }
+
+    std::getline(std::cin, line);
+    return cpu::ReadMagicCorrectnessTestFile(line);
+}
+
+void FancyMagicTestCorrectness_() {
+    static constexpr std::string_view BISHOP_PATH = "./tests/test_data/corr2";
+    static constexpr std::string_view ROOK_PATH = "./tests/test_data/corr4";
+
+    try {
+        const auto records = TryReadingFilePath(std::string(BISHOP_PATH), " for the BishopMap");
+        RunCorrectnessTestOnMap<BishopMap>(cpu::AccessCpuBishopMap, records, "BishopMap");
+    } catch (const std::exception &e) {
+        std::cout << e.what();
+    }
+
+    std::cout << std::string(80, '-') << std::endl;
+
+//    try {
+//        const auto records = TryReadingFilePath(std::string(ROOK_PATH), " for the RookMap");
+//        RunCorrectnessTestOnMap<RookMap>(cpu::AccessCpuRookMap ,records, "RookMap");
+//    } catch (const std::exception &e) {
+//        std::cout << e.what();
+//    }
+}
+
 void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
+        std::cout << std::string(80, '-') << std::endl;
         cpu::FancyMagicTest();
-//        FancyMagicTest_(threadsAvailable, deviceProps);
+        std::cout << std::string(80, '-') << std::endl;
+        FancyMagicTest_(threadsAvailable, deviceProps);
+        std::cout << std::string(80, '-') << std::endl;
+        FancyMagicTestCorrectness_();
+        std::cout << std::string(80, '-') << std::endl;
     } catch (const std::exception &e) {
         std::cerr << "Fancy Magic Test failed with exception: " << e.what() << std::endl;
     }
