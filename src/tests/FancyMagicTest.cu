@@ -19,7 +19,7 @@
 
 #include "cpu/CpuTests.h"
 
-__device__ static constexpr unsigned TEST_SIZE = 1'000'000;
+__device__ static constexpr unsigned TEST_SIZE = 1'000'000'0;
 
 __device__ __forceinline__ __uint64_t simpleRand(__uint64_t &state) {
     state ^= state << 13;
@@ -36,14 +36,17 @@ __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
     unsigned randomPos = idx % 64;
     __uint64_t board = seed;
 
+    __uint64_t sum{};
     for (unsigned i = 0; i < TEST_SIZE; ++i) {
         board = simpleRand(board);
         randomPos = (randomPos + (board & 63)) & 64;
 
         const auto result = MapT::GetMoves(randomPos, board);
 
-        results[idx] += result;
+        sum += static_cast<unsigned>(result > 0);
     }
+
+    results[idx] = sum;
 }
 
 template<typename MapT>
@@ -115,8 +118,8 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
 
 void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
-//        cpu::FancyMagicTest();
-        FancyMagicTest_(threadsAvailable, deviceProps);
+        cpu::FancyMagicTest();
+//        FancyMagicTest_(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {
         std::cerr << "Fancy Magic Test failed with exception: " << e.what() << std::endl;
     }
