@@ -77,7 +77,7 @@ set_source_files_properties(
         PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-G"
 )
 
-target_link_libraries(src PRIVATE cpu_tests)
+#target_link_libraries(src PRIVATE cpu_tests)
 
 target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}
