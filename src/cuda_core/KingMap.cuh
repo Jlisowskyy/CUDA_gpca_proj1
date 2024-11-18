@@ -40,11 +40,11 @@ struct KingMap final {
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex(int color) {
+    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex(__uint32_t color) {
         return BitBoardsPerCol * color + kingIndex;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr __uint64_t GetMoves(int msbInd) { return KingMapConstants::movesMap[msbInd]; }
+    [[nodiscard]] FAST_CALL static constexpr __uint64_t GetMoves(__uint32_t msbInd) { return KingMapConstants::movesMap[msbInd]; }
 
     // genarates tiles on which pawns currently attacks king
     [[nodiscard]] FAST_CALL  static constexpr __uint64_t GetSimpleFigCheckPawnAllowedTiles(const cuda_Board &bd) {

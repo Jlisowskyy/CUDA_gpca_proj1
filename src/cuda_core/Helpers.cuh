@@ -46,8 +46,22 @@ HYBRID constexpr T cuda_max(T a, T b) {
     return a > b ? a : b;
 }
 
+/* TODO: move to CMAKE */
+#define AGGRESSIVE_INLINE
+
+#ifdef AGGRESSIVE_INLINE
+
 #define INLINE __forceinline__
 
+
+#else
+
+#define INLINE inline
+
+#endif // AGGRESSIVE_INLINE
+
 #define FAST_CALL INLINE HYBRID
+
+#define FAST_DCALL INLINE __device__
 
 #endif //SRC_HELPERS_CUH

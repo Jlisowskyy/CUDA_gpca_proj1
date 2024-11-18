@@ -86,7 +86,7 @@ public:
         return ExtractMsbPos(BitBoards[col * BitBoardsPerCol + kingIndex]);
     }
 
-    [[nodiscard]] FAST_CALL __uint64_t GetFigBoard(int col, __uint32_t figDesc) const {
+    [[nodiscard]] FAST_CALL __uint64_t GetFigBoard(__uint32_t col, __uint32_t figDesc) const {
         return BitBoards[col * BitBoardsPerCol + figDesc];
     }
 

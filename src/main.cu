@@ -10,8 +10,8 @@
 #include <string>
 #include <iostream>
 
-#include "cuda_core/RookMapRuntime.cuh"
-#include "cuda_core/BishopMapRuntime.cuh"
+#include "cuda_core/ChessMechanics.cuh"
+
 
 int main() {
     CpuCore core{};

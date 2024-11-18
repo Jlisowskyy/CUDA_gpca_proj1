@@ -40,7 +40,7 @@ public:
     }
 
     [[nodiscard]] FAST_CALL static constexpr __uint64_t
-    GetMoves(int msbInd, [[maybe_unused]] __uint64_t = 0, [[maybe_unused]] __uint64_t = 0) { return KnightMapConstants::movesMap[msbInd]; }
+    GetMoves(__uint32_t msbInd, [[maybe_unused]] __uint64_t = 0, [[maybe_unused]] __uint64_t = 0) { return KnightMapConstants::movesMap[msbInd]; }
 
 };
 

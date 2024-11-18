@@ -24,7 +24,7 @@ __device__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible
  * */
 
 /* Function efficiently computes MsbPos */
-__device__ inline int ExtractMsbPos(const __uint64_t x) { return __clzll(static_cast<int64_t>(x)); }
+FAST_DCALL int ExtractMsbPos(const __uint64_t x) { return __clzll(static_cast<int64_t>(x)); }
 
 HYBRID constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
     if (x == 0) {
@@ -43,51 +43,51 @@ HYBRID constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
 }
 
 /* Nice way to reverse from MsbPos to LsbPos and other way around */
-HYBRID constexpr int ConvertToReversedPos(const int x) {
+FAST_CALL constexpr int ConvertToReversedPos(const int x) {
     return x ^ 63; // equals to 63 - x;
 }
 
-HYBRID constexpr __uint32_t SwapColor(const __uint32_t col) { return col ^ 1; }
+FAST_CALL constexpr __uint32_t SwapColor(const __uint32_t col) { return col ^ 1; }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
-__device__ inline int ExtractMsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }
+FAST_DCALL int ExtractMsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }
 
 /* Function efficiently computes LsbPos */
-__device__ inline int ExtractLsbPos(const __uint64_t x) { return __ffsll(static_cast<__int64_t>(x)); }
+FAST_DCALL int ExtractLsbPos(const __uint64_t x) { return __ffsll(static_cast<__int64_t>(x)); }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
-__device__ inline int ExtractLsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractLsbPos(x)); }
+FAST_DCALL int ExtractLsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractLsbPos(x)); }
 
 /* Function does nothing, simply returns given value */
-HYBRID constexpr int NoOp(const int m) { return m; }
+FAST_CALL constexpr int NoOp(const int m) { return m; }
 
 /* Functions returns BitMap with MsbPos as 1 */
-__device__ inline __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) { return cuda_MaxMsbPossible >> ExtractMsbPos(x); }
+FAST_DCALL __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) { return cuda_MaxMsbPossible >> ExtractMsbPos(x); }
 
 /* Functions returns BitMap with LsbPos as 1 */
-__device__ inline __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) { return cuda_MinMsbPossible << ExtractLsbReversedPos(x); }
+FAST_DCALL __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) { return cuda_MinMsbPossible << ExtractLsbReversedPos(x); }
 
 /* Functions returns BitMap with LsbPos as 1 */
-HYBRID constexpr __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
+FAST_CALL constexpr __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
 
 /* Functions returns BitMap with MsbPos as 1, with additional check whether given argument is 0 */
-__device__ inline __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
+FAST_DCALL __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
 
-HYBRID constexpr __uint64_t ExtractMsbBitConstexpr(const __uint64_t x) {
+FAST_CALL constexpr __uint64_t ExtractMsbBitConstexpr(const __uint64_t x) {
     return x == 0 ? 0 : (cuda_MaxMsbPossible >> ExtractMsbPosConstexpr(x));
 }
 
 /* Functions returns BitMap with LsbPos as 1 */
-HYBRID constexpr __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }
+FAST_CALL constexpr __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }
 
 /* Function simply returns a map with remove all bits that are present on b*/
-HYBRID constexpr __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) { return a ^ (a & b); }
+FAST_CALL constexpr __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) { return a ^ (a & b); }
 
 /* Function simply counts ones on the given BitMap*/
-__device__ inline int CountOnesInBoard(const __uint64_t bitMap) { return __popcll(bitMap); }
+FAST_DCALL int CountOnesInBoard(const __uint64_t bitMap) { return __popcll(bitMap); }
 
 /* Count same bits */
-__device__ inline int CountSameBits(const __uint64_t a, const __uint64_t b) { return __popcll((a & b) | ((~a) & (~b))); }
+FAST_DCALL int CountSameBits(const __uint64_t a, const __uint64_t b) { return __popcll((a & b) | ((~a) & (~b))); }
 
 /*          IMPORTANT NOTES:
  *  Function assumes that containerPos is already set to 1
@@ -118,7 +118,7 @@ GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, Inde
 }
 
 template<class IndexableT>
-HYBRID constexpr size_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
+FAST_CALL constexpr size_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
     container[0] = 0;
     size_t index = 1;
 
