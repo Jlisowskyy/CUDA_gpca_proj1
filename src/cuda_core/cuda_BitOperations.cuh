@@ -47,6 +47,11 @@ FAST_CALL constexpr int ConvertToReversedPos(const int x) {
     return x ^ 63; // equals to 63 - x;
 }
 
+template<typename NumT>
+FAST_CALL constexpr void SetBitBoardBit(NumT& bitBoard, const __uint32_t pos, const bool value) {
+    bitBoard = (value << pos) & (bitBoard & ~(cuda_MinMsbPossible << pos));
+}
+
 FAST_CALL constexpr __uint32_t SwapColor(const __uint32_t col) { return col ^ 1; }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */

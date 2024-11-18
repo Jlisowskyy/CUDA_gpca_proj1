@@ -91,7 +91,7 @@ public:
     }
 
     FAST_CALL void SetCastlingRight(size_t castlingIndex, bool value) {
-        Castlings = (value << castlingIndex) & (Castlings & ~(cuda_MinMsbPossible << castlingIndex));
+        SetBitBoardBit(Castlings, castlingIndex, value);
     }
 
     [[nodiscard]] FAST_CALL bool GetCastlingRight(size_t castlingIndex) const {

@@ -53,7 +53,6 @@ HYBRID constexpr T cuda_max(T a, T b) {
 
 #define INLINE __forceinline__
 
-
 #else
 
 #define INLINE inline
