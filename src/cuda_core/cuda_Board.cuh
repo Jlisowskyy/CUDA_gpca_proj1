@@ -8,6 +8,7 @@
 #include "cuda_BitOperations.cuh"
 #include "Helpers.cuh"
 #include "../utilities/BoardDefs.hpp"
+#include "../data_structs/cpu_Board.hpp"
 
 /*
  *  The most important class used around the project.
@@ -75,6 +76,15 @@ public:
     cuda_Board(const cuda_Board &) = default;
 
     cuda_Board &operator=(const cuda_Board &) = default;
+
+    FAST_CALL explicit cuda_Board(const cpu_Board &board) {
+        for (size_t i = 0; i < BitBoardsCount; ++i)
+            BitBoards[i] = board.BitBoards[i];
+
+        ElPassantField = board.ElPassantField;
+        Castlings = board.Castlings;
+        MovingColor = board.MovingColor;
+    }
 
     // ------------------------------
     // class interaction

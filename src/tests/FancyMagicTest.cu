@@ -62,12 +62,16 @@ void PerformTestOnMap_(unsigned blocks, unsigned threads, thrust::device_vector<
     auto t1 = std::chrono::high_resolution_clock::now();
     FancyMagicKernel<MapT><<<blocks, threads>>>(thrust::raw_pointer_cast(dSeeds.data()),
                                                 thrust::raw_pointer_cast(dResults.data()));
-    CUDA_ASSERT_SUCCESS(cudaDeviceSynchronize());
-    auto t2 = std::chrono::high_resolution_clock::now();
+    const auto rc = cudaDeviceSynchronize();
+    CUDA_TRACE_ERROR(rc);
 
-    if (cudaGetLastError() != cudaSuccess) {
+    if (rc != cudaSuccess) {
         throw std::runtime_error("Fancy Magic Test failed inside the kernel!");
     }
+
+    auto t2 = std::chrono::high_resolution_clock::now();
+
+
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     const double milliseconds = seconds * 1000.0;

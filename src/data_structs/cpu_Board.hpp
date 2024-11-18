@@ -5,10 +5,9 @@
 #ifndef BOARD_HPP
 #define BOARD_HPP
 
-#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/array"
-#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/bitset"
-#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/cinttypes"
-#include "../../../../../../../usr/lib/gcc/x86_64-pc-linux-gnu/13.3.0/include/c++/unordered_map"
+#include <array>
+#include <cstdint>
+#include <vector>
 
 #include "../utilities/BitOperations.hpp"
 #include "../utilities/CompilationConstants.hpp"
@@ -64,6 +63,17 @@ struct cpu_Board {
         return Castlings & (MinMsbPossible << castlingIndex);
     }
 
+//    [[nodiscard]] std::vector<uint64_t> DumpBoard() const {
+//        std::vector<uint64_t> res;
+//        res.reserve(BoardDumpSize);
+//
+//        for (size_t i = 0; i < BitBoardsCount; ++i)
+//            res.push_back(BitBoards[i]);
+//        res.push_back(ElPassantField);
+//        res.push_back(Castlings);
+//        res.push_back(MovingColor);
+//    }
+
     // ------------------------------
     // Class fields
     // ------------------------------
@@ -78,6 +88,8 @@ struct cpu_Board {
     static constexpr uint64_t InvalidElPassantBitBoard = MaxMsbPossible >> InvalidElPassantField;
     static constexpr size_t SentinelBoardIndex = 12;
     static constexpr size_t SentinelCastlingIndex = 4;
+
+    static constexpr size_t BoardDumpSize = BitBoardsCount + 3;
 
     static constexpr std::array<uint64_t, KingPosCount> DefaultKingBoards{
             MaxMsbPossible >> ConvertToReversedPos(4), MaxMsbPossible >> ConvertToReversedPos(60)

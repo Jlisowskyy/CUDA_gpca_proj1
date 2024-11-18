@@ -17,6 +17,12 @@ namespace cpu {
 
     using MapPerformanceRecordsPack = std::tuple<uint64_t, std::vector<uint64_t>, std::vector<uint64_t>>;
 
+    struct cpu_MoveExternal {
+        uint16_t packedMove{};
+        uint16_t packedIndexes{};
+        uint16_t packedMisc{};
+    };
+
 
     void FancyMagicTest();
 
@@ -31,6 +37,8 @@ namespace cpu {
     int ExtractMsbPosCPU(uint64_t map);
 
     void DisplayBoardCPU(uint64_t board);
+
+    std::vector<cpu_MoveExternal> GenerateMoves(uint64_t board, int msbInd);
 } // namespace cpu
 
 

@@ -17,14 +17,24 @@ using TestFunc = void (*)(int, const cudaDeviceProp &deviceProps);
 /* test funcs */
 void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps);
 
+void MoveGenTest(int threadsAvailable, const cudaDeviceProp &deviceProps);
+
 /* test mapping */
 static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> CudaTestsMap = {
         {
                 "magic_test",
                 std::make_tuple(
                         "Fancy Magic Test",
-                        "Measures average access times of Fancy mappings on the GPU",
+                        "Measures average access times of Fancy mappings on the GPU as well as correctness",
                         &FancyMagicTest
+                )
+        },
+        {
+                "move_gen",
+                std::make_tuple(
+                        "MoveGen Test",
+                        "Tests the performance of the move generation on the GPU",
+                        &MoveGenTest
                 )
         }
 };
