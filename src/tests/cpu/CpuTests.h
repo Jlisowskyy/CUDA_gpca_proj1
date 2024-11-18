@@ -9,6 +9,7 @@
 #include <vector>
 #include <tuple>
 #include <string>
+#include <array>
 
 namespace cpu {
 
@@ -17,12 +18,8 @@ namespace cpu {
 
     using MapPerformanceRecordsPack = std::tuple<uint64_t, std::vector<uint64_t>, std::vector<uint64_t>>;
 
-    struct cpu_MoveExternal {
-        uint16_t packedMove{};
-        uint16_t packedIndexes{};
-        uint16_t packedMisc{};
-    };
-
+    using external_move = std::array<uint16_t, 3>;
+    using external_board = std::array<uint64_t, 15>;
 
     void FancyMagicTest();
 
@@ -38,7 +35,7 @@ namespace cpu {
 
     void DisplayBoardCPU(uint64_t board);
 
-    std::vector<cpu_MoveExternal> GenerateMoves(uint64_t board, int msbInd);
+    std::vector<external_move> GenerateMoves(const external_board& board);
 } // namespace cpu
 
 
