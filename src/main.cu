@@ -10,9 +10,6 @@
 #include <string>
 #include <iostream>
 
-#include "cuda_core/MoveGenerator.cuh"
-
-
 int main() {
     CpuCore core{};
     core.init();

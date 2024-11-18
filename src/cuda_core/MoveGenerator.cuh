@@ -29,6 +29,8 @@ __device__ static constexpr uint16_t PromoFlags[]{
         0, KnightFlag, BishopFlag, RookFlag, QueenFlag,
 };
 
+__device__ static constexpr __uint64_t CASTLING_PSEUDO_LEGAL_BLOCKED = 0;
+
 struct MoveGenerator : ChessMechanics {
 
     struct payload {
@@ -106,16 +108,10 @@ struct MoveGenerator : ChessMechanics {
         payload load =
                 GetPseudoLegalMoves<GenOnlyTacticalMoves>();
 
-        std::queue<cuda_Move> que{};
+        payload loadRV{};
         for (size_t i = 0; i < load.size; ++i)
             if (MoveGenerator::IsLegal(bd, load.data[i]))
-                que.push(load.data[i]);
-
-        payload loadRV{};
-        while (!que.empty()) {
-            loadRV.Push(que.front());
-            que.pop();
-        }
+                loadRV.Push(load.data[i]);
 
         return loadRV;
     }
@@ -179,7 +175,7 @@ struct MoveGenerator : ChessMechanics {
                MoveGenerator::_isNormalMoveLegal(bd, mv);
     }
 
-    [[nodiscard]] HYBRID __uint64_t CountMoves(cuda_Board &bd, int depth) {
+    [[nodiscard]] __device__ __uint64_t CountMoves(cuda_Board &bd, int depth) {
         if (depth == 0)
             return 1;
 
@@ -210,7 +206,7 @@ struct MoveGenerator : ChessMechanics {
 
 private:
 
-    [[nodiscard]] FAST_CALL static bool _isCastlingLegal(cuda_Board &bd, cuda_Move mv) {
+    [[nodiscard]] FAST_DCALL static bool _isCastlingLegal(cuda_Board &bd, cuda_Move mv) {
         ChessMechanics mech(bd);
         const auto [blocked, unused, unused1] =
                 mech.GetBlockedFieldBitMap(mech.GetFullBitMap());
@@ -222,7 +218,7 @@ private:
                (blocked & bd.GetFigBoard(bd.MovingColor, kingIndex)) == 0;
     }
 
-    [[nodiscard]] FAST_CALL static bool _isNormalMoveLegal(cuda_Board &bd, cuda_Move mv) {
+    [[nodiscard]] FAST_DCALL static bool _isNormalMoveLegal(cuda_Board &bd, cuda_Move mv) {
         bd.BitBoards[mv.GetStartBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetStartField();
         bd.BitBoards[mv.GetTargetBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetTargetField();
         bd.BitBoards[mv.GetKilledBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetKilledFigureField();
@@ -1161,7 +1157,7 @@ private:
         }
     }
 
-    static constexpr __uint64_t CASTLING_PSEUDO_LEGAL_BLOCKED = 0;
+
 
     // TODO: simplify ifs??
     // TODO: cleanup left castling available when rook is dead then propagate no castling checking?
