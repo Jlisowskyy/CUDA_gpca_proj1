@@ -12,7 +12,7 @@ __device__ static constexpr size_t MASKS_COUNT = 4;
 __device__ static constexpr __uint64_t EMPTY_FIELD = ~0ULL;
 
 template<size_t SIZE = 256>
-class BaseMoveHashMap {
+class BaseMoveHashMap final {
 
     // ------------------------------
     // Class creation

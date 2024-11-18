@@ -143,7 +143,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> OFFSETS_ROOK_
         12,
 };
 
-class FancyMagicRookMap {
+class FancyMagicRookMap final {
     using _underlyingMapT = BaseMoveHashMap<MaxRookPossibleNeighborsWithOverlap>;
 
 public:

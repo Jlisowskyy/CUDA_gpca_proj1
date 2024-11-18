@@ -29,7 +29,7 @@ namespace KingMapConstants {
     __device__ static constexpr __uint64_t RightPawnDetetcionMask = ~GenMask(7, 64, 8);
 }
 
-struct KingMap {
+struct KingMap final {
     // ------------------------------
     // Class creation
     // ------------------------------

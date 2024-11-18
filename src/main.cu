@@ -10,11 +10,8 @@
 #include <string>
 #include <iostream>
 
-#include "cuda_core/BlackPawnMap.cuh"
-#include "cuda_core/WhitePawnMap.cuh"
-#include "cuda_core/KingMap.cuh"
-#include "cuda_core/QueenMap.cuh"
-#include "cuda_core/KnightMap.cuh"
+#include "cuda_core/RookMapRuntime.cuh"
+#include "cuda_core/BishopMapRuntime.cuh"
 
 int main() {
     CpuCore core{};

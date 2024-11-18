@@ -9,7 +9,7 @@
 
 __device__ static constexpr FancyMagicBishopMap G_BISHOP_FANCY_MAP_INSTANCE{};
 
-class BishopMap {
+class BishopMap final {
     // ---------------------------------------
     // Class creation and initialization
     // ---------------------------------------

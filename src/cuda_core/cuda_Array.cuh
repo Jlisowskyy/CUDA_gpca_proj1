@@ -12,7 +12,7 @@
 #include "Helpers.cuh"
 
 template<class T, size_t Size>
-class cuda_Array {
+class cuda_Array final {
 public:
     // ------------------------------
     // Class creation

@@ -147,7 +147,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> BISHOP_OFFSET
 };
 
 
-class FancyMagicBishopMap {
+class FancyMagicBishopMap final {
     using _underlyingMapT = BaseMoveHashMap<MaxPossibleNeighborsWithOverlap>;
 
 public:

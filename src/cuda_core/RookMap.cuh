@@ -9,7 +9,7 @@
 
 extern __device__ FancyMagicRookMap G_ROOK_FANCY_MAP_INSTANCE;
 
-class RookMap {
+class RookMap final {
     // ---------------------------------------
     // Class creation and initialization
     // ---------------------------------------

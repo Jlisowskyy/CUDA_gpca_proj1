@@ -10,7 +10,7 @@
 #include "BishopMap.cuh"
 #include "RookMap.cuh"
 
-class QueenMap {
+class QueenMap final {
     // ------------------------------
     // Class creation
     // ------------------------------

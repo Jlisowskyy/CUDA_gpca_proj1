@@ -21,7 +21,7 @@ __device__ static constexpr int SouthOffset = -8;
 __device__ static constexpr int WestOffset = -1;
 __device__ static constexpr int EastOffset = 1;
 
-class RookMapGenerator {
+class RookMapGenerator final {
 public:
     using MasksT = cuda_Array<__uint64_t, rook_DirectedMaskCount>;
 

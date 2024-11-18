@@ -17,6 +17,7 @@
 
 #include "../cuda_core/RookMap.cuh"
 #include "../cuda_core/BishopMap.cuh"
+#include "../cuda_core/RookMapRuntime.cuh"
 
 #include "cpu/CpuTests.h"
 
@@ -115,6 +116,8 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     PerformTestOnMap_<RookMap>(blocks, threads, dSeeds, dResults, "RookMap");
     std::cout << std::string(80, '-') << std::endl;
     PerformTestOnMap_<BishopMap>(blocks, threads, dSeeds, dResults, "BishopMap");
+    std::cout << std::string(80, '-') << std::endl;
+    PerformTestOnMap_<RookMapRuntime>(blocks, threads, dSeeds, dResults, "RookMapRuntime");
 
     std::cout << "Fancy Magic Test finished!" << std::endl;
 }
@@ -248,6 +251,8 @@ void FancyMagicTestCorrectness_() {
     try {
         const auto records = TryReadingFilePath(std::string(ROOK_PATH), " for the RookMap");
         RunCorrectnessTestOnMap<RookMap>(cpu::AccessCpuRookMap ,records, "RookMap");
+        std::cout << std::string(80, '-') << std::endl;
+        RunCorrectnessTestOnMap<RookMapRuntime>(cpu::AccessCpuRookMap, records, "RookMapRuntime");
     } catch (const std::exception &e) {
         std::cout << e.what();
     }

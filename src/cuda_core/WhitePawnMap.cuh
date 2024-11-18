@@ -28,7 +28,7 @@ namespace WhitePawnMapConstants {
     __device__ static constexpr uint64_t RightMask = ~GenMask(7, 64, 8);
 }
 
-class WhitePawnMap
+class WhitePawnMap final
 {
     // ------------------------------
     // Class creation

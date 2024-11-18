@@ -62,7 +62,7 @@ __device__ static constexpr __uint64_t CastlingTouchedFields[CastlingCount]{
         cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
 };
 
-class cuda_Board {
+class cuda_Board final {
 public:
     // ------------------------------
     // Class creation

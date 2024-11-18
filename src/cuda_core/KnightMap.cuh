@@ -23,7 +23,7 @@ namespace KnightMapConstants {
             GenStaticMoves(maxMovesCount, movesCords, rowCords);
 }
 
-class KnightMap {
+class KnightMap final {
     // ---------------------------------------
     // Class creation and initialization
     // ---------------------------------------

@@ -25,7 +25,7 @@ __device__ static constexpr int SEOffset = -7;
 __device__ static constexpr size_t DirectedMaskCount = 4;
 
 
-class BishopMapGenerator {
+class BishopMapGenerator final {
 public:
     using MasksT = cuda_Array<__uint64_t, DirectedMaskCount>;
 

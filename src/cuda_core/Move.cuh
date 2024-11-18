@@ -54,7 +54,7 @@ __device__ static constexpr uint16_t CastlingBits = CastlingFlag << 12;
 
 class alignas(16) cuda_Move;
 
-struct alignas(16) cuda_PackedMove {
+struct alignas(16) cuda_PackedMove final {
     // ------------------------------
     // Class creation
     // ------------------------------
@@ -146,7 +146,7 @@ __device__ static constexpr uint64_t move_CastlingNewKingPos[5]{
         CastlingNewRookMaps[2], CastlingNewRookMaps[3]
 };
 
-class alignas(16) cuda_Move {
+class alignas(16) cuda_Move final {
 public:
 // ------------------------------
 // Class creation
