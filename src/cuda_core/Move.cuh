@@ -127,9 +127,9 @@ private:
 
 /* Class used to preserve some crucial board state between moves */
 struct VolatileBoardData {
-    __device__ VolatileBoardData() = delete;
+    VolatileBoardData() = delete;
 
-    __device__ explicit VolatileBoardData(const cuda_Board &bd)
+    FAST_CALL explicit VolatileBoardData(const cuda_Board &bd)
             : Castlings(bd.Castlings), OldElPassant(bd.ElPassantField) {
     }
 

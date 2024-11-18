@@ -2,8 +2,8 @@
 // Created by Jlisowskyy on 12/31/23.
 //
 
-#ifndef CHESSMECHANICS_H
-#define CHESSMECHANICS_H
+#ifndef CHESSMECHANICS_CUH
+#define CHESSMECHANICS_CUH
 
 #include <cuda_runtime.h>
 #include <thrust/tuple.h>
@@ -109,7 +109,7 @@ struct ChessMechanics {
     }
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not, by desired color figures.
-    [[nodiscard]] FAST_CALL __uint64_t GetColBitMap(const int col) const {
+    [[nodiscard]] FAST_CALL __uint64_t GetColBitMap(const __uint32_t col) const {
         assert(col == 1 || col == 0);
 
         __uint64_t map = 0;
@@ -118,7 +118,7 @@ struct ChessMechanics {
     }
 
     // does not check kings BitBoards!!!
-    [[nodiscard]] FAST_CALL size_t GetIndexOfContainingBitBoard(const __uint64_t map, const int col) const {
+    [[nodiscard]] FAST_CALL size_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
         const size_t colIndex = col * BitBoardsPerCol;
         size_t rv = 0;
         for (size_t i = 0; i < BitBoardsPerCol; ++i) {
@@ -226,7 +226,7 @@ struct ChessMechanics {
 
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<PinnedFigGen genType>
-    [[nodiscard]] FAST_CALL thrust::pair<__uint64_t, __uint64_t> GetPinnedFigsMap(int col, __uint64_t fullMap) const {
+    [[nodiscard]] FAST_CALL thrust::pair<__uint64_t, __uint64_t> GetPinnedFigsMap(__uint32_t col, __uint64_t fullMap) const {
         assert(fullMap != 0 && "Full map is empty!");
         assert(col == 1 || col == 0 && "Invalid color!");
 
@@ -350,4 +350,4 @@ protected:
 };
 
 
-#endif // CHESSMECHANICS_H
+#endif // CHESSMECHANICS_CUH

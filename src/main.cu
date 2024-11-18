@@ -10,7 +10,7 @@
 #include <string>
 #include <iostream>
 
-#include "cuda_core/ChessMechanics.cuh"
+#include "cuda_core/MoveGenerator.cuh"
 
 
 int main() {
