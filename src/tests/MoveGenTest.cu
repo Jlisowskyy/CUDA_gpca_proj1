@@ -6,12 +6,15 @@
 
 #include "../cuda_core/cuda_Board.cuh"
 #include "../cuda_core/Move.cuh"
-#include "../data_structs/cpu_Board.hpp"
 #include "../cuda_core/MoveGenerator.cuh"
-#include "../cli/FenTranslator.hpp"
+#include "../cuda_core/cuda_Board.cuh"
+
+#include "../ported/CpuTests.h"
+#include "../ported/CpuUtils.h"
 
 #include <cuda_runtime.h>
 #include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
 
 #include <iostream>
 #include <string>
@@ -30,17 +33,17 @@ static constexpr std::string_view TestFEN[]{
         "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
-void __global__ GetGPUMovesKernel(const cpu_Board *board, cuda_Move *outMoves, int *outCount) {
+void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, int *outCount) {
 
 }
 
 void TestSinglePositionOutput(const std::string_view &fen) {
     std::cout << "Testing position: " << fen << std::endl;
 
-    const cpu_Board board = FenTranslator::GetTranslated(std::string(fen));
+    const cuda_Board board(cpu::TranslateFromFen(std::string(fen)));
 
     thrust::device_vector<cuda_Move> dMoves(256);
-    thrust::device_vector<cpu_Board> dBoard{board};
+    thrust::device_vector<cuda_Board> dBoard{board};
     thrust::device_vector<int> dCount(1);
 
     GetGPUMovesKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), thrust::raw_pointer_cast(dMoves.data()),
@@ -52,6 +55,32 @@ void TestSinglePositionOutput(const std::string_view &fen) {
         throw std::runtime_error("Failed to launch kernel");
     }
 
+    cpu::external_board eBoard{};
+    for (size_t i = 0; i < BitBoardsCount; ++i)
+        eBoard[i] = board.BitBoards[i];
+    eBoard[12] = board.ElPassantField;
+    eBoard[13] = board.Castlings;
+    eBoard[14] = board.MovingColor;
+
+    const auto cMoves = cpu::GenerateMoves(eBoard);
+
+    thrust::host_vector<cuda_Move> hMoves = dMoves;
+    thrust::host_vector<int> hCount = dCount;
+
+    if (cMoves.size() != hCount[0]) {
+        std::cerr << "Moves count mismatch: " << cMoves.size() << " != " << hCount[0] << std::endl;
+    }
+
+    const size_t size = std::min(cMoves.size(), static_cast<size_t>(hCount[0]));
+
+    for (size_t i = 0; i < size; ++i) {
+        const auto &cMove = cMoves[i];
+        const auto &hMove = hMoves[i];
+
+        if (hMove.GetPackedMove().Dump() != cMove[0]) {
+            std::cerr << "Packed move mismatch: " << hMove.GetPackedMove().Dump() << " != " << cMove[0] << std::endl;
+        }
+    }
 }
 
 void MoveGenTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {

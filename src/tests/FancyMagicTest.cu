@@ -20,7 +20,7 @@
 #include "../cuda_core/RookMapRuntime.cuh"
 #include "../cuda_core/BishopMapRuntime.cuh"
 
-#include "cpu/CpuTests.h"
+#include "../ported/CpuTests.h"
 
 __device__ static constexpr unsigned TEST_SIZE = 1'000'000;
 

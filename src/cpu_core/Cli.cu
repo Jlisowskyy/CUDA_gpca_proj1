@@ -2,17 +2,18 @@
 // Created by Jlisowskyy on 14/11/24.
 //
 
-#include "Cli.hpp"
+#include "Cli.cuh"
 
 #include <iostream>
 #include <string>
 #include <string_view>
 #include <cassert>
 
-#include "../data_structs/cpu_Board.hpp"
-#include "FenTranslator.hpp"
 #include "../cpu_core/CpuCore.cuh"
 #include "../cpu_core/TestRunner.cuh"
+#include "../cuda_core/cuda_Board.cuh"
+
+#include "../ported/CpuUtils.h"
 
 Cli::~Cli() {
     delete m_board;
@@ -44,11 +45,11 @@ void Cli::run() {
     _runGame(rc1);
 }
 
-Cli::Cli(CpuCore *core) : m_core(core), m_board(new cpu_Board()) {
+Cli::Cli(CpuCore *core) : m_core(core), m_board(new cuda_Board()) {
     assert(m_core != nullptr && "Core must be provided!");
 }
 
-Cli::RC_BoardLoad Cli::_loadPosition(cpu_Board &board) const {
+Cli::RC_BoardLoad Cli::_loadPosition(cuda_Board &board) const {
     std::string input;
     std::getline(std::cin, input);
 
@@ -59,13 +60,16 @@ Cli::RC_BoardLoad Cli::_loadPosition(cpu_Board &board) const {
 
     if (input.empty()) {
         std::cout << "Loading default position!" << std::endl;
-        board = FenTranslator::GetDefault();
+        board = cuda_Board(cpu::GetDefaultBoard());
         return RC_BoardLoad::SUCCESS;
     }
 
-    if (!FenTranslator::Translate(input, board)) {
+    cpu::external_board eBd{};
+    if (!cpu::Translate(input, eBd)) {
         std::cout << "Invalid FEN string provided!" << std::endl;
         return RC_BoardLoad::FAILURE;
+    } else {
+        board = cuda_Board(eBd);
     }
 
     return RC_BoardLoad::SUCCESS;

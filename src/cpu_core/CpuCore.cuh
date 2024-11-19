@@ -6,7 +6,7 @@
 #define SRC_CPU_CORE_H
 
 struct cudaDeviceProp;
-struct cpu_Board;
+struct cuda_Board;
 
 #include <tuple>
 
@@ -23,7 +23,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    void setBoard(cpu_Board *board);
+    void setBoard(cuda_Board *board);
 
     void runCVC();
 
@@ -54,7 +54,7 @@ private:
     // Class fields
     // ------------------------------
 
-    cpu_Board* m_board{};
+    cuda_Board* m_board{};
 
     int m_deviceThreads{};
 

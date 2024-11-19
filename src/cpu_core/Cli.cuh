@@ -8,7 +8,7 @@
 /* Forward declaration */
 class CpuCore;
 
-struct cpu_Board;
+struct cuda_Board;
 
 class Cli final {
     // ------------------------------
@@ -53,7 +53,7 @@ private:
 
     static void _displayGameTypeMessage();
 
-    [[nodiscard]] RC_BoardLoad _loadPosition(cpu_Board &board) const;
+    [[nodiscard]] RC_BoardLoad _loadPosition(cuda_Board &board) const;
 
     [[nodiscard]] RC_GameTypeLod _loadGameType() const;
 
@@ -64,7 +64,7 @@ private:
     // ------------------------------
 
     CpuCore *m_core{};
-    cpu_Board *m_board;
+    cuda_Board *m_board;
 };
 
 

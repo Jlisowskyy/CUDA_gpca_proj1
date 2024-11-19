@@ -5,21 +5,13 @@
 #ifndef SRC_CPUTESTS_H
 #define SRC_CPUTESTS_H
 
-#include <cinttypes>
-#include <vector>
-#include <tuple>
+#include <cstdint>
 #include <string>
-#include <array>
+#include <vector>
+
+#include "CpuDefines.h"
 
 namespace cpu {
-
-    using MapCorrecntessRecordsPack =
-            std::tuple<uint64_t, std::vector<uint64_t>, std::vector<uint64_t>, std::vector<std::vector<uint64_t>>>;
-
-    using MapPerformanceRecordsPack = std::tuple<uint64_t, std::vector<uint64_t>, std::vector<uint64_t>>;
-
-    using external_move = std::array<uint16_t, 3>;
-    using external_board = std::array<uint64_t, 15>;
 
     void FancyMagicTest();
 

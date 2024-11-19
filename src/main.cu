@@ -2,7 +2,7 @@
 // Author: Jakub Lisowski 11.2024
 //
 
-#include "cli/Cli.hpp"
+#include "cpu_core/Cli.cuh"
 #include "cpu_core/CpuCore.cuh"
 
 #include "tests/CudaTests.cuh"
