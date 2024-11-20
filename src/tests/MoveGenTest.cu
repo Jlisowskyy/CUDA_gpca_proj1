@@ -19,6 +19,9 @@
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <bitset>
+
+using u16d = std::bitset<16>;
 
 static constexpr std::string_view TestFEN[]{
 //        "3r2k1/B7/4q3/1R4P1/1P3r2/8/2P2P1p/R4K2 w - - 0 49",
@@ -95,8 +98,8 @@ void TestSinglePositionOutput(const std::string_view &fen) {
         }
 
         if (hMove.GetPackedIndexes() != cMove[1]) {
-            std::cerr << "Indexes mismatch device:" << hMove.GetPackedIndexes() << " != "
-                      << " host: " << cMove[1] << std::endl;
+            std::cerr << "Indexes mismatch device:" << u16d(hMove.GetPackedIndexes()) << " != "
+                      << " host: " << u16d(cMove[1]) << std::endl;
 
             std::cerr << "Device: " << hMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
             std::cerr << "Host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
@@ -105,8 +108,8 @@ void TestSinglePositionOutput(const std::string_view &fen) {
         }
 
         if (hMove.GetPackedMisc() != cMove[2]) {
-            std::cerr << "Misc mismatch device:" << hMove.GetPackedMisc() << " != "
-                      << " host: " << cMove[2] << std::endl;
+            std::cerr << "Misc mismatch device:" << u16d(hMove.GetPackedMisc()) << " != "
+                      << " host: " << u16d(cMove[2]) << std::endl;
 
             std::cerr << "Device: " << hMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
             std::cerr << "Host: " << ccMove.GetLongAlgebraicNotation() << std::endl;

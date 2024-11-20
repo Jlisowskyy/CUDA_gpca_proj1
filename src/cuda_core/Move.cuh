@@ -336,7 +336,7 @@ public:
     }
 
     FAST_DCALL void SetCasltingRights(const __uint32_t arr) {
-        const __uint16_t rights = arr & 0xFLLU;
+        const __uint16_t rights = arr & static_cast<__uint32_t>(0xF);
         _packedMisc |= rights << 12;
     }
 

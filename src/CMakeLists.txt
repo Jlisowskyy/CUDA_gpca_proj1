@@ -66,6 +66,9 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(cpu_ported PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
+add_compile_definitions(TREAT_PROMOS_AS_QUEEN_PROMO=1)
+
+
 # CUDA PART
 add_executable(src ${CUDA_SOURCES})
 

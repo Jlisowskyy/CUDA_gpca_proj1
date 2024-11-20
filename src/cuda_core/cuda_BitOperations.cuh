@@ -49,7 +49,7 @@ FAST_CALL constexpr __uint32_t ConvertToReversedPos(const __uint32_t x) {
 
 template<typename NumT>
 FAST_CALL constexpr void SetBitBoardBit(NumT& bitBoard, const __uint32_t pos, const bool value) {
-    bitBoard = (value << pos) & (bitBoard & ~(cuda_MinMsbPossible << pos));
+    bitBoard = (value << pos) | (bitBoard & ~(cuda_MinMsbPossible << pos));
 }
 
 FAST_CALL constexpr __uint32_t SwapColor(const __uint32_t col) { return col ^ 1; }

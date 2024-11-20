@@ -29,9 +29,9 @@ public:
         return G_ROOK_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
     }
 
-    [[nodiscard]] __device__ INLINE static constexpr size_t GetMatchingCastlingIndex(const cuda_Board &bd, __uint64_t figBoard) {
-        for (size_t i = 0; i < CastlingsPerColor; ++i)
-            if (const size_t index = bd.MovingColor * CastlingsPerColor + i;
+    [[nodiscard]] __device__ INLINE static constexpr __uint32_t GetMatchingCastlingIndex(const cuda_Board &bd, __uint64_t figBoard) {
+        for (__uint32_t i = 0; i < CastlingsPerColor; ++i)
+            if (const __uint32_t index = bd.MovingColor * CastlingsPerColor + i;
                     bd.GetCastlingRight(index) && (CastlingsRookMaps[index] & figBoard) != 0)
                 return index;
 
