@@ -34,7 +34,9 @@ static constexpr std::string_view TestFEN[]{
 };
 
 void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, int *outCount) {
+    MoveGenerator gen{*board};
 
+    const auto moves = gen.GetMovesFast();
 }
 
 void TestSinglePositionOutput(const std::string_view &fen) {

@@ -75,7 +75,7 @@ set_target_properties(src PROPERTIES
 
 set_source_files_properties(
         ${CUDA_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-v"
+        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-v;-G"
 )
 
 target_link_libraries(src PRIVATE cpu_ported)
@@ -85,4 +85,4 @@ target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}/tests/cpu
 )
 
-#target_compile_definitions(src PRIVATE -DTESTING=\"move_gen\")
+target_compile_definitions(src PRIVATE -DTESTING=\"move_gen\")

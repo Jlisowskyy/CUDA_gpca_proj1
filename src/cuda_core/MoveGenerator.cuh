@@ -25,6 +25,17 @@
 #include <cassert>
 #include <type_traits>
 
+#define GET_PAWN_FIELD(param) \
+    __uint64_t param{}; \
+    \
+    if constexpr (std::is_same<MapT, WhitePawnMap>::value) { \
+        param = WhitePawnMapConstants::param; \
+    } else if constexpr (std::is_same<MapT, BlackPawnMap>::value) { \
+        param = BlackPawnMapConstants::param; \
+    } else { \
+        assert(false && "Invalid pawn map type detected!"); \
+    }                           \
+
 __device__ static constexpr uint16_t PromoFlags[]{
         0, KnightFlag, BishopFlag, RookFlag, QueenFlag,
 };
@@ -406,7 +417,9 @@ private:
             payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap,
             [[maybe_unused]] __uint64_t allowedMoveFilter = 0
     ) {
-        const __uint64_t promotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] & MapT::PromotingMask;
+        GET_PAWN_FIELD(PromotingMask);
+
+        const __uint64_t promotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] & PromotingMask;
         const __uint64_t nonPromotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] ^ promotingPawns;
 
         _processFigMoves<
@@ -429,18 +442,10 @@ private:
     FAST_CALL void _processPawnPseudoMoves(
             payload &results, __uint64_t enemyMap, __uint64_t allyMap
     ) {
-        __uint64_t mask{};
-
-        if constexpr (std::is_same<MapT, WhitePawnMap>::value) {
-            mask = WhitePawnMapConstants::PromotingMask;
-        } else if constexpr (std::is_same<MapT, BlackPawnMap>::value) {
-            mask = BlackPawnMapConstants::PromotingMask;
-        } else {
-            assert(false && "Invalid pawn map type detected!");
-        }
+        GET_PAWN_FIELD(PromotingMask);
 
         // Distinguish pawns that should be promoted from usual ones
-        const __uint64_t promotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] & mask;
+        const __uint64_t promotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] & PromotingMask;
         const __uint64_t nonPromotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] ^ promotingPawns;
         const __uint64_t fullMap = enemyMap | allyMap;
 
@@ -717,6 +722,8 @@ private:
         const __uint64_t enemyRookFigs = _board.BitBoards[enemyCord + queensIndex] | _board.BitBoards[enemyCord + rooksIndex];
         __uint64_t possiblePawnsToMove = _board.BitBoards[MapT::GetBoardIndex(0)] & suspectedFields;
 
+        GET_PAWN_FIELD(EnemyElPassantMask);
+
         while (possiblePawnsToMove) {
             const __uint64_t pawnMap = cuda_MaxMsbPossible >> ExtractMsbPos(possiblePawnsToMove);
 
@@ -724,8 +731,7 @@ private:
             const __uint64_t processedPawns = pawnMap | _board.ElPassantField;
             const __uint64_t cleanedFromPawnsMap = fullMap ^ processedPawns;
             if (const __uint64_t kingHorizontalLine =
-                        RookMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor), cleanedFromPawnsMap) &
-                        MapT::EnemyElPassantMask;
+                        RookMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor), cleanedFromPawnsMap) & EnemyElPassantMask;
                     (kingHorizontalLine & enemyRookFigs) != 0)
                 return;
 
