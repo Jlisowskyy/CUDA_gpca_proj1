@@ -45,8 +45,20 @@ __device__ static constexpr __uint64_t CASTLING_PSEUDO_LEGAL_BLOCKED = 0;
 struct MoveGenerator : ChessMechanics {
 
     struct payload {
-        cuda_Array<cuda_Move, 256> data{};
+        cuda_Move *data{};
         size_t size = 0;
+
+        FAST_DCALL explicit payload(cuda_Move *data) : data(data) {
+            assert(data != nullptr && "Data must be initialized!");
+        }
+
+        FAST_DCALL payload() : data(static_cast<cuda_Move *>(malloc(sizeof(cuda_Move) * 256))) {
+            assert(data != nullptr && "Data must be initialized!");
+        }
+
+        FAST_DCALL ~payload() {
+            free(data);
+        }
 
         [[nodiscard]] FAST_CALL const cuda_Move &operator[](size_t index) const {
             return data[index];
@@ -186,7 +198,12 @@ struct MoveGenerator : ChessMechanics {
                MoveGenerator::_isNormalMoveLegal(bd, mv);
     }
 
-    [[nodiscard]] __device__ __uint64_t CountMoves(cuda_Board &bd, int depth) {
+    [[nodiscard]] __device__ __uint64_t CountMoves(int depth) {
+        cuda_Board bd = _board;
+        return CountMovesRecursive(bd, depth);
+    }
+
+    [[nodiscard]] static __device__ __uint64_t CountMovesRecursive(cuda_Board &bd, int depth) {
         if (depth == 0)
             return 1;
 
@@ -202,7 +219,7 @@ struct MoveGenerator : ChessMechanics {
         VolatileBoardData data{bd};
         for (size_t i = 0; i < moves.size; ++i) {
             cuda_Move::MakeMove(moves[i], bd);
-            sum += CountMoves(bd, depth - 1);
+            sum += CountMovesRecursive(bd, depth - 1);
             cuda_Move::UnmakeMove(moves[i], bd, data);
         }
 

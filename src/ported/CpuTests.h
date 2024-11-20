@@ -28,6 +28,8 @@ namespace cpu {
     void DisplayBoardCPU(uint64_t board);
 
     std::vector<external_move> GenerateMoves(const external_board& board);
+
+    uint64_t CountMoves(const external_board& board, int depth);
 } // namespace cpu
 
 

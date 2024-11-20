@@ -32,4 +32,19 @@ namespace cpu {
         return result;
     }
 
+    uint64_t CountMoves(const external_board &board, int depth) {
+        Board bd{};
+        for (int i = 0; i < 12; ++i) {
+            bd.BitBoards[i] = board[i];
+        }
+        bd.ElPassantField = board[12];
+        bd.Castlings = board[13];
+        bd.MovingColor = static_cast<int>(board[14]);
+
+        Stack<Move, DEFAULT_STACK_SIZE> s;
+        MoveGenerator mech{bd, s};
+
+        return mech.CountMoves(bd, depth);
+    }
+
 }

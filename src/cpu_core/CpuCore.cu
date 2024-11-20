@@ -41,6 +41,10 @@ void CpuCore::init() {
     assert(deviceProps != nullptr && "Device properties cannot be nullptr");
     CUDA_ASSERT_SUCCESS(cudaSetDevice(bestDeviceIdx));
 
+    size_t stackSize;
+    cudaDeviceGetLimit(&stackSize, cudaLimitStackSize);
+    std::cout << "Current stack size: " << stackSize << " bytes" << std::endl;
+
     m_deviceThreads = deviceHardwareThreads;
     m_deviceProps = deviceProps;
 

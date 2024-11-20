@@ -81,7 +81,7 @@ set_target_properties(src
 
 set_source_files_properties(
         ${CUDA_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-v;-G"
+        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--relocatable-device-code=true;--expt-relaxed-constexpr;-v;-G;-rdc=true"
 )
 
 target_link_libraries(src PRIVATE cpu_ported)
