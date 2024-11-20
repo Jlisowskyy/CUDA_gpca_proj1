@@ -80,6 +80,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
 
     const size_t size = std::min(cMoves.size(), static_cast<size_t>(hCount[0]));
 
+    __uint64_t errors = cMoves.size() - size;
     for (size_t i = 0; i < size; ++i) {
         const auto &cMove = cMoves[i];
         cuda_PackedMove ccMove{cMove[0]};
@@ -88,9 +89,30 @@ void TestSinglePositionOutput(const std::string_view &fen) {
         if (hMove.GetPackedMove() != ccMove) {
             std::cerr << "Packed move mismatch device:" << hMove.GetPackedMove().GetLongAlgebraicNotation() << " != "
                       << " host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
+
+            errors++;
         }
 
-        if (hMove.GetPackedMisc() )
+        if (hMove.GetPackedIndexes() != cMove[1]) {
+            std::cerr << "Indexes mismatch device:" << hMove.GetPackedIndexes() << " != "
+                      << " host: " << cMove[1] << std::endl;
+
+            errors++;
+        }
+
+        if (hMove.GetPackedMisc() != cMove[2]) {
+            std::cerr << "Misc mismatch device:" << hMove.GetPackedMisc() << " != "
+                      << " host: " << cMove[2] << std::endl;
+
+            errors++;
+        }
+    }
+
+    if (errors != 0) {
+        std::cerr << "Failed test for position: " << fen << std::endl;
+        std::cerr << "Errors: " << errors << std::endl;
+    } else {
+        std::cout << "Test passed for position: " << fen << std::endl;
     }
 }
 
