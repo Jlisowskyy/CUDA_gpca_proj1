@@ -37,6 +37,11 @@ void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, 
     MoveGenerator gen{*board};
 
     const auto moves = gen.GetMovesFast();
+    *outCount = static_cast<int>(moves.size);
+
+    for (int i = 0; i < moves.size; ++i) {
+        outMoves[i] = moves[i];
+    }
 }
 
 void TestSinglePositionOutput(const std::string_view &fen) {
@@ -77,11 +82,15 @@ void TestSinglePositionOutput(const std::string_view &fen) {
 
     for (size_t i = 0; i < size; ++i) {
         const auto &cMove = cMoves[i];
+        cuda_PackedMove ccMove{cMove[0]};
         const auto &hMove = hMoves[i];
 
-        if (hMove.GetPackedMove().Dump() != cMove[0]) {
-            std::cerr << "Packed move mismatch: " << hMove.GetPackedMove().Dump() << " != " << cMove[0] << std::endl;
+        if (hMove.GetPackedMove() != ccMove) {
+            std::cerr << "Packed move mismatch device:" << hMove.GetPackedMove().GetLongAlgebraicNotation() << " != "
+                      << " host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
         }
+
+        if (hMove.GetPackedMisc() )
     }
 }
 

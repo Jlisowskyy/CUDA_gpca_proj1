@@ -65,6 +65,8 @@ struct cuda_PackedMove final {
     // Class creation
     // ------------------------------
 
+    FAST_CALL explicit cuda_PackedMove(const __uint16_t packedMove) : _packedMove(packedMove) {}
+
     cuda_PackedMove() = default;
 
     ~cuda_PackedMove() = default;
@@ -98,11 +100,11 @@ struct cuda_PackedMove final {
         return rv;
     }
 
-    FAST_DCALL friend bool operator==(const cuda_PackedMove a, const cuda_PackedMove b) {
+    FAST_CALL friend bool operator==(const cuda_PackedMove a, const cuda_PackedMove b) {
         return a._packedMove == b._packedMove;
     }
 
-    FAST_DCALL friend bool operator!=(const cuda_PackedMove a, const cuda_PackedMove b) { return !(a == b); }
+    FAST_CALL friend bool operator!=(const cuda_PackedMove a, const cuda_PackedMove b) { return !(a == b); }
 
     FAST_DCALL void SetStartField(const __uint16_t startField) { _packedMove |= startField; }
 
