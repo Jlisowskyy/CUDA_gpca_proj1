@@ -145,8 +145,8 @@ struct ChessMechanics {
 
         const __uint32_t enemyCol = SwapColor(_board.MovingColor);
         const size_t enemyFigInd = enemyCol * BitBoardsPerCol;
-        const int allyKingShift = ConvertToReversedPos(static_cast<int>(_board.GetKingMsbPos(_board.MovingColor)));
-        const __uint64_t allyKingMap = 1LLU << allyKingShift;
+        const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
+        const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
         // allows to also simply predict which tiles on the other side of the king are allowed.
         const __uint64_t fullMapWoutKing = fullMap ^ allyKingMap;

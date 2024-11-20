@@ -69,9 +69,12 @@ endif()
 # CUDA PART
 add_executable(src ${CUDA_SOURCES})
 
-set_target_properties(src PROPERTIES
+set_target_properties(src
+        PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
-        CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+#        CUDA_RESOLVE_DEVICE_SYMBOLS ON
+        COMPILE_OPTIONS "-G"
+)
 
 set_source_files_properties(
         ${CUDA_SOURCES}

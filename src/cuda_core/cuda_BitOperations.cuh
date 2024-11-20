@@ -43,7 +43,7 @@ HYBRID constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
 }
 
 /* Nice way to reverse from MsbPos to LsbPos and other way around */
-FAST_CALL constexpr int ConvertToReversedPos(const int x) {
+FAST_CALL constexpr __uint32_t ConvertToReversedPos(const __uint32_t x) {
     return x ^ 63; // equals to 63 - x;
 }
 

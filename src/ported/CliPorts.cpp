@@ -18,7 +18,7 @@ namespace cpu {
 
         eBd[12] = bd.ElPassantField;
         eBd[13] = bd.Castlings.to_ullong();
-        eBd[14] = bd.HalfMoves;
+        eBd[14] = bd.MovingColor;
 
         return eBd;
     }
@@ -34,7 +34,7 @@ namespace cpu {
 
         eBd[12] = bd.ElPassantField;
         eBd[13] = bd.Castlings.to_ullong();
-        eBd[14] = bd.HalfMoves;
+        eBd[14] = bd.MovingColor;
 
         return eBd;
     }
@@ -53,7 +53,7 @@ namespace cpu {
 
         eBd[12] = bd.ElPassantField;
         eBd[13] = bd.Castlings.to_ullong();
-        eBd[14] = bd.HalfMoves;
+        eBd[14] = bd.MovingColor;
 
         board = eBd;
         return true;

@@ -5,6 +5,8 @@
 #ifndef CUDA_BOARD_CUH
 #define CUDA_BOARD_CUH
 
+#include <cassert>
+
 #include "cuda_BitOperations.cuh"
 #include "Helpers.cuh"
 
@@ -151,6 +153,9 @@ public:
         ElPassantField = board[12];
         Castlings = board[13];
         MovingColor = board[14];
+
+        assert(MovingColor == WHITE || MovingColor == BLACK);
+        assert(Castlings <= (1 << (CastlingCount + 1)));
     }
 
     // ------------------------------
