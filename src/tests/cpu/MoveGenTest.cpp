@@ -6,6 +6,9 @@
 
 #include "../../../engine/include/MoveGeneration/MoveGenerator.h"
 
+#include <fstream>
+#include <iostream>
+
 namespace cpu {
 
     std::vector<external_move> GenerateMoves(const external_board &board) {
@@ -45,6 +48,28 @@ namespace cpu {
         MoveGenerator mech{bd, s};
 
         return mech.CountMoves(bd, depth);
+    }
+
+    std::vector<std::string> LoadFenDb(const std::string &filename) {
+        std::vector<std::string> results{};
+        std::fstream file(filename, std::ios::in);
+
+        if (!file.is_open()) {
+            return results;
+        }
+
+        std::string line;
+        while (std::getline(file, line)) {
+            results.push_back(line);
+        }
+
+        file.close();
+        return results;
+    }
+
+    void TestMoveGenPerfCPU(const std::vector<std::string> &fens, uint32_t maxDepth, uint32_t retries, uint32_t threads,
+                            const std::vector<uint64_t> &seeds) {
+        std::cout << "Running Move Generation Performance Test on the CPU!" << std::endl;
     }
 
 }

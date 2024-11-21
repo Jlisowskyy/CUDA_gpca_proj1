@@ -39,4 +39,6 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
         }
 };
 
+std::tuple<unsigned, unsigned> GetDims(int threadsAvailable, const cudaDeviceProp &deviceProps);
+
 #endif //SRC_CUDATESTS_CUH

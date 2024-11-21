@@ -30,6 +30,11 @@ namespace cpu {
     std::vector<external_move> GenerateMoves(const external_board& board);
 
     uint64_t CountMoves(const external_board& board, int depth);
+
+    std::vector<std::string> LoadFenDb(const std::string &filename);
+
+    void TestMoveGenPerfCPU(const std::vector<std::string> &fens, uint32_t maxDepth, uint32_t retries, uint32_t threads,
+                            const std::vector<uint64_t> &seeds);
 } // namespace cpu
 
 

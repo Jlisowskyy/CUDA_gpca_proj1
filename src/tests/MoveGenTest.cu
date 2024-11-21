@@ -22,6 +22,8 @@
 #include <bitset>
 #include <array>
 #include <cassert>
+#include <filesystem>
+#include <random>
 
 using u16d = std::bitset<16>;
 
@@ -194,9 +196,60 @@ void MoveGenTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     }
 }
 
+std::vector<std::string> LoadFenDb() {
+    const auto sourcePath = std::filesystem::path(__FILE__).parent_path();
+    const auto fenDbPath = sourcePath / "test_data/fen_db.txt";
+
+    const auto fenDb = cpu::LoadFenDb(fenDbPath);
+    std::cout << "Loaded " << fenDb.size() << " positions" << std::endl;
+
+    return fenDb;
+}
+
+
+std::vector<__uint64_t> GenSeeds(const __uint32_t size) {
+    std::vector<__uint64_t> seeds{};
+    seeds.reserve(size);
+
+    std::mt19937_64 rng{std::random_device{}()};
+    for (__uint32_t i = 0; i < size; ++i) {
+        seeds.push_back(rng());
+    }
+    return seeds;
+}
+
+static constexpr size_t RETRIES = 3;
+static constexpr size_t MAX_DEPTH = 100;
+
+void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std::string> &fenDb,
+                    const std::vector<__uint64_t> &seeds) {
+    std::cout << "Running MoveGen Performance Test on GPU" << std::endl;
+}
+
+void MoveGenPerfTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
+    const auto fenDb = LoadFenDb();
+
+    const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
+    const auto sizeThreads = blocks * threads;
+
+    const auto seeds = GenSeeds(sizeThreads);
+
+    if (fenDb.size() < threadsAvailable) {
+        throw std::runtime_error("Not enough positions in the database");
+    }
+
+    std::cout << "MoveGen Performance Test" << std::endl;
+
+    std::cout << std::string(80, '-') << std::endl;
+    MoveGenPerfGPU(blocks, threads, fenDb, seeds);
+    std::cout << std::string(80, '-') << std::endl;
+    cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, RETRIES, sizeThreads, seeds);
+}
+
 void MoveGenTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         MoveGenTest_(threadsAvailable, deviceProps);
+        MoveGenPerfTest(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {
         std::cerr << "Failed test with Error: " << e.what() << std::endl;
     }

@@ -22,7 +22,7 @@
 
 #include "../ported/CpuTests.h"
 
-__device__ static constexpr unsigned TEST_SIZE = 1'000'000;
+__device__ static constexpr __uint32_t TEST_SIZE = 1'000'000;
 
 __device__ __forceinline__ __uint64_t simpleRand(__uint64_t &state) {
     state ^= state << 13;
@@ -53,7 +53,7 @@ __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
 }
 
 template<typename MapT>
-void PerformTestOnMap_(unsigned blocks, unsigned threads, thrust::device_vector<__uint64_t> &dSeeds,
+void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vector<__uint64_t> &dSeeds,
                        thrust::device_vector<__uint64_t> &dResults, std::string_view title = "") {
     const double threadsUtilized = blocks * threads;
 
@@ -70,8 +70,6 @@ void PerformTestOnMap_(unsigned blocks, unsigned threads, thrust::device_vector<
     }
 
     auto t2 = std::chrono::high_resolution_clock::now();
-
-
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     const double milliseconds = seconds * 1000.0;
@@ -94,17 +92,8 @@ void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     std::cout << "Fancy Magic Test" << std::endl;
     std::cout << "Received " << threadsAvailable << " available threads..." << std::endl;
 
-    //    const unsigned blocks = std::ceil(static_cast<double>(threadsAvailable) / deviceProps.maxThreadsPerBlock);
-    //    const unsigned threads = deviceProps.maxThreadsPerBlock;
-
-    const unsigned blocks = deviceProps.multiProcessorCount * 2;
-    const unsigned threads = deviceProps.maxThreadsPerMultiProcessor / 2;
-    const double threadsUtilized = blocks * threads;
-    const auto sizeThreads = static_cast<size_t>(threadsUtilized);
-
-    std::cout << "Utilizing " << blocks << " blocks..." << std::endl;
-    std::cout << "Utilizing " << threads << " threads per block..." << std::endl;
-    std::cout << "Totally utilizing " << threadsUtilized << " threads..." << std::endl;
+    const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
+    const auto sizeThreads = static_cast<size_t>(blocks * threads);
 
     std::vector<__uint64_t> vSeeds{};
     vSeeds.reserve(sizeThreads);
@@ -204,7 +193,7 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
 
     const auto size = std::min(cpuResults.size(), hResults.size());
 
-    int displays = 0;
+    __uint32_t displays = 0;
     __uint64_t errors = 0;
     for (size_t i = 0; i < size; ++i) {
         if (displays < MAX_DISPLAYS && cpuResults[i] != hResults[i]) {
@@ -267,7 +256,7 @@ void FancyMagicTestCorrectness_() {
     }
 }
 
-void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
+void FancyMagicTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         std::cout << std::string(80, '-') << std::endl;
         cpu::FancyMagicTest();
@@ -279,4 +268,19 @@ void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     } catch (const std::exception &e) {
         std::cerr << "Fancy Magic Test failed with exception: " << e.what() << std::endl;
     }
+}
+
+std::tuple<__uint32_t, __uint32_t> GetDims(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+    //    const unsigned blocks = std::ceil(static_cast<double>(threadsAvailable) / deviceProps.maxThreadsPerBlock);
+    //    const unsigned threads = deviceProps.maxThreadsPerBlock;
+
+    const __uint32_t blocks = deviceProps.multiProcessorCount * 2;
+    const __uint32_t threads = deviceProps.maxThreadsPerMultiProcessor / 2;
+    const __uint32_t threadsUtilized = blocks * threads;
+
+    std::cout << "Utilizing " << blocks << " blocks..." << std::endl;
+    std::cout << "Utilizing " << threads << " threads per block..." << std::endl;
+    std::cout << "Totally utilizing " << threadsUtilized << " / " << threadsAvailable << " threads..." << std::endl;
+
+    return {blocks, threads};
 }
