@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <tuple>
 
 #include "CpuDefines.h"
 
@@ -33,8 +34,8 @@ namespace cpu {
 
     std::vector<std::string> LoadFenDb(const std::string &filename);
 
-    void TestMoveGenPerfCPU(const std::vector<std::string> &fens, uint32_t maxDepth, uint32_t retries, uint32_t threads,
-                            const std::vector<uint32_t> &seeds);
+    std::tuple<double, uint64_t , uint64_t> TestMoveGenPerfCPU(const std::vector<std::string> &fens, uint32_t maxDepth, uint32_t GPUthreads, uint32_t retries,
+                                                               const std::vector<uint32_t> &seeds);
 } // namespace cpu
 
 

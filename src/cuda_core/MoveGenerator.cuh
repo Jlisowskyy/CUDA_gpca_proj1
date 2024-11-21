@@ -43,21 +43,15 @@ __device__ static constexpr uint16_t PromoFlags[]{
 __device__ static constexpr __uint64_t CASTLING_PSEUDO_LEGAL_BLOCKED = 0;
 
 struct MoveGenerator : ChessMechanics {
+    cuda_Move *moveStorage{};
 
     struct payload {
         cuda_Move *data{};
         size_t size = 0;
 
-        FAST_DCALL explicit payload(cuda_Move *data) : data(data) {
-            assert(data != nullptr && "Data must be initialized!");
-        }
-
-        FAST_DCALL payload() : data(static_cast<cuda_Move *>(malloc(sizeof(cuda_Move) * 256))) {
-            assert(data != nullptr && "Data must be initialized!");
-        }
-
-        FAST_DCALL ~payload() {
-            free(data);
+        FAST_DCALL explicit payload(cuda_Move *ptr) :
+                data(ptr) {
+            assert(ptr != nullptr && "Data must be initialized!");
         }
 
         [[nodiscard]] FAST_CALL const cuda_Move &operator[](size_t index) const {
@@ -81,6 +75,8 @@ struct MoveGenerator : ChessMechanics {
 
     FAST_CALL explicit MoveGenerator(const cuda_Board &bd) : ChessMechanics(bd) {}
 
+    FAST_CALL explicit MoveGenerator(const cuda_Board &bd, cuda_Move *ptr) : ChessMechanics(bd), moveStorage(ptr) {}
+
     MoveGenerator(MoveGenerator &other) = delete;
 
     MoveGenerator &operator=(MoveGenerator &) = delete;
@@ -103,7 +99,7 @@ struct MoveGenerator : ChessMechanics {
                 "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!"
         );
 
-        payload results{};
+        payload results{moveStorage};
 
         // depending on amount of checks branch to desired reaction
         switch (checksCount) {
@@ -131,7 +127,7 @@ struct MoveGenerator : ChessMechanics {
         payload load =
                 GetPseudoLegalMoves<GenOnlyTacticalMoves>();
 
-        payload loadRV{};
+        payload loadRV{moveStorage};
         for (size_t i = 0; i < load.size; ++i)
             if (MoveGenerator::IsLegal(bd, load.data[i]))
                 loadRV.Push(load.data[i]);
@@ -143,7 +139,7 @@ struct MoveGenerator : ChessMechanics {
     template<bool GenOnlyTacticalMoves = false>
     FAST_CALL payload GetPseudoLegalMoves() {
         // allocate results container
-        payload results{};
+        payload results{moveStorage};
 
         // Generate bitboards with corresponding colors
         const __uint64_t enemyMap = GetColBitMap(SwapColor(_board.MovingColor));
@@ -1179,8 +1175,6 @@ private:
             attackingMoves ^= newKingBoard;
         }
     }
-
-
 
     // TODO: simplify ifs??
     // TODO: cleanup left castling available when rook is dead then propagate no castling checking?

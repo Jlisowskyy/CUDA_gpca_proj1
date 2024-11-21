@@ -5,6 +5,8 @@
 #ifndef SRC_CUDATESTS_CUH
 #define SRC_CUDATESTS_CUH
 
+#include "../cuda_core/Helpers.cuh"
+
 #include <unordered_map>
 #include <string>
 #include <tuple>
@@ -12,12 +14,21 @@
 /* defines */
 struct cudaDeviceProp;
 
-using TestFunc = void (*)(int, const cudaDeviceProp &deviceProps);
+using TestFunc = void (*)(__uint32_t, const cudaDeviceProp &deviceProps);
 
 /* test funcs */
-void FancyMagicTest(int threadsAvailable, const cudaDeviceProp &deviceProps);
+void FancyMagicTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
-void MoveGenTest(int threadsAvailable, const cudaDeviceProp &deviceProps);
+void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+
+void MoveGenPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+
+template<class NumT>
+FAST_DCALL void simpleRand(NumT &state) {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+}
 
 /* test mapping */
 static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> CudaTestsMap = {
@@ -33,12 +44,20 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
                 "move_gen",
                 std::make_tuple(
                         "MoveGen Test",
-                        "Tests the performance of the move generation on the GPU",
+                        "Tests the correctness of the move generation on the GPU",
                         &MoveGenTest
                 )
-        }
+        },
+        {
+                "move_perf",
+                std::make_tuple(
+                        "MoveGen Performance Test",
+                        "Tests the performance of the move generation on the GPU",
+                        &MoveGenPerfTest
+                )
+        },
 };
 
-std::tuple<unsigned, unsigned> GetDims(int threadsAvailable, const cudaDeviceProp &deviceProps);
+std::tuple<__uint32_t, __uint32_t> GetDims(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
 #endif //SRC_CUDATESTS_CUH

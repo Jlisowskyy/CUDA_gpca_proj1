@@ -24,13 +24,6 @@
 
 __device__ static constexpr __uint32_t TEST_SIZE = 1'000'000;
 
-__device__ __forceinline__ __uint64_t simpleRand(__uint64_t &state) {
-    state ^= state << 13;
-    state ^= state >> 7;
-    state ^= state << 17;
-    return state;
-}
-
 template<typename MapT>
 __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -41,7 +34,7 @@ __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
 
     __uint64_t sum{};
     for (unsigned i = 0; i < TEST_SIZE; ++i) {
-        board = simpleRand(board);
+        simpleRand(board);
         randomPos = (randomPos + (board & 63)) & 63;
 
         const auto result = MapT::GetMoves(randomPos, board);
@@ -62,6 +55,8 @@ void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vec
     auto t1 = std::chrono::high_resolution_clock::now();
     FancyMagicKernel<MapT><<<blocks, threads>>>(thrust::raw_pointer_cast(dSeeds.data()),
                                                 thrust::raw_pointer_cast(dResults.data()));
+    CUDA_TRACE_ERROR(cudaGetLastError());
+
     const auto rc = cudaDeviceSynchronize();
     CUDA_TRACE_ERROR(rc);
 
@@ -181,6 +176,7 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
     AccessMapping<MapT><<<1, 1>>>(thrust::raw_pointer_cast(dResults.data()), recordCount,
                                   thrust::raw_pointer_cast(dFullMaps.data()),
                                   thrust::raw_pointer_cast(dFigureMaps.data()));
+    CUDA_TRACE_ERROR(cudaGetLastError());
 
     const auto cpuResults = AccessMappingCPU(func, recordCount, fullMaps, figureMaps);
 

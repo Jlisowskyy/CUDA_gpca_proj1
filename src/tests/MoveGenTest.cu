@@ -25,6 +25,7 @@
 #include <filesystem>
 #include <random>
 #include <chrono>
+#include <format>
 
 using u16d = std::bitset<16>;
 
@@ -65,12 +66,6 @@ void __global__ GetGPUMoveCountsKernel(const cuda_Board *board, const int depth,
     *outCount = moves;
 }
 
-void __global__ SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, int maxDepth) {
-    const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
-    const __uint32_t seed = seeds[idx];
-    cuda_Board *board = boards + idx;
-}
-
 void TestMoveCount(const std::string_view &fen, int depth) {
     std::cout << "Testing position: " << fen << std::endl;
 
@@ -84,6 +79,7 @@ void TestMoveCount(const std::string_view &fen, int depth) {
 
     GetGPUMoveCountsKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth,
                                      thrust::raw_pointer_cast(dCount.data()));
+    CUDA_TRACE_ERROR(cudaGetLastError());
 
     const auto rc = cudaDeviceSynchronize();
     CUDA_TRACE_ERROR(rc);
@@ -120,6 +116,8 @@ void TestSinglePositionOutput(const std::string_view &fen) {
 
     GetGPUMovesKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), thrust::raw_pointer_cast(dMoves.data()),
                                 thrust::raw_pointer_cast(dCount.data()));
+    CUDA_TRACE_ERROR(cudaGetLastError());
+
     const auto rc = cudaDeviceSynchronize();
     CUDA_TRACE_ERROR(rc);
 
@@ -190,7 +188,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
     }
 }
 
-void MoveGenTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
+void MoveGenTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     std::cout << "MoveGen Test" << std::endl;
 
     std::cout << "Testing positions with depth 0" << std::endl;
@@ -204,80 +202,9 @@ void MoveGenTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
     }
 }
 
-std::vector<std::string> LoadFenDb() {
-    const auto sourcePath = std::filesystem::path(__FILE__).parent_path();
-    const auto fenDbPath = sourcePath / "test_data/fen_db.txt";
-
-    const auto fenDb = cpu::LoadFenDb(fenDbPath);
-    std::cout << "Loaded " << fenDb.size() << " positions" << std::endl;
-
-    return fenDb;
-}
-
-
-std::vector<__uint32_t> GenSeeds(const __uint32_t size) {
-    std::vector<__uint32_t> seeds{};
-    seeds.reserve(size);
-
-    std::mt19937 rng{std::random_device{}()};
-    for (__uint32_t i = 0; i < size; ++i) {
-        seeds.push_back(rng());
-    }
-    return seeds;
-}
-
-static constexpr size_t RETRIES = 3;
-static constexpr size_t MAX_DEPTH = 100;
-
-void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std::string> &fenDb,
-                    const std::vector<__uint32_t> &seeds) {
-    const __uint32_t threadsSize = threads * blocks;
-    assert(threadsSize == seeds.size());
-
-    std::cout << "Running MoveGen Performance Test on GPU" << std::endl;
-
-    std::vector<cuda_Board> boards(threadsSize);
-
-    for (__uint32_t i = 0; i < threadsSize; ++i) {
-        boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
-    }
-
-    thrust::device_vector<__uint32_t> dSeeds = seeds;
-    thrust::device_vector<cuda_Board> dBoards = boards;
-
-    const auto t1 = std::chrono::high_resolution_clock::now();
-
-    for (size_t i = 0; i < RETRIES; ++i) {
-        SimulateGamesKernel<<<blocks, threads>>>()
-    }
-
-    const auto t2 = std::chrono::high_resolution_clock::now();
-}
-
-void MoveGenPerfTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
-    const auto fenDb = LoadFenDb();
-
-    const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
-    const auto sizeThreads = blocks * threads;
-
-    const auto seeds = GenSeeds(sizeThreads);
-
-    if (fenDb.size() < threadsAvailable) {
-        throw std::runtime_error("Not enough positions in the database");
-    }
-
-    std::cout << "MoveGen Performance Test" << std::endl;
-
-    std::cout << std::string(80, '-') << std::endl;
-    MoveGenPerfGPU(blocks, threads, fenDb, seeds);
-    std::cout << std::string(80, '-') << std::endl;
-    cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, RETRIES, sizeThreads, seeds);
-}
-
-void MoveGenTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {
+void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         MoveGenTest_(threadsAvailable, deviceProps);
-        MoveGenPerfTest(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {
         std::cerr << "Failed test with Error: " << e.what() << std::endl;
     }
