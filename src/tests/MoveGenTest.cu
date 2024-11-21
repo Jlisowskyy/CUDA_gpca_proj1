@@ -24,24 +24,25 @@
 #include <cassert>
 #include <filesystem>
 #include <random>
+#include <chrono>
 
 using u16d = std::bitset<16>;
 
 static constexpr std::array TestFEN{
-        "3r2k1/B7/4q3/1R4P1/1P3r2/8/2P2P1p/R4K2 w - - 0 49",
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-        "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
-        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-        "3rr1k1/1pq2pp1/p2nb2p/2pp4/6PR/2PBPN2/PPQ2PP1/K2R4 b - - 0 20",
-        "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
+    "3r2k1/B7/4q3/1R4P1/1P3r2/8/2P2P1p/R4K2 w - - 0 49",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+    "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+    "3rr1k1/1pq2pp1/p2nb2p/2pp4/6PR/2PBPN2/PPQ2PP1/K2R4 b - - 0 20",
+    "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
 static constexpr std::array TestDepths{
-        3, 3, 3, 3, 3, 3, 3, 3, 3, 3
+    3, 3, 3, 3, 3, 3, 3, 3, 3, 3
 };
 
 static_assert(TestDepths.size() == TestFEN.size());
@@ -57,11 +58,17 @@ void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, 
     }
 }
 
-void __global__ GetGPUMoveCounts(const cuda_Board *board, int depth, __uint64_t *outCount) {
+void __global__ GetGPUMoveCountsKernel(const cuda_Board *board, const int depth, __uint64_t *outCount) {
     MoveGenerator gen{*board};
 
     const auto moves = gen.CountMoves(depth);
     *outCount = moves;
+}
+
+void __global__ SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, int maxDepth) {
+    const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const __uint32_t seed = seeds[idx];
+    cuda_Board *board = boards + idx;
 }
 
 void TestMoveCount(const std::string_view &fen, int depth) {
@@ -75,7 +82,8 @@ void TestMoveCount(const std::string_view &fen, int depth) {
 
     CUDA_ASSERT_SUCCESS(cudaDeviceSetLimit(cudaLimitStackSize, 16384));
 
-    GetGPUMoveCounts<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth, thrust::raw_pointer_cast(dCount.data()));
+    GetGPUMoveCountsKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth,
+                                     thrust::raw_pointer_cast(dCount.data()));
 
     const auto rc = cudaDeviceSynchronize();
     CUDA_TRACE_ERROR(rc);
@@ -138,14 +146,14 @@ void TestSinglePositionOutput(const std::string_view &fen) {
 
         if (hMove.GetPackedMove() != ccMove) {
             std::cerr << "Packed move mismatch device:" << hMove.GetPackedMove().GetLongAlgebraicNotation() << " != "
-                      << " host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
+                    << " host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
 
             errors++;
         }
 
         if (hMove.GetPackedIndexes() != cMove[1]) {
             std::cerr << "Indexes mismatch device:" << u16d(hMove.GetPackedIndexes()) << " != "
-                      << " host: " << u16d(cMove[1]) << std::endl;
+                    << " host: " << u16d(cMove[1]) << std::endl;
 
             std::cerr << "Device: " << hMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
             std::cerr << "Host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
@@ -155,7 +163,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
 
         if (hMove.GetPackedMisc() != cMove[2]) {
             std::cerr << "Misc mismatch device:" << u16d(hMove.GetPackedMisc()) << " != "
-                      << " host: " << u16d(cMove[2]) << std::endl;
+                    << " host: " << u16d(cMove[2]) << std::endl;
 
             std::cerr << "Device: " << hMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
             std::cerr << "Host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
@@ -207,11 +215,11 @@ std::vector<std::string> LoadFenDb() {
 }
 
 
-std::vector<__uint64_t> GenSeeds(const __uint32_t size) {
-    std::vector<__uint64_t> seeds{};
+std::vector<__uint32_t> GenSeeds(const __uint32_t size) {
+    std::vector<__uint32_t> seeds{};
     seeds.reserve(size);
 
-    std::mt19937_64 rng{std::random_device{}()};
+    std::mt19937 rng{std::random_device{}()};
     for (__uint32_t i = 0; i < size; ++i) {
         seeds.push_back(rng());
     }
@@ -222,8 +230,28 @@ static constexpr size_t RETRIES = 3;
 static constexpr size_t MAX_DEPTH = 100;
 
 void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std::string> &fenDb,
-                    const std::vector<__uint64_t> &seeds) {
+                    const std::vector<__uint32_t> &seeds) {
+    const __uint32_t threadsSize = threads * blocks;
+    assert(threadsSize == seeds.size());
+
     std::cout << "Running MoveGen Performance Test on GPU" << std::endl;
+
+    std::vector<cuda_Board> boards(threadsSize);
+
+    for (__uint32_t i = 0; i < threadsSize; ++i) {
+        boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
+    }
+
+    thrust::device_vector<__uint32_t> dSeeds = seeds;
+    thrust::device_vector<cuda_Board> dBoards = boards;
+
+    const auto t1 = std::chrono::high_resolution_clock::now();
+
+    for (size_t i = 0; i < RETRIES; ++i) {
+        SimulateGamesKernel<<<blocks, threads>>>()
+    }
+
+    const auto t2 = std::chrono::high_resolution_clock::now();
 }
 
 void MoveGenPerfTest(int threadsAvailable, const cudaDeviceProp &deviceProps) {

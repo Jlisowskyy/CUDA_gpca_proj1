@@ -68,7 +68,7 @@ namespace cpu {
     }
 
     void TestMoveGenPerfCPU(const std::vector<std::string> &fens, uint32_t maxDepth, uint32_t retries, uint32_t threads,
-                            const std::vector<uint64_t> &seeds) {
+                            const std::vector<uint32_t> &seeds) {
         std::cout << "Running Move Generation Performance Test on the CPU!" << std::endl;
     }
 
