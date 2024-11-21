@@ -47,7 +47,7 @@ HYBRID constexpr T cuda_max(T a, T b) {
 }
 
 /* TODO: move to CMAKE */
-#define AGGRESSIVE_INLINE
+//#define AGGRESSIVE_INLINE
 
 #ifdef AGGRESSIVE_INLINE
 

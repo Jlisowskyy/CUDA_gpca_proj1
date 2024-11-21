@@ -34,33 +34,27 @@ void __global__
 SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
     __uint32_t seed = seeds[idx];
-    cuda_Board *board = boards + idx;
-    __uint32_t movesGenerated{};
-    __uint32_t boardEvals{};
 
     int depth{};
     while (depth < maxDepth) {
-        MoveGenerator mGen{*board, moves + idx * 256};
+        MoveGenerator mGen{*(boards + idx), moves + idx * 256};
         const auto generatedMoves = mGen.GetMovesFast();
         __syncthreads();
 
-        movesGenerated += generatedMoves.size;
-        ++boardEvals;
+        auto result = (__uint32_t *) (results + idx);
+        ++result[0];
+        result[1] += generatedMoves.size;
 
         if (generatedMoves.size == 0) {
             break;
         }
 
         const auto nextMove = generatedMoves[seed % generatedMoves.size];
-        cuda_Move::MakeMove(nextMove, *board);
+        cuda_Move::MakeMove(nextMove, *(boards + idx));
 
         simpleRand(seed);
         ++depth;
     }
-
-    auto result = (__uint32_t *) (results + idx);
-    result[0] += boardEvals;
-    result[1] += movesGenerated;
 }
 
 std::vector<std::string> LoadFenDb() {
@@ -136,7 +130,7 @@ void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std
 
     for (size_t i = 0; i < RETRIES; ++i) {
         thrust::device_vector<cuda_Board> dBoards = boards;
-        SimulateGamesKernel<<<blocks * 4, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
+        SimulateGamesKernel<<<2 * blocks, threads / 2>>>(thrust::raw_pointer_cast(dBoards.data()),
                                                          thrust::raw_pointer_cast(dSeeds.data()),
                                                          thrust::raw_pointer_cast(dResults.data()),
                                                          thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);

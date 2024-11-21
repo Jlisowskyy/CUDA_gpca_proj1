@@ -76,12 +76,12 @@ set_target_properties(src
         PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
 #        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-        COMPILE_OPTIONS "-G"
+#        COMPILE_OPTIONS "-G"
 )
 
 set_source_files_properties(
         ${CUDA_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--expt-relaxed-constexpr;-v;-G;"
+        PROPERTIES COMPILE_OPTIONS "--extended-lambda;--expt-relaxed-constexpr;-v;-Xptxas;-O3"
 )
 
 target_link_libraries(src PRIVATE cpu_ported)
