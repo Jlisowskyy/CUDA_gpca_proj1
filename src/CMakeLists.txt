@@ -91,4 +91,4 @@ target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}/tests/cpu
 )
 
-target_compile_definitions(src PRIVATE -DTESTING=\"move_gen\")
+target_compile_definitions(src PRIVATE -DTESTING=\"move_gen_perf\")

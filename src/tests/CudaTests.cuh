@@ -23,6 +23,11 @@ void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps)
 
 void MoveGenPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
+inline void MoveGenCorPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+    MoveGenTest(threadsAvailable, deviceProps);
+    MoveGenPerfTest(threadsAvailable, deviceProps);
+}
+
 template<class NumT>
 FAST_DCALL void simpleRand(NumT &state) {
     state ^= state << 13;
@@ -54,6 +59,14 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
                         "MoveGen Performance Test",
                         "Tests the performance of the move generation on the GPU",
                         &MoveGenPerfTest
+                )
+        },
+        {
+                "move_gen_perf",
+                std::make_tuple(
+                        "MoveGen PerfCor Test",
+                        "Tests first the correctness of the move generation and performance after it",
+                        &MoveGenCorPerfTest
                 )
         },
 };

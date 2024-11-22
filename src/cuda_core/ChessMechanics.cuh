@@ -104,7 +104,7 @@ struct ChessMechanics {
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
     [[nodiscard]] FAST_CALL __uint64_t GetFullBitMap() const {
         __uint64_t map = 0;
-        for (const auto m: _board.BitBoards) map |= m;
+        for (size_t i = 0; i < BitBoardsCount; ++i) map |= _board.BitBoards[i];
         return map;
     }
 
@@ -136,57 +136,57 @@ struct ChessMechanics {
     */
 
     // [blockedFigMap, checksCount, checkType]
-    [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, __uint8_t>
+    [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
     GetBlockedFieldBitMap(__uint64_t fullMap) const {
         assert(fullMap != 0 && "Full map is empty!");
 
         __uint8_t checksCount{};
-        __uint8_t chT{};
+        __uint64_t blockedMap{};
+        bool wasCheckedBySimple{};
 
-        const __uint32_t enemyCol = SwapColor(_board.MovingColor);
-        const size_t enemyFigInd = enemyCol * BitBoardsPerCol;
+        const size_t enemyFigInd = SwapColor(_board.MovingColor) * BitBoardsPerCol;
         const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
-        // allows to also simply predict which tiles on the other side of the king are allowed.
-        const __uint64_t fullMapWoutKing = fullMap ^ allyKingMap;
-
         // King attacks generation.
-        const __uint64_t kingBlockedMap = KingMap::GetMoves(_board.GetKingMsbPos(enemyCol));
+        blockedMap |= KingMap::GetMoves(_board.GetKingMsbPos(SwapColor(_board.MovingColor)));
 
         // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
         const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
                 _board.BitBoards[enemyFigInd + rooksIndex] | _board.BitBoards[enemyFigInd + queensIndex],
-                fullMapWoutKing,
+                fullMap ^ allyKingMap,
                 allyKingMap
         );
 
         // = 0, 1 or eventually 2 when promotion to rook like type happens
         checksCount += checkCountRook;
+        blockedMap |= rookBlockedMap;
 
         // Bishop attacks generation.
         const __uint64_t bishopBlockedMap = _blockIterativeGenerator(
                 _board.BitBoards[enemyFigInd + bishopsIndex] | _board.BitBoards[enemyFigInd + queensIndex],
                 [=](const int pos) {
-                    return BishopMap::GetMoves(pos, fullMapWoutKing);
+                    return BishopMap::GetMoves(pos, fullMap ^ allyKingMap);
                 }
         );
 
         // = 1 or 0 depending on whether hits or not
         const __uint8_t wasCheckedByBishopFlag = (bishopBlockedMap & allyKingMap) >> allyKingShift;
+
         checksCount += wasCheckedByBishopFlag;
+        blockedMap |= bishopBlockedMap;
 
         // Pawns attacks generation.
         const __uint64_t pawnsMap = _board.BitBoards[enemyFigInd + pawnsIndex];
         const __uint64_t pawnBlockedMap =
-                enemyCol == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap) : BlackPawnMap::GetAttackFields(pawnsMap);
+                SwapColor(_board.MovingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
+                                                       : BlackPawnMap::GetAttackFields(pawnsMap);
 
-        // = 1 or 0 depending on whether hits or not
-        const __uint8_t wasCheckedByPawnFlag = (pawnBlockedMap & allyKingMap) >> allyKingShift;
+        const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
+
         checksCount += wasCheckedByPawnFlag;
-
-        // modifying check type
-        chT += simpleFigCheck * wasCheckedByPawnFlag; // Note: king cannot be double-checked by simple figure
+        wasCheckedBySimple |= wasCheckedByPawnFlag;
+        blockedMap |= pawnBlockedMap;
 
         // Knight attacks generation.
         const __uint64_t knightBlockedMap = _blockIterativeGenerator(
@@ -196,19 +196,16 @@ struct ChessMechanics {
                 }
         );
 
-        // = 1 or 0 depending on whether hits or not
-        const __uint8_t wasCheckedByKnightFlag = (knightBlockedMap & allyKingMap) >> allyKingShift;
+        const bool wasCheckedByKnightFlag = knightBlockedMap & allyKingMap;
+
         checksCount += wasCheckedByKnightFlag;
+        wasCheckedBySimple |= wasCheckedByKnightFlag;
+        blockedMap |= knightBlockedMap;
 
-        // modifying check type
-        chT += simpleFigCheck * wasCheckedByKnightFlag; // Note: king cannot be double-checked by simple figure
-
-        const __uint64_t blockedMap =
-                kingBlockedMap | pawnBlockedMap | knightBlockedMap | rookBlockedMap | bishopBlockedMap;
-        return {blockedMap, checksCount, chT};
+        return {blockedMap, checksCount, wasCheckedBySimple};
     }
 
-    [[nodiscard]] __device__ INLINE __uint64_t
+    [[nodiscard]] FAST_DCALL __uint64_t
     GenerateAllowedTilesForPrecisedPinnedFig(__uint64_t figBoard, __uint64_t fullMap) const {
         assert(fullMap != 0 && "Full map is empty!");
         assert(CountOnesInBoard(figBoard) == 1 && "Only one figure should be pinned!");
@@ -267,7 +264,7 @@ private:
      *              that is: queens, bishops, rooks and pawns
      * */
 
-    __device__ INLINE static thrust::pair<__uint64_t, __uint8_t>
+    FAST_DCALL static thrust::pair<__uint64_t, __uint8_t>
     _getRookBlockedMap(__uint64_t rookMap, __uint64_t fullMapWoutKing, __uint64_t kingMap) {
         assert(kingMap != 0 && "King map is empty!");
 
@@ -288,7 +285,7 @@ private:
     }
 
     template<class MoveGeneratorT>
-    [[nodiscard]] __device__ INLINE static __uint64_t _blockIterativeGenerator(__uint64_t board, MoveGeneratorT mGen) {
+    [[nodiscard]] FAST_DCALL static __uint64_t _blockIterativeGenerator(__uint64_t board, MoveGeneratorT mGen) {
         __uint64_t blockedMap = 0;
 
         while (board != 0) {
@@ -303,7 +300,7 @@ private:
 
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<class MoveMapT, PinnedFigGen type>
-    [[nodiscard]] __device__ INLINE thrust::pair<__uint64_t, __uint64_t>
+    [[nodiscard]] FAST_DCALL thrust::pair<__uint64_t, __uint64_t>
     _getPinnedFigMaps(__uint64_t fullMap, __uint64_t possiblePinningFigs) const {
         __uint64_t allowedTilesFigMap{};
         [[maybe_unused]] __uint64_t pinnedFigMap{};

@@ -69,7 +69,7 @@ struct MoveGenerator : ChessMechanics {
     [[nodiscard]] FAST_DCALL payload GetMovesFast() {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
         const __uint64_t fullMap = GetFullBitMap();
-        const auto [blockedFigMap, checksCount, checkType] = GetBlockedFieldBitMap(fullMap);
+        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(fullMap);
 
         assert(blockedFigMap != 0 && "Blocked fig map must at least contains fields controlled by king!");
         assert(
@@ -85,7 +85,7 @@ struct MoveGenerator : ChessMechanics {
                 _noCheckGen<GenOnlyTacticalMoves>(results, fullMap, blockedFigMap);
                 break;
             case 1:
-                _singleCheckGen<GenOnlyTacticalMoves>(results, fullMap, blockedFigMap, checkType);
+                _singleCheckGen<GenOnlyTacticalMoves>(results, fullMap, blockedFigMap, wasCheckedBySimple);
                 break;
             case 2:
                 _doubleCheckGen<GenOnlyTacticalMoves>(results, blockedFigMap);
@@ -275,15 +275,14 @@ private:
     }
 
     template<bool GenOnlyTacticalMoves>
-    FAST_CALL void _singleCheckGen(payload &results, __uint64_t fullMap, __uint64_t blockedFigMap, int checkType) {
+    FAST_CALL void _singleCheckGen(payload &results, __uint64_t fullMap, __uint64_t blockedFigMap, bool wasCheckedBySimpleFig) {
         assert(fullMap != 0 && "Full map is empty!");
-        assert(checkType == simpleFigCheck || checkType == slidingFigCheck && "Invalid check type!");
 
         static constexpr __uint64_t UNUSED = 0;
 
         // simplifying figure search by distinguishing check types
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> std::pair<__uint64_t, __uint64_t> {
-            if (checkType == slidingFigCheck)
+            if (!wasCheckedBySimpleFig)
                 return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WAllowedTiles>(_board.MovingColor, fullMap);
 
             [[maybe_unused]] const auto [rv, _] =
