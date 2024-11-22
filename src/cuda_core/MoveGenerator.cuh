@@ -9,6 +9,7 @@
 #include "ChessMechanics.cuh"
 #include "cuda_BitOperations.cuh"
 #include "Move.cuh"
+#include "Stack.cuh"
 
 #include "BishopMap.cuh"
 #include "BlackPawnMap.cuh"
@@ -43,29 +44,8 @@ __device__ static constexpr uint16_t PromoFlags[]{
 __device__ static constexpr __uint64_t CASTLING_PSEUDO_LEGAL_BLOCKED = 0;
 
 struct MoveGenerator : ChessMechanics {
-    cuda_Move *moveStorage{};
-
-    struct payload {
-        cuda_Move *data{};
-        size_t size = 0;
-
-        FAST_DCALL explicit payload(cuda_Move *ptr) :
-                data(ptr) {
-            assert(ptr != nullptr && "Data must be initialized!");
-        }
-
-        [[nodiscard]] FAST_CALL const cuda_Move &operator[](size_t index) const {
-            return data[index];
-        }
-
-        [[nodiscard]] FAST_CALL cuda_Move &operator[](size_t index) {
-            return data[index];
-        }
-
-        FAST_CALL void Push(cuda_Move mv) {
-            data[size++] = mv;
-        }
-    };
+    Stack<cuda_Move>& stack;
+    using payload = Stack<cuda_Move>::StackPayload;
 
     // ------------------------------
     // Class Creation
@@ -73,9 +53,7 @@ struct MoveGenerator : ChessMechanics {
 
     MoveGenerator() = delete;
 
-    FAST_CALL explicit MoveGenerator(const cuda_Board &bd) : ChessMechanics(bd) {}
-
-    FAST_CALL explicit MoveGenerator(const cuda_Board &bd, cuda_Move *ptr) : ChessMechanics(bd), moveStorage(ptr) {}
+    FAST_CALL explicit MoveGenerator(const cuda_Board &bd, Stack<cuda_Move>& s) : ChessMechanics(bd), stack(s) {}
 
     MoveGenerator(MoveGenerator &other) = delete;
 
@@ -99,7 +77,7 @@ struct MoveGenerator : ChessMechanics {
                 "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!"
         );
 
-        payload results{moveStorage};
+        payload results = stack.GetPayload();
 
         // depending on amount of checks branch to desired reaction
         switch (checksCount) {
@@ -120,93 +98,20 @@ struct MoveGenerator : ChessMechanics {
         return results;
     }
 
-    template<bool GenOnlyTacticalMoves = false>
-    FAST_DCALL payload GetMovesSlow() {
-        cuda_Board bd = _board;
-
-        payload load =
-                GetPseudoLegalMoves<GenOnlyTacticalMoves>();
-
-        payload loadRV{moveStorage};
-        for (size_t i = 0; i < load.size; ++i)
-            if (MoveGenerator::IsLegal(bd, load.data[i]))
-                loadRV.Push(load.data[i]);
-
-        return loadRV;
-    }
-
-
-    template<bool GenOnlyTacticalMoves = false>
-    FAST_CALL payload GetPseudoLegalMoves() {
-        // allocate results container
-        payload results{moveStorage};
-
-        // Generate bitboards with corresponding colors
-        const __uint64_t enemyMap = GetColBitMap(SwapColor(_board.MovingColor));
-        const __uint64_t allyMap = GetColBitMap(_board.MovingColor);
-
-        _processFigPseudoMoves<GenOnlyTacticalMoves, KnightMap>(
-                results, enemyMap, allyMap
-        );
-
-        _processFigPseudoMoves<GenOnlyTacticalMoves, BishopMap>(
-                results, enemyMap, allyMap
-        );
-
-        _processFigPseudoMoves<GenOnlyTacticalMoves, RookMap, true>(
-                results, enemyMap, allyMap
-        );
-
-        _processFigPseudoMoves<GenOnlyTacticalMoves, QueenMap>(
-                results, enemyMap, allyMap
-        );
-
-        if (_board.MovingColor == WHITE)
-            _processPawnPseudoMoves<GenOnlyTacticalMoves, WhitePawnMap>(
-                    results, enemyMap, allyMap
-            );
-        else
-            _processPawnPseudoMoves<GenOnlyTacticalMoves, BlackPawnMap>(
-                    results, enemyMap, allyMap
-            );
-
-        _processPlainKingMoves<GenOnlyTacticalMoves, true>(
-                results, KING_NO_BLOCKED_MAP, allyMap, enemyMap
-        );
-
-        if constexpr (!GenOnlyTacticalMoves)
-            _processKingCastlings<true>(
-                    results, CASTLING_PSEUDO_LEGAL_BLOCKED, enemyMap | allyMap
-            );
-
-        return results;
-    }
-
-    [[nodiscard]] FAST_DCALL static bool IsLegal(cuda_Board &bd, cuda_Move mv) {
-        // TODO: Possibility to improve performance by introducing global state holding pinned figures
-        // TODO: and distinguish given states:
-        // TODO: Castling -> (check for attacks on fields),
-        // TODO: King Move / El Passant -> (check if king is attacked from king's perspective),
-        // TODO: Rest of moves allowed only on line between pinned and king if pinned
-
-        return mv.GetPackedMove().IsCastling() ?
-               MoveGenerator::_isCastlingLegal(bd, mv) :
-               MoveGenerator::_isNormalMoveLegal(bd, mv);
-    }
-
     [[nodiscard]] __device__ __uint64_t CountMoves(int depth) {
         cuda_Board bd = _board;
         return CountMovesRecursive(bd, depth);
     }
 
-    [[nodiscard]] static __device__ __uint64_t CountMovesRecursive(cuda_Board &bd, int depth) {
+    [[nodiscard]] __device__ __uint64_t CountMovesRecursive(cuda_Board &bd, int depth) {
         if (depth == 0)
             return 1;
 
-        MoveGenerator mgen{bd};
-        const auto moves = mgen.GetMovesSlow<false>();
+        MoveGenerator mGen{bd, stack};
+        const auto moves = mGen.GetMovesFast();
 
         if (depth == 1) {
+            stack.PopAggregate(moves);
             return moves.size;
         }
 
@@ -219,6 +124,7 @@ struct MoveGenerator : ChessMechanics {
             cuda_Move::UnmakeMove(moves[i], bd, data);
         }
 
+        stack.PopAggregate(moves);
         return sum;
     }
 
@@ -419,7 +325,7 @@ private:
     }
 
     template<bool GenOnlyTacticalMoves>
-    FAST_CALL void _doubleCheckGen(payload &results, __uint64_t blockedFigMap) const {
+    FAST_CALL void _doubleCheckGen(payload &results, __uint64_t blockedFigMap) {
         const __uint64_t allyMap = GetColBitMap(_board.MovingColor);
         const __uint64_t enemyMap = GetColBitMap(SwapColor(_board.MovingColor));
         _processPlainKingMoves<GenOnlyTacticalMoves>(results, blockedFigMap, allyMap, enemyMap);
@@ -509,7 +415,7 @@ private:
                 if (_isPawnGivingCheck<MapT>(pawnTargetBitBoard))
                     mv.SetCheckType();
 
-                results.Push(mv);
+                results.Push(stack, mv);
                 attackPseudoMoves ^= pawnTargetBitBoard;
             }
 
@@ -553,7 +459,7 @@ private:
                     if (_isPromotingPawnGivingCheck<MapT>(pawnTarget, fullMap ^ pawnBitBoard, targetBoard))
                         mv.SetCheckType();
 
-                    results.Push(mv);
+                    results.Push(stack, mv);
                 }
 
                 attackPseudoMoves ^= pawnTargetBitBoard;
@@ -601,7 +507,7 @@ private:
                     if (_isPromotingPawnGivingCheck<MapT>(pawnTarget, fullMap ^ pawnBitBoard, targetBoard))
                         mv.SetCheckType();
 
-                    results.Push(mv);
+                    results.Push(stack, mv);
                 }
 
                 plainPseudoMoves ^= pawnTargetBitBoard;
@@ -651,7 +557,7 @@ private:
             if (_isPawnGivingCheck<MapT>(moveBitBoard))
                 mv.SetCheckType();
 
-            results.Push(mv);
+            results.Push(stack, mv);
             firstMoves ^= moveBitBoard;
             firstPawns ^= pawnBitBoard;
         }
@@ -677,7 +583,7 @@ private:
             if (_isPawnGivingCheck<MapT>(moveBitBoard))
                 mv.SetCheckType();
 
-            results.Push(mv);
+            results.Push(stack, mv);
             secondMoves ^= moveBitBoard;
             secondPawns ^= pawnBitBoard;
         }
@@ -713,7 +619,7 @@ private:
             if (_isPawnGivingCheck<MapT>(moveBitMap))
                 mv.SetCheckType();
 
-            results.Push(mv);
+            results.Push(stack, mv);
             elPassantPawns ^= pawnMap;
         }
     }
@@ -789,7 +695,7 @@ private:
                 mv.SetCheckType();
 
 
-            results.Push(mv);
+            results.Push(stack, mv);
             possiblePawnsToMove ^= pawnMap;
         }
     }
@@ -951,7 +857,7 @@ private:
     __device__ void _processNonAttackingMoves(
             payload &results, __uint64_t nonAttackingMoves, size_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, __uint64_t fullMap
-    ) const {
+    ) {
         assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
 
         while (nonAttackingMoves) {
@@ -989,7 +895,7 @@ private:
                     mv.SetElPassantField(InvalidElPassantField);
                 mv.SetCasltingRights(castlings);
 
-                results.Push(mv);
+                results.Push(stack, mv);
             }
             if constexpr (promotePawns)
                 // upgrading pawn case
@@ -1016,7 +922,7 @@ private:
                     if (_isPromotingPawnGivingCheck<MapT>(movePos, fullMap ^ startField, targetBoard))
                         mv.SetCheckType();
 
-                    results.Push(mv);
+                    results.Push(stack, mv);
                 }
             }
 
@@ -1028,7 +934,7 @@ private:
     __device__ void _processAttackingMoves(
             payload &results, __uint64_t attackingMoves, size_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, __uint64_t fullMap
-    ) const  {
+    ) {
         assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
 
         while (attackingMoves) {
@@ -1060,7 +966,7 @@ private:
                 else if (_isGivingCheck<MapT>(movePos, fullMap ^ startField, SwapColor(figBoardIndex > wKingIndex)))
                     mv.SetCheckType();
 
-                results.Push(mv);
+                results.Push(stack, mv);
             }
             if constexpr (promotePawns)
                 // upgrading pawn case
@@ -1088,7 +994,7 @@ private:
                     if (_isPromotingPawnGivingCheck<MapT>(movePos, fullMap ^ startField, targetBoard))
                         mv.SetCheckType();
 
-                    results.Push(mv);
+                    results.Push(stack, mv);
                 }
             }
 
@@ -1101,7 +1007,7 @@ private:
     // TODO: test copying all old castlings
     template<bool GenOnlyTacticalMoves, bool GeneratePseudoMoves = false>
     __device__ void
-    _processPlainKingMoves(payload &results, __uint64_t blockedFigMap, __uint64_t allyMap, __uint64_t enemyMap) const {
+    _processPlainKingMoves(payload &results, __uint64_t blockedFigMap, __uint64_t allyMap, __uint64_t enemyMap) {
         assert(allyMap != 0 && "Ally map is empty!");
         assert(enemyMap != 0 && "Enemy map is empty!");
 
@@ -1143,7 +1049,7 @@ private:
                 mv.SetElPassantField(InvalidElPassantField);
                 mv.SetCasltingRights(castlings);
 
-                results.Push(mv);
+                results.Push(stack, mv);
 
                 nonAttackingMoves ^= (cuda_MaxMsbPossible >> newPos);
             }
@@ -1170,7 +1076,7 @@ private:
             mv.SetCasltingRights(castlings);
             mv.SetMoveType(CaptureFlag);
 
-            results.Push(mv);
+            results.Push(stack, mv);
 
             attackingMoves ^= newKingBoard;
         }
@@ -1179,7 +1085,7 @@ private:
     // TODO: simplify ifs??
     // TODO: cleanup left castling available when rook is dead then propagate no castling checking?
     template<bool GeneratePseudoLegalMoves = false>
-    FAST_DCALL void _processKingCastlings(payload &results, __uint64_t blockedFigMap, __uint64_t fullMap) const {
+    FAST_DCALL void _processKingCastlings(payload &results, __uint64_t blockedFigMap, __uint64_t fullMap) {
         assert(fullMap != 0 && "Full map is empty!");
 
         for (size_t i = 0; i < CastlingsPerColor; ++i)
@@ -1209,7 +1115,7 @@ private:
                 mv.SetCastlingType(1 + castlingIndex); // God only knows why I made a sentinel at index 0 at this moment
                 mv.SetMoveType(CastlingFlag);
 
-                results.Push(mv);
+                results.Push(stack, mv);
             }
     }
 };

@@ -36,8 +36,10 @@ SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *res
     __uint32_t seed = seeds[idx];
 
     int depth{};
+
     while (depth < maxDepth) {
-        MoveGenerator mGen{*(boards + idx), moves + idx * 256};
+        Stack<cuda_Move> stack(moves + idx * 256);
+        MoveGenerator mGen{*(boards + idx), stack};
         const auto generatedMoves = mGen.GetMovesFast();
         __syncthreads();
 
@@ -130,7 +132,7 @@ void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std
 
     for (size_t i = 0; i < RETRIES; ++i) {
         thrust::device_vector<cuda_Board> dBoards = boards;
-        SimulateGamesKernel<<<2 * blocks, threads / 2>>>(thrust::raw_pointer_cast(dBoards.data()),
+        SimulateGamesKernel<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
                                                          thrust::raw_pointer_cast(dSeeds.data()),
                                                          thrust::raw_pointer_cast(dResults.data()),
                                                          thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);

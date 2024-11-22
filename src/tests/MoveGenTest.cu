@@ -48,8 +48,9 @@ static constexpr std::array TestDepths{
 
 static_assert(TestDepths.size() == TestFEN.size());
 
-void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, int *outCount) {
-    MoveGenerator gen{*board};
+void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, int *outCount, void *ptr) {
+    Stack<cuda_Move> stack(ptr);
+    MoveGenerator gen{*board, stack};
 
     const auto moves = gen.GetMovesFast();
     *outCount = static_cast<int>(moves.size);
@@ -57,10 +58,13 @@ void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, 
     for (int i = 0; i < moves.size; ++i) {
         outMoves[i] = moves[i];
     }
+
+    gen.stack.PopAggregate(moves);
 }
 
-void __global__ GetGPUMoveCountsKernel(const cuda_Board *board, const int depth, __uint64_t *outCount) {
-    MoveGenerator gen{*board};
+void __global__ GetGPUMoveCountsKernel(const cuda_Board *board, const int depth, __uint64_t *outCount, void *ptr) {
+    Stack<cuda_Move> stack(ptr);
+    MoveGenerator gen{*board, stack};
 
     const auto moves = gen.CountMoves(depth);
     *outCount = moves;
@@ -74,17 +78,14 @@ void TestMoveCount(const std::string_view &fen, int depth) {
 
     thrust::device_vector<cuda_Board> dBoard{board};
     thrust::device_vector<__uint64_t> dCount(1);
-
-    CUDA_ASSERT_SUCCESS(cudaDeviceSetLimit(cudaLimitStackSize, 16384));
+    thrust::device_vector<cuda_Move> dStack(16384);
 
     GetGPUMoveCountsKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth,
-                                     thrust::raw_pointer_cast(dCount.data()));
+                                     thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
 
     const auto rc = cudaDeviceSynchronize();
     CUDA_TRACE_ERROR(rc);
-
-    CUDA_ASSERT_SUCCESS(cudaDeviceSetLimit(cudaLimitStackSize, 1024));
 
     if (rc != cudaSuccess) {
         throw std::runtime_error("Failed to launch kernel");
@@ -114,8 +115,9 @@ void TestSinglePositionOutput(const std::string_view &fen) {
     thrust::device_vector<cuda_Board> dBoard{board};
     thrust::device_vector<int> dCount(1);
 
+    thrust::device_vector<cuda_Move> dStack(16384);
     GetGPUMovesKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), thrust::raw_pointer_cast(dMoves.data()),
-                                thrust::raw_pointer_cast(dCount.data()));
+                                thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
 
     const auto rc = cudaDeviceSynchronize();
