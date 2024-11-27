@@ -38,7 +38,22 @@ __device__ static constexpr uint16_t PromoFlags[]{
         0, KnightFlag, BishopFlag, RookFlag, QueenFlag,
 };
 
-struct MoveGenerator : ChessMechanics {
+class MoveGenerator : ChessMechanics {
+
+    enum MoveGenFlags : __uint32_t {
+        EMPTY_FLAGS = 0,
+        CHECK_CASTLINGS = 1,
+        PROMOTE_PAWNS = 2,
+        SELECT_FIGURES = 4,
+        ASSUME_CHECK = 8,
+        CONSIDER_ELPASSANT = 16,
+    };
+
+    FAST_DCALL static constexpr bool IsFlagOn(__uint32_t flags, MoveGenFlags flag) {
+        return (flags & flag) != 0;
+    }
+
+public:
     Stack<cuda_Move>& stack;
     using payload = Stack<cuda_Move>::StackPayload;
 
@@ -140,19 +155,19 @@ private:
         const __uint64_t allyMap = GetColBitMap(_board.MovingColor);
 
         _processFigMoves<KnightMap>(
-                results, enemyMap, allyMap, pinnedFigsMap
+                results, enemyMap, allyMap, pinnedFigsMap, EMPTY_FLAGS
         );
 
         _processFigMoves<BishopMap>(
-                results, enemyMap, allyMap, pinnedFigsMap
+                results, enemyMap, allyMap, pinnedFigsMap, EMPTY_FLAGS
         );
 
-        _processFigMoves<RookMap, true>(
-                results, enemyMap, allyMap, pinnedFigsMap
+        _processFigMoves<RookMap>(
+                results, enemyMap, allyMap, pinnedFigsMap, CHECK_CASTLINGS
         );
 
         _processFigMoves<QueenMap>(
-                results, enemyMap, allyMap, pinnedFigsMap
+                results, enemyMap, allyMap, pinnedFigsMap, EMPTY_FLAGS
         );
 
         if (_board.MovingColor == WHITE)
@@ -189,20 +204,20 @@ private:
         const __uint64_t allyMap = GetColBitMap(_board.MovingColor);
 
         // Specific figure processing
-        _processFigMoves<KnightMap, false, false, false, true>(
-                results, enemyMap, allyMap, pinnedFigsMap, UNUSED, allowedTilesMap
+        _processFigMoves<KnightMap>(
+                results, enemyMap, allyMap, pinnedFigsMap, ASSUME_CHECK, UNUSED, allowedTilesMap
         );
 
-        _processFigMoves<BishopMap, false, false, false, true>(
-                results, enemyMap, allyMap, pinnedFigsMap, UNUSED, allowedTilesMap
+        _processFigMoves<BishopMap>(
+                results, enemyMap, allyMap, pinnedFigsMap, ASSUME_CHECK, UNUSED, allowedTilesMap
         );
 
-        _processFigMoves<RookMap, true, false, false, true>(
-                results, enemyMap, allyMap, pinnedFigsMap, UNUSED, allowedTilesMap
+        _processFigMoves<RookMap>(
+                results, enemyMap, allyMap, pinnedFigsMap, ASSUME_CHECK, UNUSED, allowedTilesMap
         );
 
-        _processFigMoves<QueenMap, false, false, false, true>(
-                results, enemyMap, allyMap, pinnedFigsMap, UNUSED, allowedTilesMap
+        _processFigMoves<QueenMap>(
+                results, enemyMap, allyMap, pinnedFigsMap, ASSUME_CHECK, UNUSED, allowedTilesMap
         );
 
         if (_board.MovingColor == WHITE)
@@ -234,14 +249,17 @@ private:
         const __uint64_t nonPromotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] ^ promotingPawns;
 
         _processFigMoves<
-                MapT, false, false, true, isCheck, MapT::GetElPassantField>(
-                results, enemyMap, allyMap, pinnedFigMap, nonPromotingPawns, allowedMoveFilter
+                MapT, MapT::GetElPassantField>(
+                results, enemyMap, allyMap, pinnedFigMap, SELECT_FIGURES | (isCheck ? ASSUME_CHECK : EMPTY_FLAGS),
+                nonPromotingPawns, allowedMoveFilter
         );
 
         // During quiesce search we should also check all promotions so GenOnlyTacticalMoves is false
         if (promotingPawns)
-            _processFigMoves<MapT, false, true, true, isCheck>(
-                    results, enemyMap, allyMap, pinnedFigMap, promotingPawns, allowedMoveFilter
+            _processFigMoves<MapT>(
+                    results, enemyMap, allyMap, pinnedFigMap,
+                    SELECT_FIGURES | (isCheck ? ASSUME_CHECK : EMPTY_FLAGS) | PROMOTE_PAWNS, promotingPawns,
+                    allowedMoveFilter
             );
 
         _processElPassantMoves<MapT>(
@@ -323,11 +341,10 @@ private:
     // TODO: Compare with simple if searching loop
     // TODO: propagate checkForCastling?
     template<
-            class MapT, bool checkForCastling = false,
-            bool promotePawns = false, bool selectFigures = false, bool isCheck = false,
+            class MapT,
             __uint64_t (*elPassantFieldDeducer)(__uint64_t, __uint64_t) = nullptr>
     __device__ void _processFigMoves(
-            payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap,
+            payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
             [[maybe_unused]] __uint64_t figureSelector = 0, [[maybe_unused]] __uint64_t allowedMoveSelector = 0
     )  {
         assert(enemyMap != 0 && "Enemy map is empty!");
@@ -338,7 +355,7 @@ private:
         __uint64_t unpinnedOnes = _board.BitBoards[MapT::GetBoardIndex(_board.MovingColor)] ^ pinnedOnes;
 
         // applying filter if needed
-        if constexpr (selectFigures) {
+        if (IsFlagOn(flags, SELECT_FIGURES)) {
             pinnedOnes &= figureSelector;
             unpinnedOnes &= figureSelector;
         }
@@ -353,15 +370,15 @@ private:
 
             // selecting allowed moves if in check
             const __uint64_t figMoves = [&]() constexpr {
-                if constexpr (!isCheck)
+                if (!IsFlagOn(flags, ASSUME_CHECK))
                     return MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap;
-                if constexpr (isCheck)
+                if (IsFlagOn(flags, ASSUME_CHECK))
                     return MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedMoveSelector;
             }();
 
             // Performing checks for castlings
             __uint32_t updatedCastlings = _board.Castlings;
-            if constexpr (checkForCastling)
+            if (IsFlagOn(flags, CHECK_CASTLINGS))
                 SetBitBoardBit(updatedCastlings, RookMap::GetMatchingCastlingIndex(_board, figBoard), false);
 
             // preparing moves
@@ -371,19 +388,19 @@ private:
             // processing move consequences
             _processNonAttackingMoves<elPassantFieldDeducer>(
                     results, nonAttackingMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard,
-                    updatedCastlings, promotePawns
+                    updatedCastlings, IsFlagOn(flags, PROMOTE_PAWNS)
             );
 
             _processAttackingMoves(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, updatedCastlings,
-                    promotePawns
+                    IsFlagOn(flags, PROMOTE_PAWNS)
             );
 
             unpinnedOnes ^= figBoard;
         }
 
         // if a check is detected, the pinned figure stays in place
-        if constexpr (isCheck)
+        if (IsFlagOn(flags, ASSUME_CHECK))
             return;
 
         // processing pinned moves
@@ -405,13 +422,13 @@ private:
 
             _processNonAttackingMoves<elPassantFieldDeducer>(
                     results, nonAttackingMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard,
-                    _board.Castlings, promotePawns
+                    _board.Castlings, IsFlagOn(flags, PROMOTE_PAWNS)
             );
 
             // TODO: There is exactly one move possible
             _processAttackingMoves(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, _board.Castlings,
-                    promotePawns
+                    IsFlagOn(flags, PROMOTE_PAWNS)
             );
 
             pinnedOnes ^= figBoard;
