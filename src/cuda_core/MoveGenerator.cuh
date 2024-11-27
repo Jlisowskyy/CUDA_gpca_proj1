@@ -148,7 +148,7 @@ public:
     // ------------------------------
 
 private:
-    
+
     FAST_DCALL void _upTo1Check(payload &results, __uint64_t fullMap, __uint64_t blockedFigMap, __uint32_t flags,
                                 bool wasCheckedBySimpleFig = false) {
         assert(fullMap != 0 && "Full map is empty!");
@@ -191,15 +191,9 @@ private:
                 results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
         );
 
-        if (_board.MovingColor == WHITE) {
-            _processPawnMoves<WhitePawnMap>(
-                    results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
-            );
-        } else {
-            _processPawnMoves<BlackPawnMap>(
-                    results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
-            );
-        }
+        _processPawnMoves(
+                results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+        );
 
         _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
 
@@ -214,35 +208,62 @@ private:
         _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
     }
 
-    template<class MapT>
     FAST_DCALL void _processPawnMoves(
             payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
             __uint64_t allowedMoveFilter = 0
     ) {
-        GET_PAWN_FIELD(PromotingMask);
+        const __uint64_t PromotingMask = (_board.MovingColor == WHITE ? WhitePawnMapConstants::PromotingMask
+                                                                      : BlackPawnMapConstants::PromotingMask);
 
-        const __uint64_t promotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] & PromotingMask;
-        const __uint64_t nonPromotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] ^ promotingPawns;
+        const __uint32_t boardIdx = (_board.MovingColor == WHITE ? WhitePawnMap::GetBoardIndex(0)
+                                                                 : BlackPawnMap::GetBoardIndex(0));
 
-        _processFigMoves<MapT>(
-                results, enemyMap, allyMap, pinnedFigMap,
-                CONSIDER_EL_PASSANT | SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK),
-                nonPromotingPawns, allowedMoveFilter
-        );
+        const __uint64_t promotingPawns = _board.BitBoards[boardIdx] & PromotingMask;
+        const __uint64_t nonPromotingPawns = _board.BitBoards[boardIdx] ^ promotingPawns;
 
-        // During quiesce search we should also check all promotions so GenOnlyTacticalMoves is false
-        if (promotingPawns) {
-            _processFigMoves<MapT>(
+        if (_board.MovingColor == WHITE) {
+            _processFigMoves<WhitePawnMap>(
                     results, enemyMap, allyMap, pinnedFigMap,
-                    SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
-                    promotingPawns,
-                    allowedMoveFilter
+                    CONSIDER_EL_PASSANT | SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK),
+                    nonPromotingPawns, allowedMoveFilter
+            );
+        } else {
+            _processFigMoves<BlackPawnMap>(
+                    results, enemyMap, allyMap, pinnedFigMap,
+                    CONSIDER_EL_PASSANT | SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK),
+                    nonPromotingPawns, allowedMoveFilter
             );
         }
 
-        _processElPassantMoves<MapT>(
-                results, allyMap | enemyMap, pinnedFigMap, IsFlagOn(flags, ASSUME_CHECK), allowedMoveFilter
-        );
+        // During quiesce search we should also check all promotions so GenOnlyTacticalMoves is false
+        if (promotingPawns) {
+            if (_board.MovingColor == WHITE) {
+                _processFigMoves<WhitePawnMap>(
+                        results, enemyMap, allyMap, pinnedFigMap,
+                        SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
+                        promotingPawns,
+                        allowedMoveFilter
+                );
+            } else {
+                _processFigMoves<BlackPawnMap>(
+                        results, enemyMap, allyMap, pinnedFigMap,
+                        SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
+                        promotingPawns,
+                        allowedMoveFilter
+                );
+            }
+        }
+
+        if (_board.MovingColor == WHITE) {
+            _processElPassantMoves<WhitePawnMap>(
+                    results, allyMap | enemyMap, pinnedFigMap, IsFlagOn(flags, ASSUME_CHECK), allowedMoveFilter
+            );
+        } else {
+            _processElPassantMoves<BlackPawnMap>(
+                    results, allyMap | enemyMap, pinnedFigMap, IsFlagOn(flags, ASSUME_CHECK), allowedMoveFilter
+            );
+        }
+
     }
 
     // TODO: Consider different solution?
