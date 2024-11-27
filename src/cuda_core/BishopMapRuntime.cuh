@@ -18,7 +18,7 @@ public:
 
     ~BishopMapRuntime() = delete;
 
-    [[nodiscard]] FAST_CALL static __uint64_t
+    [[nodiscard]] __device__ static __uint64_t
     GetMoves(int msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
         const __uint64_t startPos = cuda_MaxMsbPossible >> msbInd;
         const int startRow = msbInd / 8;
@@ -83,6 +83,10 @@ public:
         }
 
         return moves;
+    }
+
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(__uint32_t color) {
+        return BitBoardsPerCol * color + bishopsIndex;
     }
 };
 

@@ -35,11 +35,11 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex(int color) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(int color) {
         return BitBoardsPerCol * color + knightsIndex;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr __uint64_t
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
     GetMoves(__uint32_t msbInd, [[maybe_unused]] __uint64_t = 0, [[maybe_unused]] __uint64_t = 0) { return KnightMapConstants::movesMap[msbInd]; }
 
 };

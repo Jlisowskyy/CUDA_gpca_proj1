@@ -49,11 +49,11 @@ class MoveGenerator : ChessMechanics {
         CONSIDER_EL_PASSANT = 16,
     };
 
-    FAST_DCALL static constexpr __uint32_t ExtractFlag(__uint32_t flags, MoveGenFlags flag) {
+    FAST_DCALL_ALWAYS static constexpr __uint32_t ExtractFlag(__uint32_t flags, MoveGenFlags flag) {
         return flags & flag;
     }
 
-    FAST_DCALL static constexpr bool IsFlagOn(__uint32_t flags, MoveGenFlags flag) {
+    FAST_DCALL_ALWAYS static constexpr bool IsFlagOn(__uint32_t flags, MoveGenFlags flag) {
         return ExtractFlag(flags, flag) != 0;
     }
 
@@ -200,7 +200,7 @@ private:
                     results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
             );
         }
-        
+
         _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
 
         if (!IsFlagOn(flags, ASSUME_CHECK)) {

@@ -19,14 +19,14 @@ struct Stack {
         ItemT *data;
         size_t size;
 
-        FAST_DCALL void Push(Stack &s, ItemT item) {
+        FAST_DCALL_ALWAYS void Push(Stack &s, ItemT item) {
             s.Push(item);
             ++size;
         }
 
-        FAST_DCALL const ItemT &operator[](size_t ind) const { return data[ind]; }
+        FAST_DCALL_ALWAYS const ItemT &operator[](size_t ind) const { return data[ind]; }
 
-        FAST_DCALL ItemT &operator[](size_t ind) { return data[ind]; }
+        FAST_DCALL_ALWAYS ItemT &operator[](size_t ind) { return data[ind]; }
     };
 
     // ------------------------------
@@ -35,7 +35,7 @@ struct Stack {
 
     Stack() = delete;
 
-    FAST_DCALL explicit Stack(void *ptr) : _data(static_cast<ItemT *>(ptr)) {}
+    FAST_DCALL_ALWAYS explicit Stack(void *ptr) : _data(static_cast<ItemT *>(ptr)) {}
 
     ~Stack() = default;
 
@@ -51,19 +51,19 @@ struct Stack {
     // Class interaction
     // ------------------------------
 
-    FAST_DCALL void Push(const ItemT item) { _data[_last++] = item; }
+    FAST_DCALL_ALWAYS void Push(const ItemT item) { _data[_last++] = item; }
 
-    FAST_DCALL StackPayload GetPayload() { return {_data + _last, 0}; }
+    FAST_DCALL_ALWAYS StackPayload GetPayload() { return {_data + _last, 0}; }
 
-    FAST_DCALL void PopAggregate(const StackPayload payload) { _last -= payload.size; }
+    FAST_DCALL_ALWAYS void PopAggregate(const StackPayload payload) { _last -= payload.size; }
 
-    FAST_DCALL ItemT Pop() { return _data[--_last]; }
+    FAST_DCALL_ALWAYS ItemT Pop() { return _data[--_last]; }
 
-    FAST_DCALL ItemT& Top() { return _data[_last - 1]; }
+    FAST_DCALL_ALWAYS ItemT& Top() { return _data[_last - 1]; }
 
-    FAST_DCALL void Clear() { _last = 0; }
+    FAST_DCALL_ALWAYS void Clear() { _last = 0; }
 
-    [[nodiscard]] FAST_DCALL size_t Size() const { return _last; }
+    [[nodiscard]] FAST_DCALL_ALWAYS size_t Size() const { return _last; }
     // ------------------------------
     // Class fields
     // ------------------------------

@@ -162,21 +162,21 @@ public:
     // class interaction
     // ------------------------------
 
-    FAST_CALL void ChangePlayingColor() { MovingColor ^= 1; }
+    FAST_DCALL_ALWAYS void ChangePlayingColor() { MovingColor ^= 1; }
 
-    [[nodiscard]] __device__ INLINE __uint32_t GetKingMsbPos(const __uint32_t col) const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetKingMsbPos(const __uint32_t col) const {
         return ExtractMsbPos(BitBoards[col * BitBoardsPerCol + kingIndex]);
     }
 
-    [[nodiscard]] FAST_CALL __uint64_t GetFigBoard(__uint32_t col, __uint32_t figDesc) const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFigBoard(__uint32_t col, __uint32_t figDesc) const {
         return BitBoards[col * BitBoardsPerCol + figDesc];
     }
 
-    FAST_CALL void SetCastlingRight(size_t castlingIndex, bool value) {
+    FAST_DCALL_ALWAYS void SetCastlingRight(size_t castlingIndex, bool value) {
         SetBitBoardBit(Castlings, castlingIndex, value);
     }
 
-    [[nodiscard]] FAST_CALL bool GetCastlingRight(size_t castlingIndex) const {
+    [[nodiscard]] FAST_DCALL_ALWAYS bool GetCastlingRight(size_t castlingIndex) const {
         return Castlings & (cuda_MinMsbPossible << castlingIndex);
     }
 

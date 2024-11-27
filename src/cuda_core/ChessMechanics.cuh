@@ -102,14 +102,14 @@ struct ChessMechanics {
 
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
-    [[nodiscard]] FAST_CALL __uint64_t GetFullBitMap() const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFullBitMap() const {
         __uint64_t map = 0;
         for (size_t i = 0; i < BitBoardsCount; ++i) map |= _board.BitBoards[i];
         return map;
     }
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not, by desired color figures.
-    [[nodiscard]] FAST_CALL __uint64_t GetColBitMap(const __uint32_t col) const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetColBitMap(const __uint32_t col) const {
         assert(col == 1 || col == 0);
 
         __uint64_t map = 0;
@@ -118,7 +118,7 @@ struct ChessMechanics {
     }
 
     // does not check kings BitBoards!!!
-    [[nodiscard]] FAST_CALL size_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
+    [[nodiscard]] FAST_DCALL_ALWAYS size_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
         const size_t colIndex = col * BitBoardsPerCol;
         size_t rv = 0;
         for (size_t i = 0; i < BitBoardsPerCol; ++i) {
@@ -240,7 +240,7 @@ struct ChessMechanics {
         return {pinnedByBishops | pinnedByRooks, allowedBishops | allowedRooks};
     }
 
-    [[nodiscard]] FAST_CALL __uint64_t GetAllowedTilesWhenCheckedByNonSliding() const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetAllowedTilesWhenCheckedByNonSliding() const {
         __uint64_t allowedTiles{};
 
         allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles(_board);
@@ -285,7 +285,7 @@ private:
     }
 
     template<class MoveGeneratorT>
-    [[nodiscard]] FAST_DCALL static __uint64_t _blockIterativeGenerator(__uint64_t board, MoveGeneratorT mGen) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static __uint64_t _blockIterativeGenerator(__uint64_t board, MoveGeneratorT mGen) {
         __uint64_t blockedMap = 0;
 
         while (board != 0) {

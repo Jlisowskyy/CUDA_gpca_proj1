@@ -22,11 +22,11 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex(__uint32_t color) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(__uint32_t color) {
         return BitBoardsPerCol * color + queensIndex;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr __uint64_t
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
     GetMoves(__uint32_t msbInd, __uint64_t fullMap, [[maybe_unused]] __uint64_t = 0) {
         return BishopMap::GetMoves(msbInd, fullMap) | RookMap::GetMoves(msbInd, fullMap);
     }
