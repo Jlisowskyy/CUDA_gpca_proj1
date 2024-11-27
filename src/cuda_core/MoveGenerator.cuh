@@ -176,11 +176,11 @@ private:
 
         if (_board.MovingColor == WHITE)
             _processPawnMoves<WhitePawnMap>(
-                    results, enemyMap, allyMap, pinnedFigsMap
+                    results, enemyMap, allyMap, pinnedFigsMap, EMPTY_FLAGS
             );
         else
             _processPawnMoves<BlackPawnMap>(
-                    results, enemyMap, allyMap, pinnedFigsMap
+                    results, enemyMap, allyMap, pinnedFigsMap, EMPTY_FLAGS
             );
 
         _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
@@ -225,12 +225,12 @@ private:
         );
 
         if (_board.MovingColor == WHITE)
-            _processPawnMoves<WhitePawnMap, true>(
-                    results, enemyMap, allyMap, pinnedFigsMap, allowedTilesMap
+            _processPawnMoves<WhitePawnMap>(
+                    results, enemyMap, allyMap, pinnedFigsMap, ASSUME_CHECK, allowedTilesMap
             );
         else
-            _processPawnMoves<BlackPawnMap, true>(
-                    results, enemyMap, allyMap, pinnedFigsMap, allowedTilesMap
+            _processPawnMoves<BlackPawnMap>(
+                    results, enemyMap, allyMap, pinnedFigsMap, ASSUME_CHECK, allowedTilesMap
             );
 
         _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
@@ -242,9 +242,9 @@ private:
         _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
     }
 
-    template<class MapT, bool isCheck = false>
+    template<class MapT>
     FAST_DCALL void _processPawnMoves(
-            payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap,
+            payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
             [[maybe_unused]] __uint64_t allowedMoveFilter = 0
     ) {
         GET_PAWN_FIELD(PromotingMask);
@@ -254,7 +254,7 @@ private:
 
         _processFigMoves<MapT>(
                 results, enemyMap, allyMap, pinnedFigMap,
-                CONSIDER_ELPASSANT | SELECT_FIGURES | (isCheck ? ASSUME_CHECK : EMPTY_FLAGS),
+                CONSIDER_ELPASSANT | SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK),
                 nonPromotingPawns, allowedMoveFilter
         );
 
@@ -262,12 +262,13 @@ private:
         if (promotingPawns)
             _processFigMoves<MapT>(
                     results, enemyMap, allyMap, pinnedFigMap,
-                    SELECT_FIGURES | (isCheck ? ASSUME_CHECK : EMPTY_FLAGS) | PROMOTE_PAWNS, promotingPawns,
+                    SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
+                    promotingPawns,
                     allowedMoveFilter
             );
 
         _processElPassantMoves<MapT>(
-                results, allyMap | enemyMap, pinnedFigMap, isCheck, allowedMoveFilter
+                results, allyMap | enemyMap, pinnedFigMap, IsFlagOn(flags, ASSUME_CHECK), allowedMoveFilter
         );
     }
 
@@ -438,7 +439,6 @@ private:
     }
 
     // TODO: improve readability of code below
-    template<__uint64_t (*elPassantFieldDeducer)(__uint64_t, __uint64_t) = nullptr>
     __device__ void _processNonAttackingMoves(
             payload &results, __uint64_t nonAttackingMoves, size_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, __uint32_t flags
@@ -507,7 +507,6 @@ private:
         }
     }
 
-    // TODO: test copying all old castlings
     __device__ void
     _processPlainKingMoves(payload &results, __uint64_t blockedFigMap, __uint64_t allyMap, __uint64_t enemyMap) {
         assert(allyMap != 0 && "Ally map is empty!");
