@@ -38,8 +38,6 @@ __device__ static constexpr uint16_t PromoFlags[]{
         0, KnightFlag, BishopFlag, RookFlag, QueenFlag,
 };
 
-__device__ static constexpr __uint64_t CASTLING_PSEUDO_LEGAL_BLOCKED = 0;
-
 struct MoveGenerator : ChessMechanics {
     Stack<cuda_Move>& stack;
     using payload = Stack<cuda_Move>::StackPayload;
@@ -131,39 +129,6 @@ struct MoveGenerator : ChessMechanics {
     // ------------------------------
 
 private:
-
-    template<class MapT>
-    [[nodiscard]] FAST_DCALL bool _isGivingCheck(const int msbPos, const __uint64_t fullMap, const int enemyColor) const {
-        const __uint64_t enemyKing = _board.BitBoards[enemyColor * BitBoardsPerCol + kingIndex];
-        const __uint64_t moves = MapT::GetMoves(msbPos, fullMap, 0);
-
-        return (enemyKing & moves) != 0;
-    }
-
-    template<class MapT>
-    [[nodiscard]] FAST_DCALL bool _isPawnGivingCheck(const __uint64_t pawnBitMap) const {
-        const int enemyColor = SwapColor(MapT::GetColor());
-        const __uint64_t enemyKing = _board.BitBoards[enemyColor * BitBoardsPerCol + kingIndex];
-        const __uint64_t moves = MapT::GetAttackFields(pawnBitMap);
-
-        return (enemyKing & moves) != 0;
-    }
-
-    template<class MapT>
-    [[nodiscard]] FAST_DCALL bool
-    _isPromotingPawnGivingCheck(const int msbPos, const __uint64_t fullMap, const int targetBitBoardIndex) const {
-        static constexpr __uint64_t (*moveGenerators[])(__uint32_t, __uint64_t, __uint64_t){
-                nullptr, KnightMap::GetMoves, BishopMap::GetMoves, RookMap::GetMoves, QueenMap::GetMoves,
-        };
-
-        const int color = MapT::GetColor();
-        const int enemyColor = SwapColor(color);
-        const __uint64_t enemyKing = _board.BitBoards[enemyColor * BitBoardsPerCol + kingIndex];
-        auto func = moveGenerators[targetBitBoardIndex - color * BitBoardsPerCol];
-        const __uint64_t moves = func(msbPos, fullMap, 0);
-
-        return (enemyKing & moves) != 0;
-    }
 
     FAST_DCALL void _noCheckGen(payload &results, __uint64_t fullMap, __uint64_t blockedFigMap) {
         assert(fullMap != 0 && "Full map is empty!");
@@ -279,15 +244,16 @@ private:
                     results, enemyMap, allyMap, pinnedFigMap, promotingPawns, allowedMoveFilter
             );
 
-        _processElPassantMoves<MapT, isCheck>(
-                results, allyMap | enemyMap, pinnedFigMap, allowedMoveFilter
+        _processElPassantMoves<MapT>(
+                results, allyMap | enemyMap, pinnedFigMap, isCheck, allowedMoveFilter
         );
     }
 
     // TODO: Consider different solution?
-    template<class MapT, bool isCheck = false>
+    template<class MapT>
     FAST_DCALL void _processElPassantMoves(
-            payload &results, __uint64_t fullMap, __uint64_t pinnedFigMap, [[maybe_unused]] __uint64_t allowedMoveFilter = 0
+            payload &results, __uint64_t fullMap, __uint64_t pinnedFigMap, bool isCheck,
+            [[maybe_unused]] __uint64_t allowedMoveFilter = 0
     ) {
         assert(fullMap != 0 && "Full map is empty!");
 
@@ -332,11 +298,10 @@ private:
             }
 
             // When king is checked only if move is going to allow tile el passant is correct
-            if constexpr (isCheck)
-                if ((moveMap & allowedMoveFilter) == 0 && (_board.ElPassantField & allowedMoveFilter) == 0) {
-                    possiblePawnsToMove ^= pawnMap;
-                    continue;
-                }
+            if (isCheck && (moveMap & allowedMoveFilter) == 0 && (_board.ElPassantField & allowedMoveFilter) == 0) {
+                possiblePawnsToMove ^= pawnMap;
+                continue;
+            }
 
             // preparing basic move information
             cuda_Move mv{};
