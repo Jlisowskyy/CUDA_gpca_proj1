@@ -309,8 +309,7 @@ public:
     }
 
     FAST_DCALL void SetCheckType() {
-        static constexpr __uint16_t
-        CheckTypeBit = 1LLU << 15;
+        static constexpr __uint16_t CheckTypeBit = 1LLU << 15;
         _packedIndexes |= CheckTypeBit;
     }
 

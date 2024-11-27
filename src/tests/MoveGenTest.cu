@@ -151,7 +151,11 @@ void TestSinglePositionOutput(const std::string_view &fen) {
             errors++;
         }
 
-        if (hMove.GetPackedIndexes() != cMove[1]) {
+        /* Prohibit unused bits */
+        static constexpr __uint16_t CheckTypeBit = 1LLU << 15;
+        static constexpr __uint16_t PackedIndexesMask = ~(CheckTypeBit);
+
+        if (hMove.GetPackedIndexes() != (PackedIndexesMask & cMove[1])) {
             std::cerr << "Indexes mismatch device:" << u16d(hMove.GetPackedIndexes()) << " != "
                     << " host: " << u16d(cMove[1]) << std::endl;
 

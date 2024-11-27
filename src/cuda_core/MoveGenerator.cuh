@@ -355,10 +355,6 @@ private:
             mv.SetCasltingRights(_board.Castlings);
             mv.SetMoveType(CaptureFlag);
 
-            if (_isPawnGivingCheck<MapT>(moveMap))
-                mv.SetCheckType();
-
-
             results.Push(stack, mv);
             possiblePawnsToMove ^= pawnMap;
         }
@@ -420,7 +416,7 @@ private:
                         updatedCastlings, fullMap
                 );
 
-            _processAttackingMoves<MapT, GenOnlyTacticalMoves, promotePawns>(
+            _processAttackingMoves<MapT, promotePawns>(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, updatedCastlings,
                     fullMap
             );
@@ -456,7 +452,7 @@ private:
                 );
 
             // TODO: There is exactly one move possible
-            _processAttackingMoves<MapT, GenOnlyTacticalMoves, promotePawns>(
+            _processAttackingMoves<MapT, promotePawns>(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, _board.Castlings,
                     fullMap
             );
@@ -491,13 +487,6 @@ private:
                 mv.SetTargetField(movePos);
                 mv.SetTargetBoardIndex(figBoardIndex);
                 mv.SetKilledBoardIndex(SentinelBoardIndex);
-
-                if (figBoardIndex == wPawnsIndex && _isPawnGivingCheck<WhitePawnMap>(moveBoard))
-                    mv.SetCheckType();
-                else if (figBoardIndex == bPawnsIndex && _isPawnGivingCheck<BlackPawnMap>(moveBoard))
-                    mv.SetCheckType();
-                else if (_isGivingCheck<MapT>(movePos, fullMap ^ startField, SwapColor(figBoardIndex > wKingIndex)))
-                    mv.SetCheckType();
 
                 // if el passant line is passed when a figure moved to these line flags will turn on
                 if constexpr (elPassantFieldDeducer != nullptr) {
@@ -534,9 +523,6 @@ private:
                     mv.SetCasltingRights(castlings);
                     mv.SetMoveType(PromoFlag | PromoFlags[i]);
 
-                    if (_isPromotingPawnGivingCheck<MapT>(movePos, fullMap ^ startField, targetBoard))
-                        mv.SetCheckType();
-
                     results.Push(stack, mv);
                 }
             }
@@ -545,7 +531,7 @@ private:
         }
     }
 
-    template<class MapT, bool IsQsearch, bool promotePawns>
+    template<class MapT, bool promotePawns>
     __device__ void _processAttackingMoves(
             payload &results, __uint64_t attackingMoves, size_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, __uint64_t fullMap
@@ -574,13 +560,6 @@ private:
                 mv.SetCasltingRights(castlings);
                 mv.SetMoveType(CaptureFlag);
 
-                if (figBoardIndex == wPawnsIndex && _isPawnGivingCheck<WhitePawnMap>(moveBoard))
-                    mv.SetCheckType();
-                else if (figBoardIndex == bPawnsIndex && _isPawnGivingCheck<BlackPawnMap>(moveBoard))
-                    mv.SetCheckType();
-                else if (_isGivingCheck<MapT>(movePos, fullMap ^ startField, SwapColor(figBoardIndex > wKingIndex)))
-                    mv.SetCheckType();
-
                 results.Push(stack, mv);
             }
             if constexpr (promotePawns)
@@ -606,9 +585,6 @@ private:
                     mv.SetCasltingRights(castlings);
                     mv.SetMoveType(CaptureFlag | PromoFlag | PromoFlags[i]);
 
-                    if (_isPromotingPawnGivingCheck<MapT>(movePos, fullMap ^ startField, targetBoard))
-                        mv.SetCheckType();
-
                     results.Push(stack, mv);
                 }
             }
@@ -617,10 +593,8 @@ private:
         }
     }
 
-    static constexpr __uint64_t KING_NO_BLOCKED_MAP = (~static_cast<__uint64_t>(0));
-
     // TODO: test copying all old castlings
-    template<bool GenOnlyTacticalMoves, bool GeneratePseudoMoves = false>
+    template<bool GenOnlyTacticalMoves>
     __device__ void
     _processPlainKingMoves(payload &results, __uint64_t blockedFigMap, __uint64_t allyMap, __uint64_t enemyMap) {
         assert(allyMap != 0 && "Ally map is empty!");
@@ -630,12 +604,7 @@ private:
 
         // generating moves
         const __uint64_t kingMoves = KingMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor)) &
-                                     (GeneratePseudoMoves ? KING_NO_BLOCKED_MAP : ~blockedFigMap) &
-                                     ~allyMap &
-                                     // NOTE: when we do not use blocked fig map we should block kings to prevent attacking themselves
-                                     (GeneratePseudoMoves ? ~KingMap::GetMoves(
-                                             _board.GetKingMsbPos(SwapColor(_board.MovingColor))) : KING_NO_BLOCKED_MAP);
-
+                ~blockedFigMap & ~allyMap;
 
         __uint64_t attackingMoves = kingMoves & enemyMap;
         [[maybe_unused]] __uint64_t nonAttackingMoves = kingMoves ^ attackingMoves;
