@@ -369,9 +369,9 @@ private:
             [[maybe_unused]] const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
-            _processNonAttackingMoves<MapT, promotePawns, elPassantFieldDeducer>(
+            _processNonAttackingMoves<elPassantFieldDeducer>(
                     results, nonAttackingMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard,
-                    updatedCastlings, fullMap
+                    updatedCastlings, promotePawns
             );
 
             _processAttackingMoves(
@@ -403,9 +403,9 @@ private:
 
             // processing move consequences
 
-            _processNonAttackingMoves<MapT, promotePawns, elPassantFieldDeducer>(
+            _processNonAttackingMoves<elPassantFieldDeducer>(
                     results, nonAttackingMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard,
-                    _board.Castlings, fullMap
+                    _board.Castlings, promotePawns
             );
 
             // TODO: There is exactly one move possible
@@ -419,12 +419,10 @@ private:
     }
 
     // TODO: improve readability of code below
-    template<
-            class MapT, bool promotePawns,
-            __uint64_t (*elPassantFieldDeducer)(__uint64_t, __uint64_t) = nullptr>
+    template<__uint64_t (*elPassantFieldDeducer)(__uint64_t, __uint64_t) = nullptr>
     __device__ void _processNonAttackingMoves(
             payload &results, __uint64_t nonAttackingMoves, size_t figBoardIndex, __uint64_t startField,
-            __uint32_t castlings, __uint64_t fullMap
+            __uint32_t castlings, bool promotePawns
     ) {
         assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
 
@@ -433,57 +431,27 @@ private:
             const int movePos = ExtractMsbPos(nonAttackingMoves);
             const __uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
 
-            if constexpr (!promotePawns)
-                // simple figure case
-            {
-                cuda_Move mv{};
+            cuda_Move mv{};
 
-                // preparing basic move info
-                mv.SetStartField(ExtractMsbPos(startField));
-                mv.SetStartBoardIndex(figBoardIndex);
-                mv.SetTargetField(movePos);
-                mv.SetTargetBoardIndex(figBoardIndex);
-                mv.SetKilledBoardIndex(SentinelBoardIndex);
+            mv.SetStartField(ExtractMsbPos(startField));
+            mv.SetStartBoardIndex(figBoardIndex);
+            mv.SetTargetField(movePos);
+            mv.SetCasltingRights(castlings);
+            mv.SetKilledBoardIndex(SentinelBoardIndex);
 
-                // if el passant line is passed when a figure moved to these line flags will turn on
-                if constexpr (elPassantFieldDeducer != nullptr) {
-                    // TODO: CHANGED TEMP
-                    if (const auto result = elPassantFieldDeducer(moveBoard, startField); result == 0)
-                        mv.SetElPassantField(InvalidElPassantField);
-                    else
-                        mv.SetElPassantField(ExtractMsbPos(result));
-                } else
+            if constexpr (elPassantFieldDeducer != nullptr) {
+                // TODO: CHANGED TEMP
+                if (const auto result = elPassantFieldDeducer(moveBoard, startField); result == 0)
                     mv.SetElPassantField(InvalidElPassantField);
-                mv.SetCasltingRights(castlings);
+                else
+                    mv.SetElPassantField(ExtractMsbPos(result));
+            } else
+                mv.SetElPassantField(InvalidElPassantField);
 
-                results.Push(stack, mv);
-            }
-            if constexpr (promotePawns)
-                // upgrading pawn case
-            {
-                static constexpr size_t startInd = queensIndex;
-                static constexpr size_t limitInd = queensIndex - 1;
+            mv.SetTargetBoardIndex(promotePawns ? _board.MovingColor * BitBoardsPerCol + queensIndex : figBoardIndex);
+            mv.SetMoveType(promotePawns ? PromoFlag | PromoFlags[queensIndex] : 0);
 
-                // iterating through upgradable pieces
-                for (size_t i = startInd; i > limitInd; --i) {
-                    const auto targetBoard = _board.MovingColor * BitBoardsPerCol + i;
-
-                    cuda_Move mv{};
-
-                    // preparing basic move info
-                    mv.SetStartField(ExtractMsbPos(startField));
-                    mv.SetStartBoardIndex(figBoardIndex);
-                    mv.SetTargetField(movePos);
-                    mv.SetTargetBoardIndex(targetBoard);
-                    mv.SetKilledBoardIndex(SentinelBoardIndex);
-                    mv.SetElPassantField(InvalidElPassantField);
-                    mv.SetCasltingRights(castlings);
-                    mv.SetMoveType(PromoFlag | PromoFlags[i]);
-
-                    results.Push(stack, mv);
-                }
-            }
-
+            results.Push(stack, mv);
             nonAttackingMoves ^= moveBoard;
         }
     }
