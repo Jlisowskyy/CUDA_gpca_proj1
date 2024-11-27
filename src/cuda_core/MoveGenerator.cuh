@@ -374,7 +374,7 @@ private:
                     updatedCastlings, fullMap
             );
 
-            _processAttackingMoves<MapT>(
+            _processAttackingMoves(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, updatedCastlings,
                     promotePawns
             );
@@ -409,7 +409,7 @@ private:
             );
 
             // TODO: There is exactly one move possible
-            _processAttackingMoves<MapT>(
+            _processAttackingMoves(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, _board.Castlings,
                     promotePawns
             );
@@ -487,9 +487,7 @@ private:
             nonAttackingMoves ^= moveBoard;
         }
     }
-
-    template<class MapT>
-    __device__ void _processAttackingMoves(
+    FAST_DCALL void _processAttackingMoves(
             payload &results, __uint64_t attackingMoves, size_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, bool promotePawns
     ) {
@@ -568,9 +566,6 @@ private:
             const int newPos = ExtractMsbPos(attackingMoves);
             const __uint64_t newKingBoard = cuda_MaxMsbPossible >> newPos;
 
-            // finding an attacked figure
-            const size_t attackedFigBoardIndex = GetIndexOfContainingBitBoard(newKingBoard, SwapColor(_board.MovingColor));
-
             cuda_Move mv{};
 
             // preparing basic move info
@@ -578,7 +573,7 @@ private:
             mv.SetStartBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
             mv.SetTargetField(newPos);
             mv.SetTargetBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
-            mv.SetKilledBoardIndex(attackedFigBoardIndex);
+            mv.SetKilledBoardIndex(GetIndexOfContainingBitBoard(newKingBoard, SwapColor(_board.MovingColor)));
             mv.SetKilledFigureField(newPos);
             mv.SetElPassantField(InvalidElPassantField);
             mv.SetCasltingRights(castlings);
