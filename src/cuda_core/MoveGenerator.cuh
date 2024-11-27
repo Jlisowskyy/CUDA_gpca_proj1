@@ -374,9 +374,9 @@ private:
                     updatedCastlings, fullMap
             );
 
-            _processAttackingMoves<MapT, promotePawns>(
+            _processAttackingMoves<MapT>(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, updatedCastlings,
-                    fullMap
+                    promotePawns
             );
 
             unpinnedOnes ^= figBoard;
@@ -409,9 +409,9 @@ private:
             );
 
             // TODO: There is exactly one move possible
-            _processAttackingMoves<MapT, promotePawns>(
+            _processAttackingMoves<MapT>(
                     results, attackMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard, _board.Castlings,
-                    fullMap
+                    promotePawns
             );
 
             pinnedOnes ^= figBoard;
@@ -488,10 +488,10 @@ private:
         }
     }
 
-    template<class MapT, bool promotePawns>
+    template<class MapT>
     __device__ void _processAttackingMoves(
             payload &results, __uint64_t attackingMoves, size_t figBoardIndex, __uint64_t startField,
-            __uint32_t castlings, __uint64_t fullMap
+            __uint32_t castlings, bool promotePawns
     ) {
         assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
 
@@ -501,51 +501,20 @@ private:
             const __uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
             const size_t attackedFigBoardIndex = GetIndexOfContainingBitBoard(moveBoard, SwapColor(_board.MovingColor));
 
-            if constexpr (!promotePawns)
-                // simple figure case
-            {
-                cuda_Move mv{};
+            cuda_Move mv{};
 
-                // preparing basic move info
-                mv.SetStartField(ExtractMsbPos(startField));
-                mv.SetStartBoardIndex(figBoardIndex);
-                mv.SetTargetField(movePos);
-                mv.SetTargetBoardIndex(figBoardIndex);
-                mv.SetKilledBoardIndex(attackedFigBoardIndex);
-                mv.SetKilledFigureField(movePos);
-                mv.SetElPassantField(InvalidElPassantField);
-                mv.SetCasltingRights(castlings);
-                mv.SetMoveType(CaptureFlag);
+            mv.SetStartField(ExtractMsbPos(startField));
+            mv.SetStartBoardIndex(figBoardIndex);
+            mv.SetTargetField(movePos);
+            mv.SetKilledBoardIndex(attackedFigBoardIndex);
+            mv.SetKilledFigureField(movePos);
+            mv.SetElPassantField(InvalidElPassantField);
+            mv.SetCasltingRights(castlings);
+            mv.SetMoveType(CaptureFlag);
+            mv.SetTargetBoardIndex(promotePawns ? _board.MovingColor * BitBoardsPerCol + queensIndex : figBoardIndex);
+            mv.SetMoveType(promotePawns ? PromoFlag | PromoFlags[queensIndex] : 0);
 
-                results.Push(stack, mv);
-            }
-            if constexpr (promotePawns)
-                // upgrading pawn case
-            {
-                static constexpr size_t startInd = queensIndex;
-                static constexpr size_t limitInd = queensIndex - 1;
-
-                // iterating through upgradable pieces
-                for (size_t i = startInd; i > limitInd; --i) {
-                    const auto targetBoard = _board.MovingColor * BitBoardsPerCol + i;
-
-                    cuda_Move mv{};
-
-                    // preparing basic move info
-                    mv.SetStartField(ExtractMsbPos(startField));
-                    mv.SetStartBoardIndex(figBoardIndex);
-                    mv.SetTargetField(movePos);
-                    mv.SetTargetBoardIndex(targetBoard);
-                    mv.SetKilledBoardIndex(attackedFigBoardIndex);
-                    mv.SetKilledFigureField(movePos);
-                    mv.SetElPassantField(InvalidElPassantField);
-                    mv.SetCasltingRights(castlings);
-                    mv.SetMoveType(CaptureFlag | PromoFlag | PromoFlags[i]);
-
-                    results.Push(stack, mv);
-                }
-            }
-
+            results.Push(stack, mv);
             attackingMoves ^= moveBoard;
         }
     }
