@@ -49,8 +49,12 @@ class MoveGenerator : ChessMechanics {
         CONSIDER_ELPASSANT = 16,
     };
 
+    FAST_DCALL static constexpr __uint32_t ExtractFlag(__uint32_t flags, MoveGenFlags flag) {
+        return flags & flag;
+    }
+
     FAST_DCALL static constexpr bool IsFlagOn(__uint32_t flags, MoveGenFlags flag) {
-        return (flags & flag) != 0;
+        return ExtractFlag(flags, flag) != 0;
     }
 
 public:
@@ -248,9 +252,9 @@ private:
         const __uint64_t promotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] & PromotingMask;
         const __uint64_t nonPromotingPawns = _board.BitBoards[MapT::GetBoardIndex(0)] ^ promotingPawns;
 
-        _processFigMoves<
-                MapT, MapT::GetElPassantField>(
-                results, enemyMap, allyMap, pinnedFigMap, SELECT_FIGURES | (isCheck ? ASSUME_CHECK : EMPTY_FLAGS),
+        _processFigMoves<MapT>(
+                results, enemyMap, allyMap, pinnedFigMap,
+                CONSIDER_ELPASSANT | SELECT_FIGURES | (isCheck ? ASSUME_CHECK : EMPTY_FLAGS),
                 nonPromotingPawns, allowedMoveFilter
         );
 
@@ -340,9 +344,7 @@ private:
 
     // TODO: Compare with simple if searching loop
     // TODO: propagate checkForCastling?
-    template<
-            class MapT,
-            __uint64_t (*elPassantFieldDeducer)(__uint64_t, __uint64_t) = nullptr>
+    template<class MapT>
     __device__ void _processFigMoves(
             payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
             [[maybe_unused]] __uint64_t figureSelector = 0, [[maybe_unused]] __uint64_t allowedMoveSelector = 0
@@ -386,9 +388,9 @@ private:
             [[maybe_unused]] const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
-            _processNonAttackingMoves<elPassantFieldDeducer>(
+            _processNonAttackingMoves(
                     results, nonAttackingMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard,
-                    updatedCastlings, IsFlagOn(flags, PROMOTE_PAWNS)
+                    updatedCastlings, ExtractFlag(flags, CONSIDER_ELPASSANT) | ExtractFlag(flags, PROMOTE_PAWNS)
             );
 
             _processAttackingMoves(
@@ -420,9 +422,9 @@ private:
 
             // processing move consequences
 
-            _processNonAttackingMoves<elPassantFieldDeducer>(
+            _processNonAttackingMoves(
                     results, nonAttackingMoves, MapT::GetBoardIndex(_board.MovingColor), figBoard,
-                    _board.Castlings, IsFlagOn(flags, PROMOTE_PAWNS)
+                    _board.Castlings, ExtractFlag(flags, CONSIDER_ELPASSANT) | ExtractFlag(flags, PROMOTE_PAWNS)
             );
 
             // TODO: There is exactly one move possible
@@ -439,7 +441,7 @@ private:
     template<__uint64_t (*elPassantFieldDeducer)(__uint64_t, __uint64_t) = nullptr>
     __device__ void _processNonAttackingMoves(
             payload &results, __uint64_t nonAttackingMoves, size_t figBoardIndex, __uint64_t startField,
-            __uint32_t castlings, bool promotePawns
+            __uint32_t castlings, __uint32_t flags
     ) {
         assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
 
@@ -456,17 +458,20 @@ private:
             mv.SetCasltingRights(castlings);
             mv.SetKilledBoardIndex(SentinelBoardIndex);
 
-            if constexpr (elPassantFieldDeducer != nullptr) {
-                // TODO: CHANGED TEMP
-                if (const auto result = elPassantFieldDeducer(moveBoard, startField); result == 0)
-                    mv.SetElPassantField(InvalidElPassantField);
-                else
-                    mv.SetElPassantField(ExtractMsbPos(result));
-            } else
-                mv.SetElPassantField(InvalidElPassantField);
+            if (IsFlagOn(flags, CONSIDER_ELPASSANT)) {
+                const auto result = (_board.MovingColor == WHITE ?
+                                     WhitePawnMap::GetElPassantField(moveBoard, startField) :
+                                     BlackPawnMap::GetElPassantField(moveBoard, startField)
+                );
 
-            mv.SetTargetBoardIndex(promotePawns ? _board.MovingColor * BitBoardsPerCol + queensIndex : figBoardIndex);
-            mv.SetMoveType(promotePawns ? PromoFlag | PromoFlags[queensIndex] : 0);
+                mv.SetElPassantField(result == 0 ? InvalidElPassantField : ExtractMsbPos(result));
+            } else {
+                mv.SetElPassantField(InvalidElPassantField);
+            }
+
+            mv.SetTargetBoardIndex(IsFlagOn(flags, PROMOTE_PAWNS) ? _board.MovingColor * BitBoardsPerCol + queensIndex
+                                                                  : figBoardIndex);
+            mv.SetMoveType(IsFlagOn(flags, PROMOTE_PAWNS) ? PromoFlag | PromoFlags[queensIndex] : 0);
 
             results.Push(stack, mv);
             nonAttackingMoves ^= moveBoard;
