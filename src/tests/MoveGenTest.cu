@@ -152,7 +152,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
         }
 
         /* Prohibit unused bits */
-        static constexpr __uint16_t CheckTypeBit = 1LLU << 15;
+        static constexpr __uint16_t CheckTypeBit = (__uint16_t)1 << 15;
         static constexpr __uint16_t PackedIndexesMask = ~(CheckTypeBit);
 
         if (hMove.GetPackedIndexes() != (PackedIndexesMask & cMove[1])) {

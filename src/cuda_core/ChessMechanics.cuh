@@ -104,7 +104,7 @@ struct ChessMechanics {
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFullBitMap() const {
         __uint64_t map = 0;
-        for (size_t i = 0; i < BitBoardsCount; ++i) map |= _board.BitBoards[i];
+        for (__uint32_t i = 0; i < BitBoardsCount; ++i) map |= _board.BitBoards[i];
         return map;
     }
 
@@ -113,15 +113,15 @@ struct ChessMechanics {
         assert(col == 1 || col == 0);
 
         __uint64_t map = 0;
-        for (size_t i = 0; i < BitBoardsPerCol; ++i) map |= _board.BitBoards[BitBoardsPerCol * col + i];
+        for (__uint32_t i = 0; i < BitBoardsPerCol; ++i) map |= _board.BitBoards[BitBoardsPerCol * col + i];
         return map;
     }
 
     // does not check kings BitBoards!!!
-    [[nodiscard]] FAST_DCALL_ALWAYS size_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
-        const size_t colIndex = col * BitBoardsPerCol;
-        size_t rv = 0;
-        for (size_t i = 0; i < BitBoardsPerCol; ++i) {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
+        const __uint32_t colIndex = col * BitBoardsPerCol;
+        __uint32_t rv = 0;
+        for (__uint32_t i = 0; i < BitBoardsPerCol; ++i) {
             rv += ((_board.BitBoards[colIndex + i] & map) != 0) * i;
         }
         return colIndex + rv;
@@ -144,7 +144,7 @@ struct ChessMechanics {
         __uint64_t blockedMap{};
         bool wasCheckedBySimple{};
 
-        const size_t enemyFigInd = SwapColor(_board.MovingColor) * BitBoardsPerCol;
+        const __uint32_t enemyFigInd = SwapColor(_board.MovingColor) * BitBoardsPerCol;
         const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
@@ -227,7 +227,7 @@ struct ChessMechanics {
         assert(fullMap != 0 && "Full map is empty!");
         assert(col == 1 || col == 0 && "Invalid color!");
 
-        const size_t enemyCord = SwapColor(col) * BitBoardsPerCol;
+        const __uint32_t enemyCord = SwapColor(col) * BitBoardsPerCol;
 
         const auto [pinnedByRooks, allowedRooks] = _getPinnedFigMaps<RookMap, genType>(
                 fullMap, _board.BitBoards[enemyCord + rooksIndex] | _board.BitBoards[enemyCord + queensIndex]

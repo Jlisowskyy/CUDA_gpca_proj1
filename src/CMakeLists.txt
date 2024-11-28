@@ -52,8 +52,7 @@ set_source_files_properties(
 )
 
 target_compile_options(cpu_ported PUBLIC
-        $<$<COMPILE_LANGUAGE:CXX>:-fconstexpr-ops-limit=133554432>
-        $<$<COMPILE_LANGUAGE:CXX>:-fopenmp>
+        $<$<COMPILE_LANGUAGE:CXX>:-fconstexpr-ops-limit=133554432;-fopenmp;-O3;-march=native>
 )
 
 target_include_directories(cpu_ported PUBLIC
@@ -68,20 +67,17 @@ endif()
 
 add_compile_definitions(TREAT_PROMOS_AS_QUEEN_PROMO=1)
 
-
 # CUDA PART
 add_executable(src ${CUDA_SOURCES})
 
 set_target_properties(src
         PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
-#        CUDA_RESOLVE_DEVICE_SYMBOLS ON
-#        COMPILE_OPTIONS "-G"
 )
 
 set_source_files_properties(
         ${CUDA_SOURCES}
-        PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;-Xptxas;-O3"
+        PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3"
 )
 
 target_link_libraries(src PRIVATE cpu_ported)
@@ -91,4 +87,4 @@ target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}/tests/cpu
 )
 
-target_compile_definitions(src PRIVATE -DTESTING=\"move_gen_perf\")
+target_compile_definitions(src PRIVATE -DTESTING=\"move_perf\")

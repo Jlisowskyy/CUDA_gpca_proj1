@@ -492,8 +492,6 @@ private:
         assert(allyMap != 0 && "Ally map is empty!");
         assert(enemyMap != 0 && "Enemy map is empty!");
 
-        static constexpr __uint32_t CastlingPerColor = 2;
-
         // generating moves
         const __uint64_t kingMoves = KingMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor)) &
                 ~blockedFigMap & ~allyMap;

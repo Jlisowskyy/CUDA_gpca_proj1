@@ -85,11 +85,11 @@ public:
     // Class interaction
     // ------------------------------
 
-    HYBRID constexpr T &operator[](const size_t index) { return m_data[index]; }
+    __forceinline__ HYBRID constexpr T &operator[](const size_t index) { return m_data[index]; }
 
-    HYBRID constexpr const T &operator[](const size_t index) const { return m_data[index]; }
+    __forceinline__ HYBRID constexpr const T &operator[](const size_t index) const { return m_data[index]; }
 
-    HYBRID constexpr T *data() { return m_data; }
+    __forceinline__ HYBRID constexpr T *data() { return m_data; }
 
     // ------------------------------
     // Class fields

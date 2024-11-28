@@ -27,7 +27,7 @@
 #include <chrono>
 #include <format>
 
-static constexpr size_t RETRIES = 3;
+static constexpr size_t RETRIES = 10;
 static constexpr size_t MAX_DEPTH = 100;
 
 void __global__
@@ -138,13 +138,13 @@ void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std
                                                          thrust::raw_pointer_cast(dResults.data()),
                                                          thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
         CUDA_TRACE_ERROR(cudaGetLastError());
+    }
 
-        const auto rc = cudaDeviceSynchronize();
-        CUDA_TRACE_ERROR(rc);
+    const auto rc = cudaDeviceSynchronize();
+    CUDA_TRACE_ERROR(rc);
 
-        if (rc != cudaSuccess) {
-            throw std::runtime_error("Failed to launch kernel");
-        }
+    if (rc != cudaSuccess) {
+        throw std::runtime_error("Failed to launch kernel");
     }
 
     const auto t2 = std::chrono::high_resolution_clock::now();
