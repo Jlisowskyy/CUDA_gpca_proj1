@@ -64,8 +64,8 @@ struct ChessMechanics {
         const __uint64_t fullBoard = GetFullBitMap();
 
         // Checking rook's perspective
-        const __uint64_t enemyRooks = _board.GetFigBoard(enemyCol, rooksIndex);
-        const __uint64_t enemyQueens = _board.GetFigBoard(enemyCol, queensIndex);
+        const __uint64_t enemyRooks = _board.GetFigBoard(enemyCol, ROOK_INDEX);
+        const __uint64_t enemyQueens = _board.GetFigBoard(enemyCol, QUEEN_INDEX);
 
         const __uint64_t kingsRookPerspective = RookMap::GetMoves(kingsMsb, fullBoard);
 
@@ -73,7 +73,7 @@ struct ChessMechanics {
             return true;
 
         // Checking bishop's perspective
-        const __uint64_t enemyBishops = _board.GetFigBoard(enemyCol, bishopsIndex);
+        const __uint64_t enemyBishops = _board.GetFigBoard(enemyCol, BISHOP_INDEX);
 
         const __uint64_t kingsBishopPerspective = BishopMap::GetMoves(kingsMsb, fullBoard);
 
@@ -81,7 +81,7 @@ struct ChessMechanics {
             return true;
 
         // checking knights attacks
-        const __uint64_t enemyKnights = _board.GetFigBoard(enemyCol, knightsIndex);
+        const __uint64_t enemyKnights = _board.GetFigBoard(enemyCol, KNIGHT_INDEX);
 
         const __uint64_t knightsPerspective = KnightMap::GetMoves(kingsMsb);
 
@@ -89,7 +89,7 @@ struct ChessMechanics {
             return true;
 
         // pawns checks
-        const __uint64_t enemyPawns = _board.GetFigBoard(enemyCol, pawnsIndex);
+        const __uint64_t enemyPawns = _board.GetFigBoard(enemyCol, PAWN_INDEX);
         const __uint64_t pawnAttacks =
                 enemyCol == WHITE ? WhitePawnMap::GetAttackFields(enemyPawns) : BlackPawnMap::GetAttackFields(
                         enemyPawns);
@@ -104,7 +104,7 @@ struct ChessMechanics {
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFullBitMap() const {
         __uint64_t map = 0;
-        for (__uint32_t i = 0; i < BitBoardsCount; ++i) map |= _board.BitBoards[i];
+        for (__uint32_t i = 0; i < BIT_BOARDS_COUNT; ++i) map |= _board.BitBoards[i];
         return map;
     }
 
@@ -113,15 +113,15 @@ struct ChessMechanics {
         assert(col == 1 || col == 0);
 
         __uint64_t map = 0;
-        for (__uint32_t i = 0; i < BitBoardsPerCol; ++i) map |= _board.BitBoards[BitBoardsPerCol * col + i];
+        for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) map |= _board.BitBoards[BIT_BOARDS_PER_COLOR * col + i];
         return map;
     }
 
     // does not check kings BitBoards!!!
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
-        const __uint32_t colIndex = col * BitBoardsPerCol;
+        const __uint32_t colIndex = col * BIT_BOARDS_PER_COLOR;
         __uint32_t rv = 0;
-        for (__uint32_t i = 0; i < BitBoardsPerCol; ++i) {
+        for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
             rv += ((_board.BitBoards[colIndex + i] & map) != 0) * i;
         }
         return colIndex + rv;
@@ -144,7 +144,7 @@ struct ChessMechanics {
         __uint64_t blockedMap{};
         bool wasCheckedBySimple{};
 
-        const __uint32_t enemyFigInd = SwapColor(_board.MovingColor) * BitBoardsPerCol;
+        const __uint32_t enemyFigInd = SwapColor(_board.MovingColor) * BIT_BOARDS_PER_COLOR;
         const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
@@ -153,7 +153,7 @@ struct ChessMechanics {
 
         // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
         const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
-                _board.BitBoards[enemyFigInd + rooksIndex] | _board.BitBoards[enemyFigInd + queensIndex],
+                _board.BitBoards[enemyFigInd + ROOK_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
                 fullMap ^ allyKingMap,
                 allyKingMap
         );
@@ -164,7 +164,7 @@ struct ChessMechanics {
 
         // Bishop attacks generation.
         const __uint64_t bishopBlockedMap = _blockIterativeGenerator(
-                _board.BitBoards[enemyFigInd + bishopsIndex] | _board.BitBoards[enemyFigInd + queensIndex],
+                _board.BitBoards[enemyFigInd + BISHOP_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
                 [=](const int pos) {
                     return BishopMap::GetMoves(pos, fullMap ^ allyKingMap);
                 }
@@ -177,7 +177,7 @@ struct ChessMechanics {
         blockedMap |= bishopBlockedMap;
 
         // Pawns attacks generation.
-        const __uint64_t pawnsMap = _board.BitBoards[enemyFigInd + pawnsIndex];
+        const __uint64_t pawnsMap = _board.BitBoards[enemyFigInd + PAWN_INDEX];
         const __uint64_t pawnBlockedMap =
                 SwapColor(_board.MovingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
                                                        : BlackPawnMap::GetAttackFields(pawnsMap);
@@ -190,7 +190,7 @@ struct ChessMechanics {
 
         // Knight attacks generation.
         const __uint64_t knightBlockedMap = _blockIterativeGenerator(
-                _board.BitBoards[enemyFigInd + knightsIndex],
+                _board.BitBoards[enemyFigInd + KNIGHT_INDEX],
                 [=](const int pos) {
                     return KnightMap::GetMoves(pos);
                 }
@@ -211,7 +211,7 @@ struct ChessMechanics {
         assert(CountOnesInBoard(figBoard) == 1 && "Only one figure should be pinned!");
 
         const int msbPos = ExtractMsbPos(figBoard);
-        const __uint64_t KingBoard = _board.BitBoards[_board.MovingColor * BitBoardsPerCol + kingIndex];
+        const __uint64_t KingBoard = _board.BitBoards[_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX];
 
         const __uint64_t RookPerspectiveMoves = RookMap::GetMoves(msbPos, fullMap);
         if ((RookPerspectiveMoves & KingBoard) != 0)
@@ -227,14 +227,14 @@ struct ChessMechanics {
         assert(fullMap != 0 && "Full map is empty!");
         assert(col == 1 || col == 0 && "Invalid color!");
 
-        const __uint32_t enemyCord = SwapColor(col) * BitBoardsPerCol;
+        const __uint32_t enemyCord = SwapColor(col) * BIT_BOARDS_PER_COLOR;
 
         const auto [pinnedByRooks, allowedRooks] = _getPinnedFigMaps<RookMap, genType>(
-                fullMap, _board.BitBoards[enemyCord + rooksIndex] | _board.BitBoards[enemyCord + queensIndex]
+                fullMap, _board.BitBoards[enemyCord + ROOK_INDEX] | _board.BitBoards[enemyCord + QUEEN_INDEX]
         );
 
         const auto [pinnedByBishops, allowedBishops] = _getPinnedFigMaps<BishopMap, genType>(
-                fullMap, _board.BitBoards[enemyCord + bishopsIndex] | _board.BitBoards[enemyCord + queensIndex]
+                fullMap, _board.BitBoards[enemyCord + BISHOP_INDEX] | _board.BitBoards[enemyCord + QUEEN_INDEX]
         );
 
         return {pinnedByBishops | pinnedByRooks, allowedBishops | allowedRooks};

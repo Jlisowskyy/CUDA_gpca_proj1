@@ -8,6 +8,7 @@
 #include "../cuda_core/Move.cuh"
 #include "../cuda_core/MoveGenerator.cuh"
 #include "../cuda_core/cuda_Board.cuh"
+#include "../cuda_core/ComputeKernels.cuh"
 
 #include "../ported/CpuTests.h"
 #include "../ported/CpuUtils.h"
@@ -29,36 +30,6 @@
 
 static constexpr size_t RETRIES = 10;
 static constexpr size_t MAX_DEPTH = 100;
-
-void __global__
-SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth) {
-    const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
-    __uint32_t seed = seeds[idx];
-
-    int depth{};
-
-    while (depth < maxDepth) {
-        Stack<cuda_Move> stack(moves + idx * 256);
-        MoveGenerator mGen{*(boards + idx), stack};
-        const auto generatedMoves = mGen.GetMovesFast();
-        __syncthreads();
-
-        auto result = (__uint32_t *) (results + idx);
-        ++result[0];
-        result[1] += generatedMoves.size;
-
-        if (generatedMoves.size == 0) {
-            ++depth;
-            continue;
-        }
-
-        const auto nextMove = generatedMoves[seed % generatedMoves.size];
-        cuda_Move::MakeMove(nextMove, *(boards + idx));
-
-        simpleRand(seed);
-        ++depth;
-    }
-}
 
 std::vector<std::string> LoadFenDb() {
     const auto sourcePath = std::filesystem::path(__FILE__).parent_path();

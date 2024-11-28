@@ -6,6 +6,7 @@
 #define CUDA_MOVE_CUH
 
 #include <cuda_runtime.h>
+#include <string>
 
 #include "cuda_Board.cuh"
 
@@ -165,12 +166,12 @@ struct VolatileBoardData {
 };
 
 __device__ static constexpr size_t move_CastlingIdxArr[5]{
-        SentinelBoardIndex, wRooksIndex, wRooksIndex, bRooksIndex, bRooksIndex
+        SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
 };
 
 __device__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
-        1LLU, CastlingNewRookMaps[0], CastlingNewRookMaps[1],
-        CastlingNewRookMaps[2], CastlingNewRookMaps[3]
+        1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
+        CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
 
 class alignas(8) cuda_Move final {

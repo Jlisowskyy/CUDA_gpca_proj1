@@ -12,7 +12,7 @@
 #include "cuda_Array.cuh"
 #include "cuda_Board.cuh"
 
-__device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> BISHOP_PARAMS_MAGICS{
+__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_PARAMS_MAGICS{
         2459020380749179396LLU,
         18228596997040662761LLU,
         577023771530035456LLU,
@@ -79,7 +79,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> BISHOP_PARAMS
         18381131039969901408LLU,
 };
 
-__device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> BISHOP_OFFSET_PARAMS{
+__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_OFFSET_PARAMS{
         6,
         5,
         5,
@@ -153,7 +153,7 @@ class FancyMagicBishopMap final {
 public:
 
     __device__ constexpr FancyMagicBishopMap() {
-        for (int i = 0; i < static_cast<int>(BitBoardFields); ++i) {
+        for (int i = 0; i < static_cast<int>(BIT_BOARD_FIELDS); ++i) {
             const int boardIndex = ConvertToReversedPos(i);
             const __uint64_t magic = BISHOP_PARAMS_MAGICS[i];
             const __uint64_t shift = BISHOP_OFFSET_PARAMS[i];
@@ -180,7 +180,7 @@ public:
     // ------------------------------
 
 protected:
-    cuda_Array<_underlyingMapT, BitBoardFields> _maps;
+    cuda_Array<_underlyingMapT, BIT_BOARD_FIELDS> _maps;
 };
 
 #endif //SRC_FANCYMAGICBISHOPMAP_CUH

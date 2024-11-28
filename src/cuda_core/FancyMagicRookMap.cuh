@@ -9,7 +9,7 @@
 #include "BaseMoveHashMap.cuh"
 #include "RookMapGenerator.cuh"
 
-__device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> MAGICS_ROOK_PARAMS {
+__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK_PARAMS {
         1170940307609551394LLU,
         864693331908632740LLU,
         18577430269659234LLU,
@@ -76,7 +76,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> MAGICS_ROOK_P
         612489824202555536LLU,
 };
 
-__device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> OFFSETS_ROOK_PARAMS {
+__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> OFFSETS_ROOK_PARAMS {
         12,
         11,
         11,
@@ -153,7 +153,7 @@ public:
 
     /* WORKAROUND: needed temp constructor for deviceMap initialization */
     HYBRID constexpr explicit FancyMagicRookMap(bool) {
-        for (int i = 0; i < static_cast<int>(BitBoardFields); ++i) {
+        for (int i = 0; i < static_cast<int>(BIT_BOARD_FIELDS); ++i) {
             const int boardIndex = ConvertToReversedPos(i);
             const __uint64_t magic = MAGICS_ROOK_PARAMS[i];
             const __uint64_t shift = OFFSETS_ROOK_PARAMS[i];
@@ -183,7 +183,7 @@ public:
 
 protected:
 
-    cuda_Array<_underlyingMapT, BitBoardFields> m_maps{};
+    cuda_Array<_underlyingMapT, BIT_BOARD_FIELDS> m_maps{};
 };
 
 #endif //SRC_FANCYMAGICROOKMAP_CUH

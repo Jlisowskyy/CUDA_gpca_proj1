@@ -255,14 +255,14 @@ private:
     ) {
         assert(fullMap != 0 && "Full map is empty!");
 
-        if (_board.ElPassantField == InvalidElPassantBitBoard) {
+        if (_board.ElPassantField == INVALID_EL_PASSANT_BIT_BOARD) {
             return;
         }
 
         // calculation preparation
         const __uint64_t suspectedFields = MapT::GetElPassantSuspectedFields(_board.ElPassantField);
-        const __uint32_t enemyCord = SwapColor(_board.MovingColor) * BitBoardsPerCol;
-        const __uint64_t enemyRookFigs = _board.BitBoards[enemyCord + queensIndex] | _board.BitBoards[enemyCord + rooksIndex];
+        const __uint32_t enemyCord = SwapColor(_board.MovingColor) * BIT_BOARDS_PER_COLOR;
+        const __uint64_t enemyRookFigs = _board.BitBoards[enemyCord + QUEEN_INDEX] | _board.BitBoards[enemyCord + ROOK_INDEX];
         __uint64_t possiblePawnsToMove = _board.BitBoards[MapT::GetBoardIndex(0)] & suspectedFields;
 
         GET_PAWN_FIELD(EnemyElPassantMask);
@@ -311,7 +311,7 @@ private:
             mv.SetTargetBoardIndex(MapT::GetBoardIndex(0));
             mv.SetKilledBoardIndex(MapT::GetEnemyPawnBoardIndex());
             mv.SetKilledFigureField(ExtractMsbPos(_board.ElPassantField));
-            mv.SetElPassantField(InvalidElPassantField);
+            mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             mv.SetCasltingRights(_board.Castlings);
             mv.SetMoveType(CaptureFlag);
 
@@ -422,7 +422,7 @@ private:
             payload &results, __uint64_t nonAttackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, __uint32_t flags
     ) {
-        assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
+        assert(figBoardIndex < BIT_BOARDS_COUNT && "Invalid figure cuda_Board index!");
 
         while (nonAttackingMoves) {
             // extracting moves
@@ -435,7 +435,7 @@ private:
             mv.SetStartBoardIndex(figBoardIndex);
             mv.SetTargetField(movePos);
             mv.SetCasltingRights(castlings);
-            mv.SetKilledBoardIndex(SentinelBoardIndex);
+            mv.SetKilledBoardIndex(SENTINEL_BOARD_INDEX);
 
             if (IsFlagOn(flags, CONSIDER_EL_PASSANT)) {
                 const auto result = (_board.MovingColor == WHITE ?
@@ -443,14 +443,14 @@ private:
                                      BlackPawnMap::GetElPassantField(moveBoard, startField)
                 );
 
-                mv.SetElPassantField(result == 0 ? InvalidElPassantField : ExtractMsbPos(result));
+                mv.SetElPassantField(result == 0 ? INVALID_EL_PASSANT_FIELD : ExtractMsbPos(result));
             } else {
-                mv.SetElPassantField(InvalidElPassantField);
+                mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             }
 
-            mv.SetTargetBoardIndex(IsFlagOn(flags, PROMOTE_PAWNS) ? _board.MovingColor * BitBoardsPerCol + queensIndex
+            mv.SetTargetBoardIndex(IsFlagOn(flags, PROMOTE_PAWNS) ? _board.MovingColor * BIT_BOARDS_PER_COLOR + QUEEN_INDEX
                                                                   : figBoardIndex);
-            mv.SetMoveType(IsFlagOn(flags, PROMOTE_PAWNS) ? PromoFlag | PromoFlags[queensIndex] : 0);
+            mv.SetMoveType(IsFlagOn(flags, PROMOTE_PAWNS) ? PromoFlag | PromoFlags[QUEEN_INDEX] : 0);
 
             results.Push(stack, mv);
             nonAttackingMoves ^= moveBoard;
@@ -460,7 +460,7 @@ private:
             payload &results, __uint64_t attackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, bool promotePawns
     ) {
-        assert(figBoardIndex < BitBoardsCount && "Invalid figure cuda_Board index!");
+        assert(figBoardIndex < BIT_BOARDS_COUNT && "Invalid figure cuda_Board index!");
 
         while (attackingMoves) {
             // extracting moves
@@ -476,11 +476,11 @@ private:
             mv.SetTargetField(movePos);
             mv.SetKilledBoardIndex(attackedFigBoardIndex);
             mv.SetKilledFigureField(movePos);
-            mv.SetElPassantField(InvalidElPassantField);
+            mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             mv.SetCasltingRights(castlings);
             mv.SetMoveType(CaptureFlag);
-            mv.SetTargetBoardIndex(promotePawns ? _board.MovingColor * BitBoardsPerCol + queensIndex : figBoardIndex);
-            mv.SetMoveType(promotePawns ? PromoFlag | PromoFlags[queensIndex] : 0);
+            mv.SetTargetBoardIndex(promotePawns ? _board.MovingColor * BIT_BOARDS_PER_COLOR + QUEEN_INDEX : figBoardIndex);
+            mv.SetMoveType(promotePawns ? PromoFlag | PromoFlags[QUEEN_INDEX] : 0);
 
             results.Push(stack, mv);
             attackingMoves ^= moveBoard;
@@ -501,10 +501,10 @@ private:
 
         // preparing variables
         auto castlings = _board.Castlings;
-        SetBitBoardBit(castlings, _board.MovingColor * CastlingsPerColor + KingCastlingIndex, false);
-        SetBitBoardBit(castlings, _board.MovingColor * CastlingsPerColor + QueenCastlingIndex, false);
+        SetBitBoardBit(castlings, _board.MovingColor * CASTLINGS_PER_COLOR + KING_CASTLING_INDEX, false);
+        SetBitBoardBit(castlings, _board.MovingColor * CASTLINGS_PER_COLOR + QUEEN_CASTLING_INDEX, false);
 
-        const int oldKingPos = ExtractMsbPos(_board.BitBoards[_board.MovingColor * BitBoardsPerCol + kingIndex]);
+        const int oldKingPos = ExtractMsbPos(_board.BitBoards[_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX]);
 
         // processing simple non-attacking moves
         while (nonAttackingMoves) {
@@ -515,11 +515,11 @@ private:
 
             // preparing basic move info
             mv.SetStartField(oldKingPos);
-            mv.SetStartBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
+            mv.SetStartBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX);
             mv.SetTargetField(newPos);
-            mv.SetTargetBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
-            mv.SetKilledBoardIndex(SentinelBoardIndex);
-            mv.SetElPassantField(InvalidElPassantField);
+            mv.SetTargetBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX);
+            mv.SetKilledBoardIndex(SENTINEL_BOARD_INDEX);
+            mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             mv.SetCasltingRights(castlings);
 
             results.Push(stack, mv);
@@ -537,12 +537,12 @@ private:
 
             // preparing basic move info
             mv.SetStartField(oldKingPos);
-            mv.SetStartBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
+            mv.SetStartBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX);
             mv.SetTargetField(newPos);
-            mv.SetTargetBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
+            mv.SetTargetBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX);
             mv.SetKilledBoardIndex(GetIndexOfContainingBitBoard(newKingBoard, SwapColor(_board.MovingColor)));
             mv.SetKilledFigureField(newPos);
-            mv.SetElPassantField(InvalidElPassantField);
+            mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             mv.SetCasltingRights(castlings);
             mv.SetMoveType(CaptureFlag);
 
@@ -557,28 +557,28 @@ private:
     FAST_DCALL void _processKingCastlings(payload &results, __uint64_t blockedFigMap, __uint64_t fullMap) {
         assert(fullMap != 0 && "Full map is empty!");
 
-        for (__uint32_t i = 0; i < CastlingsPerColor; ++i) {
-            if (const __uint32_t castlingIndex = _board.MovingColor * CastlingsPerColor + i;
+        for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i) {
+            if (const __uint32_t castlingIndex = _board.MovingColor * CASTLINGS_PER_COLOR + i;
                     _board.GetCastlingRight(castlingIndex) &&
-                    (CastlingsRookMaps[castlingIndex] &
-                     _board.BitBoards[_board.MovingColor * BitBoardsPerCol + rooksIndex]) != 0 &&
-                    (CastlingSensitiveFields[castlingIndex] & blockedFigMap) == 0 &&
-                    (CastlingTouchedFields[castlingIndex] & fullMap) == 0) {
+                    (CASTLING_ROOK_MAPS[castlingIndex] &
+                     _board.BitBoards[_board.MovingColor * BIT_BOARDS_PER_COLOR + ROOK_INDEX]) != 0 &&
+                    (CASTLING_SENSITIVE_FIELDS[castlingIndex] & blockedFigMap) == 0 &&
+                    (CASTLING_TOUCHED_FIELDS[castlingIndex] & fullMap) == 0) {
 
                 auto castlings = _board.Castlings;
-                SetBitBoardBit(castlings, _board.MovingColor * CastlingsPerColor + KingCastlingIndex, false);
-                SetBitBoardBit(castlings, _board.MovingColor * CastlingsPerColor + QueenCastlingIndex, false);
+                SetBitBoardBit(castlings, _board.MovingColor * CASTLINGS_PER_COLOR + KING_CASTLING_INDEX, false);
+                SetBitBoardBit(castlings, _board.MovingColor * CASTLINGS_PER_COLOR + QUEEN_CASTLING_INDEX, false);
 
                 cuda_Move mv{};
 
                 // preparing basic move info
-                mv.SetStartField(ExtractMsbPos(DefaultKingBoards[_board.MovingColor]));
-                mv.SetStartBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
-                mv.SetTargetField(CastlingNewKingPos[castlingIndex]);
-                mv.SetTargetBoardIndex(_board.MovingColor * BitBoardsPerCol + kingIndex);
-                mv.SetKilledBoardIndex(_board.MovingColor * BitBoardsPerCol + rooksIndex);
-                mv.SetKilledFigureField(ExtractMsbPos(CastlingsRookMaps[castlingIndex]));
-                mv.SetElPassantField(InvalidElPassantField);
+                mv.SetStartField(ExtractMsbPos(DEFAULT_KING_BOARDS[_board.MovingColor]));
+                mv.SetStartBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX);
+                mv.SetTargetField(CASTLING_NEW_KING_POS[castlingIndex]);
+                mv.SetTargetBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX);
+                mv.SetKilledBoardIndex(_board.MovingColor * BIT_BOARDS_PER_COLOR + ROOK_INDEX);
+                mv.SetKilledFigureField(ExtractMsbPos(CASTLING_ROOK_MAPS[castlingIndex]));
+                mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
                 mv.SetCasltingRights(castlings);
                 mv.SetCastlingType(1 + castlingIndex); // God only knows why I made a sentinel at index 0 at this moment
                 mv.SetMoveType(CastlingFlag);

@@ -28,13 +28,6 @@ inline void MoveGenCorPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp
     MoveGenPerfTest(threadsAvailable, deviceProps);
 }
 
-template<class NumT>
-FAST_DCALL void simpleRand(NumT &state) {
-    state ^= state << 13;
-    state ^= state >> 7;
-    state ^= state << 17;
-}
-
 /* test mapping */
 static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> CudaTestsMap = {
         {

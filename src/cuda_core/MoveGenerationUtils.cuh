@@ -11,9 +11,9 @@
 #include "cuda_BitOperations.cuh"
 #include "cuda_Array.cuh"
 
-HYBRID [[nodiscard]] constexpr cuda_Array<__uint64_t, BitBoardFields>
+HYBRID [[nodiscard]] constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS>
 GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *rowCords) {
-    cuda_Array<__uint64_t, BitBoardFields> movesRet{};
+    cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesRet{};
 
     for (int x = 0; x < 8; ++x) {
         for (int y = 0; y < 8; ++y) {

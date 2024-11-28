@@ -23,7 +23,7 @@ public:
     // ------------------------------
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(__uint32_t color) {
-        return BitBoardsPerCol * color + queensIndex;
+        return BIT_BOARDS_PER_COLOR * color + QUEEN_INDEX;
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t

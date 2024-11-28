@@ -65,4 +65,11 @@ HYBRID constexpr T cuda_max(T a, T b) {
 
 #define FAST_DCALL_ALWAYS __forceinline__ __device__
 
+template<class NumT>
+FAST_DCALL_ALWAYS void simpleRand(NumT &state) {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+}
+
 #endif //SRC_HELPERS_CUH

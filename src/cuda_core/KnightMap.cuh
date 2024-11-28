@@ -19,7 +19,7 @@ namespace KnightMapConstants {
     // Used to omit errors during generation.
     __device__ static constexpr int rowCords[] = {1, 2, 2, 1, -1, -2, -2, -1};
 
-    __device__ static constexpr cuda_Array<__uint64_t, BitBoardFields> movesMap =
+    __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesMap =
             GenStaticMoves(maxMovesCount, movesCords, rowCords);
 }
 
@@ -36,7 +36,7 @@ public:
     // ------------------------------
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(int color) {
-        return BitBoardsPerCol * color + knightsIndex;
+        return BIT_BOARDS_PER_COLOR * color + KNIGHT_INDEX;
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t

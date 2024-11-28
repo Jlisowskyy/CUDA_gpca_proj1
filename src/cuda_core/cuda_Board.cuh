@@ -30,12 +30,12 @@ enum Color : int {
  * */
 
 enum ColorlessDescriptors : __uint32_t {
-    pawnsIndex,
-    knightsIndex,
-    bishopsIndex,
-    rooksIndex,
-    queensIndex,
-    kingIndex,
+    PAWN_INDEX,
+    KNIGHT_INDEX,
+    BISHOP_INDEX,
+    ROOK_INDEX,
+    QUEEN_INDEX,
+    KING_INDEX,
 };
 
 /*
@@ -45,18 +45,18 @@ enum ColorlessDescriptors : __uint32_t {
  * */
 
 enum Descriptors : __uint32_t {
-    wPawnsIndex,
-    wKnightsIndex,
-    wBishopsIndex,
-    wRooksIndex,
-    wQueensIndex,
-    wKingIndex,
-    bPawnsIndex,
-    bKnightsIndex,
-    bBishopsIndex,
-    bRooksIndex,
-    bQueensIndex,
-    bKingIndex,
+    W_PAWN_INDEX,
+    W_KNIGHT_INDEX,
+    W_BISHOP_INDEX,
+    W_ROOK_INDEX,
+    W_QUEEN_INDEX,
+    W_KING_INDEX,
+    B_PAWN_INDEX,
+    B_KNIGHT_INDEX,
+    B_BISHOP_INDEX,
+    B_ROOK_INDEX,
+    B_QUEEN_INDEX,
+    B_KING_INDEX,
 };
 
 /*
@@ -64,8 +64,8 @@ enum Descriptors : __uint32_t {
  * */
 
 enum CastlingIndexes : __uint32_t {
-    KingCastlingIndex,
-    QueenCastlingIndex,
+    KING_CASTLING_INDEX,
+    QUEEN_CASTLING_INDEX,
 };
 
 /*
@@ -73,10 +73,10 @@ enum CastlingIndexes : __uint32_t {
  * */
 
 enum CastlingPossibilities : __uint32_t {
-    WhiteKingSide,
-    WhiteQueenSide,
-    BlackKingSide,
-    BlackQueenSide,
+    W_KING_CASTLING_INDEX,
+    W_QUEEN_CASTLING_INDEX,
+    B_KING_CASTLING_INDEX,
+    B_QUEEN_CASTLING_INDEX,
 };
 
 /*
@@ -94,39 +94,39 @@ enum CastlingPossibilities : __uint32_t {
  *
  * */
 
-__device__ static constexpr __uint32_t BitBoardsCount = 12;
-__device__ static constexpr __uint32_t CastlingCount = 4;
-__device__ static constexpr __uint32_t BitBoardFields = 64;
-__device__ static constexpr __uint32_t BitBoardsPerCol = 6;
-__device__ static constexpr __uint32_t KingPosCount = 2;
-__device__ static constexpr __uint32_t CastlingsPerColor = 2;
-__device__ static constexpr __uint64_t InvalidElPassantField = 1;
-__device__ static constexpr __uint64_t InvalidElPassantBitBoard = cuda_MaxMsbPossible >> InvalidElPassantField;
-__device__ static constexpr __uint32_t SentinelBoardIndex = 12;
-__device__ static constexpr __uint32_t SentinelCastlingIndex = 4;
+__device__ static constexpr __uint32_t BIT_BOARDS_COUNT = 12;
+__device__ static constexpr __uint32_t CASTLING_COUNT = 4;
+__device__ static constexpr __uint32_t BIT_BOARD_FIELDS = 64;
+__device__ static constexpr __uint32_t BIT_BOARDS_PER_COLOR = 6;
+__device__ static constexpr __uint32_t KING_POS_COUNT = 2;
+__device__ static constexpr __uint32_t CASTLINGS_PER_COLOR = 2;
+__device__ static constexpr __uint64_t INVALID_EL_PASSANT_FIELD = 1;
+__device__ static constexpr __uint64_t INVALID_EL_PASSANT_BIT_BOARD = cuda_MaxMsbPossible >> INVALID_EL_PASSANT_FIELD;
+__device__ static constexpr __uint32_t SENTINEL_BOARD_INDEX = 12;
+__device__ static constexpr __uint32_t SENTINEL_CASTLING_INDEX = 4;
 
-__device__ static constexpr __uint64_t DefaultKingBoards[KingPosCount]{
+__device__ static constexpr __uint64_t DEFAULT_KING_BOARDS[KING_POS_COUNT]{
         cuda_MaxMsbPossible >> ConvertToReversedPos(4), cuda_MaxMsbPossible >> ConvertToReversedPos(60)
 };
 
-__device__ static constexpr __int32_t CastlingNewKingPos[CastlingCount]{
+__device__ static constexpr __int32_t CASTLING_NEW_KING_POS[CASTLING_COUNT]{
         ConvertToReversedPos(6), ConvertToReversedPos(2), ConvertToReversedPos(62), ConvertToReversedPos(58)
 };
 
-__device__ static constexpr __uint64_t CastlingsRookMaps[CastlingCount]{
+__device__ static constexpr __uint64_t CASTLING_ROOK_MAPS[CASTLING_COUNT]{
         cuda_MinMsbPossible << 7, cuda_MinMsbPossible, cuda_MinMsbPossible << 63, cuda_MinMsbPossible << 56
 };
 
-__device__ static constexpr __uint64_t CastlingNewRookMaps[CastlingCount]{
+__device__ static constexpr __uint64_t CASTLING_NEW_ROOK_MAPS[CASTLING_COUNT]{
         cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 3, cuda_MinMsbPossible << 61, cuda_MinMsbPossible << 59
 };
 
-__device__ static constexpr __uint64_t CastlingSensitiveFields[CastlingCount]{
+__device__ static constexpr __uint64_t CASTLING_SENSITIVE_FIELDS[CASTLING_COUNT]{
         cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3,
         cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62, cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59
 };
 
-__device__ static constexpr __uint64_t CastlingTouchedFields[CastlingCount]{
+__device__ static constexpr __uint64_t CASTLING_TOUCHED_FIELDS[CASTLING_COUNT]{
         cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3 | cuda_MinMsbPossible << 1,
         cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62,
         cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
@@ -155,7 +155,7 @@ public:
         MovingColor = board[14];
 
         assert(MovingColor == WHITE || MovingColor == BLACK);
-        assert(Castlings <= (1 << (CastlingCount + 1)));
+        assert(Castlings <= (1 << (CASTLING_COUNT + 1)));
     }
 
     // ------------------------------
@@ -165,11 +165,11 @@ public:
     FAST_DCALL_ALWAYS void ChangePlayingColor() { MovingColor ^= 1; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetKingMsbPos(const __uint32_t col) const {
-        return ExtractMsbPos(BitBoards[col * BitBoardsPerCol + kingIndex]);
+        return ExtractMsbPos(BitBoards[col * BIT_BOARDS_PER_COLOR + KING_INDEX]);
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFigBoard(__uint32_t col, __uint32_t figDesc) const {
-        return BitBoards[col * BitBoardsPerCol + figDesc];
+        return BitBoards[col * BIT_BOARDS_PER_COLOR + figDesc];
     }
 
     FAST_DCALL_ALWAYS void SetCastlingRight(size_t castlingIndex, bool value) {
@@ -184,8 +184,8 @@ public:
     // Main processing components
     // --------------------------------
 
-    __uint64_t BitBoards[BitBoardsCount + 1]{}; // additional sentinel board
-    __uint64_t ElPassantField{cuda_MaxMsbPossible >> InvalidElPassantField};
+    __uint64_t BitBoards[BIT_BOARDS_COUNT + 1]{}; // additional sentinel board
+    __uint64_t ElPassantField{cuda_MaxMsbPossible >> INVALID_EL_PASSANT_FIELD};
     __uint32_t Castlings{0}; // additional sentinel field
     __uint32_t MovingColor{WHITE};
 };
