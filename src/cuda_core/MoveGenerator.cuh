@@ -5,6 +5,7 @@
 #ifndef MOVEGENERATOR_CUH
 #define MOVEGENERATOR_CUH
 
+#include "Helpers.cuh"
 
 #include "ChessMechanics.cuh"
 #include "cuda_BitOperations.cuh"
@@ -33,7 +34,7 @@
     } else if constexpr (std::is_same<MapT, BlackPawnMap>::value) { \
         param = BlackPawnMapConstants::param; \
     } else { \
-        assert(false && "Invalid pawn map type detected!"); \
+        ASSERT(false, "Invalid pawn map type detected!"); \
     }                           \
 
 __device__ static constexpr uint16_t PromoFlags[]{
@@ -86,11 +87,9 @@ public:
         const __uint64_t fullMap = GetFullBitMap();
         const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(fullMap);
 
-        assert(blockedFigMap != 0 && "Blocked fig map must at least contains fields controlled by king!");
-        assert(
-                checksCount <= 2 &&
-                "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!"
-        );
+        ASSERT(blockedFigMap != 0, "Blocked fig map must at least contains fields controlled by king!");
+        ASSERT(checksCount <= 2,
+               "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!");
 
         payload results = stack.GetPayload();
 
@@ -106,11 +105,41 @@ public:
                 _doubleCheckGen(results, blockedFigMap);
                 break;
             default:
-                assert(false && "Invalid check count detected!");
+                ASSERT(false, "shit happens");
                 break;
         }
 
         return results;
+    }
+
+    FAST_DCALL void GetMovesSplit(const __uint32_t figIdx) {
+        // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
+        const __uint64_t fullMap = GetFullBitMap();
+        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(fullMap);
+
+        ASSERT(blockedFigMap != 0, "Blocked fig map must at least contains fields controlled by king!");
+        ASSERT(checksCount <= 2,
+               "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!");
+
+        payload results = stack.GetPayload();
+
+        // depending on amount of checks branch to desired reaction
+        switch (checksCount) {
+            case 0:
+                _upTo1CheckSplit(figIdx, results, fullMap, blockedFigMap, EMPTY_FLAGS);
+                break;
+            case 1:
+                _upTo1CheckSplit(figIdx, results, fullMap, blockedFigMap, ASSUME_CHECK, wasCheckedBySimple);
+                break;
+            case 2:
+                if (figIdx == 0) {
+                    _doubleCheckGen(results, blockedFigMap);
+                }
+                break;
+            default:
+                ASSERT(false, "shit happens");
+                break;
+        }
     }
 
     [[nodiscard]] __device__ __uint64_t CountMoves(int depth) {
@@ -151,9 +180,84 @@ public:
 
 private:
 
+    FAST_DCALL void
+    _upTo1CheckSplit(const __uint32_t figIdx, payload &results, __uint64_t fullMap, __uint64_t blockedFigMap,
+                     __uint32_t flags,
+                     bool wasCheckedBySimpleFig = false) {
+        ASSERT(fullMap != 0, "Full map is empty!");
+        static constexpr __uint64_t UNUSED = 0;
+
+        const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
+            if (!IsFlagOn(flags, ASSUME_CHECK)) {
+                return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WoutAllowedTiles>(_board.MovingColor, fullMap);
+            }
+
+            if (!wasCheckedBySimpleFig) {
+                return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WAllowedTiles>(_board.MovingColor, fullMap);
+            }
+
+            [[maybe_unused]] const auto [rv, _] =
+                    GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WoutAllowedTiles>(_board.MovingColor, fullMap);
+            return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
+        }();
+
+        // helping variable preparation
+        const __uint64_t enemyMap = GetColBitMap(SwapColor(_board.MovingColor));
+        const __uint64_t allyMap = GetColBitMap(_board.MovingColor);
+
+        // Specific figure processing
+        switch (figIdx) {
+            case PAWN_INDEX:
+                if (_board.MovingColor == WHITE) {
+                    _processPawnMoves<WhitePawnMap>(
+                            results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+                    );
+                } else {
+                    _processPawnMoves<BlackPawnMap>(
+                            results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+                    );
+                }
+                break;
+            case KNIGHT_INDEX:
+                _processFigMoves<KnightMap>(
+                        results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED,
+                        allowedTilesMap
+                );
+                break;
+            case BISHOP_INDEX:
+                _processFigMoves<BishopMap>(
+                        results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED,
+                        allowedTilesMap
+                );
+                break;
+            case ROOK_INDEX:
+                _processFigMoves<RookMap>(
+                        results, enemyMap, allyMap, pinnedFigsMap,
+                        (IsFlagOn(flags, ASSUME_CHECK) ? ASSUME_CHECK : CHECK_CASTLINGS),
+                        UNUSED, allowedTilesMap
+                );
+                break;
+            case QUEEN_INDEX:
+                _processFigMoves<QueenMap>(
+                        results, enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED,
+                        allowedTilesMap
+                );
+                break;
+            case KING_INDEX:
+                _processPlainKingMoves(results, blockedFigMap, allyMap, enemyMap);
+
+                if (!IsFlagOn(flags, ASSUME_CHECK)) {
+                    _processKingCastlings(results, blockedFigMap, fullMap);
+                }
+                break;
+            default:
+                ASSERT(false, "Shit happens");
+        }
+    }
+
     FAST_DCALL void _upTo1Check(payload &results, __uint64_t fullMap, __uint64_t blockedFigMap, __uint32_t flags,
                                 bool wasCheckedBySimpleFig = false) {
-        assert(fullMap != 0 && "Full map is empty!");
+        ASSERT(fullMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
 
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
@@ -253,7 +357,7 @@ private:
             payload &results, __uint64_t fullMap, __uint64_t pinnedFigMap, bool isCheck,
             __uint64_t allowedMoveFilter = 0
     ) {
-        assert(fullMap != 0 && "Full map is empty!");
+        ASSERT(fullMap != 0, "Full map is empty!");
 
         if (_board.ElPassantField == INVALID_EL_PASSANT_BIT_BOARD) {
             return;
@@ -327,8 +431,8 @@ private:
             payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
             __uint64_t figureSelector = 0, __uint64_t allowedMoveSelector = 0
     )  {
-        assert(enemyMap != 0 && "Enemy map is empty!");
-        assert(allyMap != 0 && "Ally map is empty!");
+        ASSERT(enemyMap != 0, "Enemy map is empty!");
+        ASSERT(allyMap != 0, "Ally map is empty!");
 
         const __uint64_t fullMap = enemyMap | allyMap;
         __uint64_t pinnedOnes = pinnedFigMap & _board.BitBoards[MapT::GetBoardIndex(_board.MovingColor)];
@@ -422,7 +526,7 @@ private:
             payload &results, __uint64_t nonAttackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, __uint32_t flags
     ) {
-        assert(figBoardIndex < BIT_BOARDS_COUNT && "Invalid figure cuda_Board index!");
+        ASSERT(figBoardIndex < BIT_BOARDS_COUNT, "Invalid figure cuda_Board index!");
 
         while (nonAttackingMoves) {
             // extracting moves
@@ -460,7 +564,7 @@ private:
             payload &results, __uint64_t attackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, bool promotePawns
     ) {
-        assert(figBoardIndex < BIT_BOARDS_COUNT && "Invalid figure cuda_Board index!");
+        ASSERT(figBoardIndex < BIT_BOARDS_COUNT, "Invalid figure cuda_Board index!");
 
         while (attackingMoves) {
             // extracting moves
@@ -489,8 +593,8 @@ private:
 
     __device__ void
     _processPlainKingMoves(payload &results, __uint64_t blockedFigMap, __uint64_t allyMap, __uint64_t enemyMap) {
-        assert(allyMap != 0 && "Ally map is empty!");
-        assert(enemyMap != 0 && "Enemy map is empty!");
+        ASSERT(allyMap != 0, "Ally map is empty!");
+        ASSERT(enemyMap != 0, "Enemy map is empty!");
 
         // generating moves
         const __uint64_t kingMoves = KingMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor)) &
@@ -555,7 +659,7 @@ private:
     // TODO: simplify ifs??
     // TODO: cleanup left castling available when rook is dead then propagate no castling checking?
     FAST_DCALL void _processKingCastlings(payload &results, __uint64_t blockedFigMap, __uint64_t fullMap) {
-        assert(fullMap != 0 && "Full map is empty!");
+        ASSERT(fullMap != 0, "Full map is empty!");
 
         for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i) {
             if (const __uint32_t castlingIndex = _board.MovingColor * CASTLINGS_PER_COLOR + i;

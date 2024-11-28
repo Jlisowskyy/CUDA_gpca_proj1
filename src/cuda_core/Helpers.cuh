@@ -6,6 +6,7 @@
 #define SRC_HELPERS_CUH
 
 #include <cuda_runtime.h>
+#include <cassert>
 
 void AssertSuccess(cudaError_t error, const char *file, int line);
 
@@ -65,11 +66,32 @@ HYBRID constexpr T cuda_max(T a, T b) {
 
 #define FAST_DCALL_ALWAYS __forceinline__ __device__
 
+#define FAST_CALL_ALWAYS __forceinline__ HYBRID
+
+
 template<class NumT>
 FAST_DCALL_ALWAYS void simpleRand(NumT &state) {
     state ^= state << 13;
     state ^= state >> 7;
     state ^= state << 17;
 }
+
+class cuda_Board;
+HYBRID void DisplayBoard(const cuda_Board* board);
+
+#ifndef NDEBUG
+
+HYBRID constexpr void ASSERT_DISPLAY(const cuda_Board* board, bool cond, const char* msg){
+    if (!cond) {
+        DisplayBoard(board);
+        assert(cond && msg);
+    }
+}
+
+#else
+
+#define ASSERT_DISPLAY(a, b, c)
+
+#endif
 
 #endif //SRC_HELPERS_CUH

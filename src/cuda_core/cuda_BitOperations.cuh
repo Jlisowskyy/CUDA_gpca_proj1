@@ -26,6 +26,23 @@ __device__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible
 /* Function efficiently computes MsbPos */
 FAST_DCALL_ALWAYS int ExtractMsbPos(const __uint64_t x) { return __clzll(static_cast<int64_t>(x)); }
 
+FAST_CALL_ALWAYS int ExtractMsbPosNeutral(const __uint64_t x) {
+    if (x == 0) return 63;
+
+    __uint64_t val = x;
+    int pos = 0;
+
+    // Binary search approach to find MSB position
+    if (val > 0xFFFFFFFF) { val >>= 32; pos += 32; }
+    if (val > 0xFFFF)     { val >>= 16; pos += 16; }
+    if (val > 0xFF)       { val >>= 8;  pos += 8;  }
+    if (val > 0xF)        { val >>= 4;  pos += 4;  }
+    if (val > 0x3)        { val >>= 2;  pos += 2;  }
+    if (val > 0x1)        { val >>= 1;  pos += 1;  }
+
+    return 63 - pos;
+}
+
 HYBRID constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
     if (x == 0) {
         return 0;

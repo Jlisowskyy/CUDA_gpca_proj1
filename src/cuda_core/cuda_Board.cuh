@@ -176,7 +176,7 @@ public:
         SetBitBoardBit(Castlings, castlingIndex, value);
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS bool GetCastlingRight(size_t castlingIndex) const {
+    [[nodiscard]] FAST_CALL_ALWAYS bool GetCastlingRight(size_t castlingIndex) const {
         return Castlings & (cuda_MinMsbPossible << castlingIndex);
     }
 

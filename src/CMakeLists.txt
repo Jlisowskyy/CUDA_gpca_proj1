@@ -75,11 +75,17 @@ set_target_properties(src
         CUDA_SEPARABLE_COMPILATION ON
 )
 
-set_source_files_properties(
-        ${CUDA_SOURCES}
-#        PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3"
-        PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
-)
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set_source_files_properties(
+            ${CUDA_SOURCES}
+            PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3"
+    )
+else()
+    set_source_files_properties(
+            ${CUDA_SOURCES}
+            PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
+    )
+endif()
 
 target_link_libraries(src PRIVATE cpu_ported)
 

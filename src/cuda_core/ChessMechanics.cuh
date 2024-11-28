@@ -25,6 +25,8 @@
 #include <cassert>
 #include <cinttypes>
 
+#define ASSERT(cond, msg) ASSERT_DISPLAY(&_board, cond, msg)
+
 struct ChessMechanics {
     // ------------------------------
     // Class inner types
@@ -110,7 +112,7 @@ struct ChessMechanics {
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not, by desired color figures.
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetColBitMap(const __uint32_t col) const {
-        assert(col == 1 || col == 0);
+        ASSERT(col == 1 || col == 0, "col == 1 || col == 0");
 
         __uint64_t map = 0;
         for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) map |= _board.BitBoards[BIT_BOARDS_PER_COLOR * col + i];
@@ -138,7 +140,7 @@ struct ChessMechanics {
     // [blockedFigMap, checksCount, checkType]
     [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
     GetBlockedFieldBitMap(__uint64_t fullMap) const {
-        assert(fullMap != 0 && "Full map is empty!");
+        ASSERT(fullMap != 0, "Full map is empty!");
 
         __uint8_t checksCount{};
         __uint64_t blockedMap{};
@@ -207,8 +209,8 @@ struct ChessMechanics {
 
     [[nodiscard]] FAST_DCALL __uint64_t
     GenerateAllowedTilesForPrecisedPinnedFig(__uint64_t figBoard, __uint64_t fullMap) const {
-        assert(fullMap != 0 && "Full map is empty!");
-        assert(CountOnesInBoard(figBoard) == 1 && "Only one figure should be pinned!");
+        ASSERT(fullMap != 0, "Full map is empty!");
+        ASSERT(CountOnesInBoard(figBoard) == 1, "Only one figure should be pinned!");
 
         const int msbPos = ExtractMsbPos(figBoard);
         const __uint64_t KingBoard = _board.BitBoards[_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX];
@@ -224,8 +226,8 @@ struct ChessMechanics {
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<PinnedFigGen genType>
     [[nodiscard]] FAST_CALL thrust::pair<__uint64_t, __uint64_t> GetPinnedFigsMap(__uint32_t col, __uint64_t fullMap) const {
-        assert(fullMap != 0 && "Full map is empty!");
-        assert(col == 1 || col == 0 && "Invalid color!");
+        ASSERT(fullMap != 0, "Full map is empty!");
+        ASSERT(col == 1 || col == 0, "Invalid color!");
 
         const __uint32_t enemyCord = SwapColor(col) * BIT_BOARDS_PER_COLOR;
 
@@ -264,9 +266,9 @@ private:
      *              that is: queens, bishops, rooks and pawns
      * */
 
-    FAST_DCALL static thrust::pair<__uint64_t, __uint8_t>
-    _getRookBlockedMap(__uint64_t rookMap, __uint64_t fullMapWoutKing, __uint64_t kingMap) {
-        assert(kingMap != 0 && "King map is empty!");
+    FAST_DCALL thrust::pair<__uint64_t, __uint8_t>
+    _getRookBlockedMap(__uint64_t rookMap, __uint64_t fullMapWoutKing, __uint64_t kingMap) const {
+        ASSERT(kingMap != 0,"King map is empty!");
 
         __uint64_t blockedTiles{};
         __uint8_t checks{};
