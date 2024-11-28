@@ -34,7 +34,11 @@ __device__ const char IndexToFigCharMap[BIT_BOARDS_COUNT]{
         'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k',
 };
 
-HYBRID void DisplayBoard(const cuda_Board *board) {
+__device__ int DISPLAY_MUTEX = 0;
+
+__device__ void DisplayBoard(const cuda_Board *board) {
+    lock(&DISPLAY_MUTEX);
+
     static constexpr __uint32_t LastRowIndex = 7;
     static constexpr __uint32_t CharsForFig = 3;
     static constexpr __uint32_t FigsPerRow = 8;
@@ -102,4 +106,6 @@ HYBRID void DisplayBoard(const cuda_Board *board) {
 
     printf("El passant field: %s\n",
            (board->ElPassantField == INVALID_EL_PASSANT_BIT_BOARD ? "-" : str));
+
+    unlock(&DISPLAY_MUTEX);
 }

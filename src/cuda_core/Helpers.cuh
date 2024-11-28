@@ -77,11 +77,11 @@ FAST_DCALL_ALWAYS void simpleRand(NumT &state) {
 }
 
 class cuda_Board;
-HYBRID void DisplayBoard(const cuda_Board* board);
+__device__ void DisplayBoard(const cuda_Board* board);
 
 #ifndef NDEBUG
 
-HYBRID constexpr void ASSERT_DISPLAY(const cuda_Board* board, bool cond, const char* msg){
+__device__ constexpr void ASSERT_DISPLAY(const cuda_Board* board, bool cond, const char* msg){
     if (!cond) {
         DisplayBoard(board);
         assert(cond && msg);
@@ -93,5 +93,21 @@ HYBRID constexpr void ASSERT_DISPLAY(const cuda_Board* board, bool cond, const c
 #define ASSERT_DISPLAY(a, b, c)
 
 #endif
+
+FAST_DCALL_ALWAYS void lock(int* mutex) {
+    while (atomicExch(mutex, 1) == 1);
+}
+
+FAST_DCALL_ALWAYS void unlock(int* mutex) {
+    atomicExch(mutex, 0);
+}
+
+FAST_DCALL_ALWAYS void lockBlock(int* mutex) {
+    while (atomicExch_block(mutex, 1) == 1);
+}
+
+FAST_DCALL_ALWAYS void unlockBlock(int* mutex) {
+    atomicExch_block(mutex, 0);
+}
 
 #endif //SRC_HELPERS_CUH

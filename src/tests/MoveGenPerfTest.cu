@@ -104,7 +104,7 @@ void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std
 
     for (size_t i = 0; i < RETRIES; ++i) {
         thrust::device_vector<cuda_Board> dBoards = boards;
-        SimulateGamesKernel<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
+        SimulateGamesKernelSplitMoves<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
                                                          thrust::raw_pointer_cast(dSeeds.data()),
                                                          thrust::raw_pointer_cast(dResults.data()),
                                                          thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
