@@ -35,7 +35,11 @@ struct Stack {
 
     Stack() = delete;
 
-    FAST_DCALL_ALWAYS explicit Stack(void *ptr) : _data(static_cast<ItemT *>(ptr)) {}
+    FAST_DCALL_ALWAYS explicit Stack(void *ptr) :
+            _last(static_cast<__uint32_t *>(ptr)),
+            _data(static_cast<ItemT *>(ptr) + 1) {
+        *_last = 0;
+    }
 
     ~Stack() = default;
 
@@ -51,25 +55,31 @@ struct Stack {
     // Class interaction
     // ------------------------------
 
-    FAST_DCALL_ALWAYS void Push(const ItemT item) { _data[_last++] = item; }
+    FAST_DCALL_ALWAYS void Push(const ItemT item) {
+        __uint32_t idx = atomicAdd(_last, 1);
+        _data[idx] = item;
+    }
 
-    FAST_DCALL_ALWAYS StackPayload GetPayload() { return {_data + _last, 0}; }
+    FAST_DCALL_ALWAYS void Clear() { *_last = 0; }
 
-    FAST_DCALL_ALWAYS void PopAggregate(const StackPayload payload) { _last -= payload.size; }
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t Size() const { return *_last; }
 
-    FAST_DCALL_ALWAYS ItemT Pop() { return _data[--_last]; }
+    // ------------------------------
+    // Aggregates
+    // ------------------------------
 
-    FAST_DCALL_ALWAYS ItemT& Top() { return _data[_last - 1]; }
+    /* Aggregates are not thread safe */
 
-    FAST_DCALL_ALWAYS void Clear() { _last = 0; }
+    FAST_DCALL_ALWAYS StackPayload GetPayload() { return {_data + *_last, 0}; }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS size_t Size() const { return _last; }
+    FAST_DCALL_ALWAYS void PopAggregate(const StackPayload payload) { *_last -= payload.size; }
+
     // ------------------------------
     // Class fields
     // ------------------------------
 
 private:
-    size_t _last{};
+    __uint32_t *_last;
     ItemT *_data;
 };
 

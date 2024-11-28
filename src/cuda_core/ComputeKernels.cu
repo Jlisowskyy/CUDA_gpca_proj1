@@ -38,7 +38,7 @@ static constexpr __uint32_t WARP_SIZE = 32;
 static constexpr __uint32_t THREADS_PER_PACKAGE = WARP_SIZE * BIT_BOARDS_PER_COLOR;
 
 __global__ void
-SimulateGamesKernelSplitMoves(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
+SimulateGamesKernelSplitMoves(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, void *moves,
                               int maxDepth) {
     const __uint32_t plainIdx = blockIdx.x * blockDim.x + threadIdx.x;
     const __uint32_t boardIdx = (WARP_SIZE * (plainIdx) / THREADS_PER_PACKAGE) + (threadIdx.x % WARP_SIZE);
