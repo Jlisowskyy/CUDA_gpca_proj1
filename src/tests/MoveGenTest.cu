@@ -8,6 +8,7 @@
 #include "../cuda_core/Move.cuh"
 #include "../cuda_core/MoveGenerator.cuh"
 #include "../cuda_core/cuda_Board.cuh"
+#include "../cuda_core/ComputeKernels.cuh"
 
 #include "../ported/CpuTests.h"
 #include "../ported/CpuUtils.h"
@@ -42,11 +43,7 @@ static constexpr std::array TestFEN{
     "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
-static constexpr std::array TestDepths{
-    3, 3, 3, 3, 3, 3, 3, 3, 3, 3
-};
-
-static_assert(TestDepths.size() == TestFEN.size());
+static constexpr __uint32_t TEST_DEPTH = 3;
 
 void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, int *outCount, void *ptr) {
     Stack<cuda_Move> stack(ptr);
@@ -83,13 +80,7 @@ void TestMoveCount(const std::string_view &fen, int depth) {
     GetGPUMoveCountsKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth,
                                      thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
-
-    const auto rc = cudaDeviceSynchronize();
-    CUDA_TRACE_ERROR(rc);
-
-    if (rc != cudaSuccess) {
-        throw std::runtime_error("Failed to launch kernel");
-    }
+    GuardedSync();
 
     thrust::host_vector<__uint64_t> hdCount = dCount;
     const __uint64_t hCount = hdCount[0];
@@ -119,13 +110,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
     GetGPUMovesKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), thrust::raw_pointer_cast(dMoves.data()),
                                 thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
-
-    const auto rc = cudaDeviceSynchronize();
-    CUDA_TRACE_ERROR(rc);
-
-    if (rc != cudaSuccess) {
-        throw std::runtime_error("Failed to launch kernel");
-    }
+    GuardedSync();
 
     const auto cMoves = cpu::GenerateMoves(externalBoard);
 
@@ -194,18 +179,67 @@ void TestSinglePositionOutput(const std::string_view &fen) {
     }
 }
 
+void MoveGenSplit() {
+    static constexpr __uint32_t WARP_SIZE = 32;
+    static constexpr __uint32_t MAX_DEPTH = 32;
+
+    const auto fenDb = LoadFenDb();
+    const auto seeds = GenSeeds(WARP_SIZE);
+
+    std::vector<cuda_Board> boards(WARP_SIZE);
+
+    for (__uint32_t i = 0; i < WARP_SIZE; ++i) {
+        boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
+    }
+
+    thrust::device_vector<__uint32_t> dSeeds = seeds;
+    thrust::device_vector<__uint64_t> dResults1(WARP_SIZE);
+    thrust::device_vector<cuda_Move> dMoves(WARP_SIZE * 256);
+
+    thrust::device_vector<cuda_Board> dBoards = boards;
+    SimulateGamesKernelSplitMoves<<<1, BIT_BOARDS_PER_COLOR * WARP_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
+                                                               thrust::raw_pointer_cast(dSeeds.data()),
+                                                               thrust::raw_pointer_cast(dResults1.data()),
+                                                               thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
+    CUDA_TRACE_ERROR(cudaGetLastError());
+    GuardedSync();
+    thrust::host_vector<__uint64_t> hResults1 = dResults1;
+
+    thrust::device_vector<__uint64_t> dResults2(WARP_SIZE);
+    dBoards = boards;
+    SimulateGamesKernel<<<1, WARP_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
+                                                                           thrust::raw_pointer_cast(dSeeds.data()),
+                                                                           thrust::raw_pointer_cast(dResults2.data()),
+                                                                           thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
+    CUDA_TRACE_ERROR(cudaGetLastError());
+    GuardedSync();
+    thrust::host_vector<__uint64_t> hResults2 = dResults2;
+
+    for (__uint32_t i = 0; i < WARP_SIZE; ++i) {
+        if (hResults1[i] != hResults2[i]) {
+            std::cerr << "Split move gen mismatch: " << hResults1[i] << " vs " << hResults2[i] << std::endl;
+            throw std::runtime_error("SPLIT MOVE GEN FAILED THE RESULTS!");
+        }
+    }
+}
+
 void MoveGenTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+    cudaDeviceSetLimit(cudaLimitStackSize, 16384);
     std::cout << "MoveGen Test" << std::endl;
 
-    std::cout << "Testing positions with depth 0" << std::endl;
+    std::cout << "Testing positions with depth " << TEST_DEPTH << std::endl;
     for (const auto &fen: TestFEN) {
         TestSinglePositionOutput(fen);
     }
 
     std::cout << "Testing positions with non zero depth" << std::endl;
     for (size_t i = 0; i < TestFEN.size(); ++i) {
-        TestMoveCount(TestFEN[i], TestDepths[i]);
+        TestMoveCount(TestFEN[i], TEST_DEPTH);
     }
+    cudaDeviceSetLimit(cudaLimitStackSize, 1024);
+
+    std::cout << "Testing split move gen:" << std::endl;
+    MoveGenSplit();
 }
 
 void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {

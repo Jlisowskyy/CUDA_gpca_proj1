@@ -7,6 +7,7 @@
 
 #include <cuda_runtime.h>
 #include <cassert>
+#include <stdexcept>
 
 void AssertSuccess(cudaError_t error, const char *file, int line);
 
@@ -102,12 +103,16 @@ FAST_DCALL_ALWAYS void unlock(int* mutex) {
     atomicExch(mutex, 0);
 }
 
-FAST_DCALL_ALWAYS void lockBlock(int* mutex) {
-    while (atomicExch_block(mutex, 1) == 1);
-}
+__device__ void printLock();
+__device__ void printUnlock();
 
-FAST_DCALL_ALWAYS void unlockBlock(int* mutex) {
-    atomicExch_block(mutex, 0);
+inline static void GuardedSync() {
+    const auto rc = cudaDeviceSynchronize();
+    CUDA_TRACE_ERROR(rc);
+
+    if (rc != cudaSuccess) {
+        throw std::runtime_error("Failed to launch kernel");
+    }
 }
 
 #endif //SRC_HELPERS_CUH

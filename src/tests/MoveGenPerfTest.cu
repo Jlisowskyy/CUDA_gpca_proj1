@@ -83,8 +83,13 @@ void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64
     DisplayPerfResults(seconds, boardEvaluated, movesGenerated);
 }
 
-void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std::string> &fenDb,
-                    const std::vector<__uint32_t> &seeds) {
+void
+MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
+                 const std::vector<__uint32_t> &seeds) {
+    const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
+    const auto sizeThreads = blocks * threads;
+    assert(sizeThreads == threadsAvailable && "Wrongly generated block/threads");
+
     const __uint32_t threadsSize = threads * blocks;
     assert(threadsSize == seeds.size());
 
@@ -104,19 +109,13 @@ void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std
 
     for (size_t i = 0; i < RETRIES; ++i) {
         thrust::device_vector<cuda_Board> dBoards = boards;
-        SimulateGamesKernelSplitMoves<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
+        SimulateGamesKernel<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
                                                          thrust::raw_pointer_cast(dSeeds.data()),
                                                          thrust::raw_pointer_cast(dResults.data()),
                                                          thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
         CUDA_TRACE_ERROR(cudaGetLastError());
     }
-
-    const auto rc = cudaDeviceSynchronize();
-    CUDA_TRACE_ERROR(rc);
-
-    if (rc != cudaSuccess) {
-        throw std::runtime_error("Failed to launch kernel");
-    }
+    GuardedSync();
 
     const auto t2 = std::chrono::high_resolution_clock::now();
     thrust::host_vector<__uint64_t> hResults = dResults;
@@ -125,13 +124,14 @@ void MoveGenPerfGPU(__uint32_t blocks, __uint32_t threads, const std::vector<std
     DisplayPerfResults(seconds, hResults);
 }
 
+void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
+                      const std::vector<__uint32_t> &seeds) {
+
+}
+
 void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     const auto fenDb = LoadFenDb();
-
-    const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
-    const auto sizeThreads = blocks * threads;
-
-    const auto seeds = GenSeeds(sizeThreads);
+    const auto seeds = GenSeeds(threadsAvailable);
 
     if (fenDb.size() < threadsAvailable) {
         throw std::runtime_error("Not enough positions in the database");
@@ -140,9 +140,11 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     std::cout << "MoveGen Performance Test" << std::endl;
 
     std::cout << std::string(80, '-') << std::endl;
-    MoveGenPerfGPU(blocks, threads, fenDb, seeds);
+    MoveGenPerfGPUV1(threadsAvailable, deviceProps, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
-    const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, sizeThreads, RETRIES,
+    MoveGenPerfGPUV2(threadsAvailable, fenDb, seeds);
+    std::cout << std::string(80, '-') << std::endl;
+    const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable, RETRIES,
                                                                               seeds);
     DisplayPerfResults(seconds, boardResults, moveResults);
 }

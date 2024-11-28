@@ -41,7 +41,7 @@ __global__ void
 SimulateGamesKernelSplitMoves(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
                               int maxDepth) {
     const __uint32_t plainIdx = blockIdx.x * blockDim.x + threadIdx.x;
-    const __uint32_t boardIdx = (WARP_SIZE * (plainIdx) / THREADS_PER_PACKAGE) + (threadIdx.x % WARP_SIZE);
+    const __uint32_t boardIdx = (WARP_SIZE * (plainIdx / THREADS_PER_PACKAGE)) + (threadIdx.x % WARP_SIZE);
     const __uint32_t figIdx = (threadIdx.x / WARP_SIZE) % BIT_BOARDS_PER_COLOR;
 
     __uint32_t seed = seeds[boardIdx];
@@ -51,7 +51,7 @@ SimulateGamesKernelSplitMoves(cuda_Board *boards, const __uint32_t *seeds, __uin
     while (depth < maxDepth) {
         __syncthreads();
 
-        Stack<cuda_Move> stack(moves + boardIdx * 256);
+        Stack<cuda_Move> stack(moves + boardIdx * 256, false);
 
         if (figIdx == 0) {
             stack.Clear();

@@ -35,11 +35,10 @@ struct Stack {
 
     Stack() = delete;
 
-    template<bool ClearStack = true>
-    FAST_DCALL_ALWAYS explicit Stack(void *ptr) :
+    FAST_DCALL_ALWAYS explicit Stack(void *ptr, bool ClearStack = true) :
             _last(static_cast<__uint32_t *>(ptr)),
             _data(static_cast<ItemT *>(ptr) + 1) {
-        if constexpr (ClearStack) {
+        if (ClearStack) {
             *_last = 0;
         }
     }
