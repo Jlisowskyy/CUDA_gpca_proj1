@@ -41,19 +41,19 @@ class WhitePawnMap final
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_CALL static constexpr size_t GetBoardIndex([[maybe_unused]] int color) { return wPawnsIndex; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex([[maybe_unused]] int color) { return wPawnsIndex; }
 
-    [[nodiscard]] FAST_CALL static constexpr int GetColor() { return WHITE; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr int GetColor() { return WHITE; }
 
-    [[nodiscard]] FAST_CALL static constexpr size_t GetEnemyPawnBoardIndex() { return bPawnsIndex; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetEnemyPawnBoardIndex() { return bPawnsIndex; }
 
-    [[nodiscard]] FAST_CALL static constexpr uint64_t GetAttackFields(uint64_t pawnBits) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t GetAttackFields(uint64_t pawnBits) {
         const uint64_t leftAttack = (WhitePawnMapConstants::LeftMask & pawnBits) << 7;
         const uint64_t rightAttack = (WhitePawnMapConstants::RightMask & pawnBits) << 9;
         return leftAttack | rightAttack;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr uint64_t GetPlainMoves(uint64_t pawnBit, uint64_t fullMap) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t GetPlainMoves(uint64_t pawnBit, uint64_t fullMap) {
         const uint64_t frontMove = (pawnBit << 8) & ~fullMap;
 
         const uint64_t isOnStartField = ((frontMove >> 8) & pawnBit & WhitePawnMapConstants::StartMask) << 16;
@@ -62,16 +62,16 @@ class WhitePawnMap final
         return frontMove | frontDoubleMove;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr uint64_t GetSinglePlainMoves(uint64_t pawnBit, uint64_t fullMap) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t GetSinglePlainMoves(uint64_t pawnBit, uint64_t fullMap) {
         return (pawnBit << 8) & ~fullMap;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr uint64_t RevertSinglePlainMoves(uint64_t pawnBit) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t RevertSinglePlainMoves(uint64_t pawnBit) {
         return pawnBit >> 8;
     }
 
     // Returns all moves excepts ElPassantOnes
-    [[nodiscard]] FAST_CALL static constexpr uint64_t GetMoves(int msbPos, uint64_t fullMap, uint64_t enemyMap) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t GetMoves(int msbPos, uint64_t fullMap, uint64_t enemyMap) {
         const uint64_t pawnBit = cuda_MaxMsbPossible >> msbPos;
         const uint64_t attackMoves = GetAttackFields(pawnBit) & enemyMap;
         const uint64_t plainMoves = GetPlainMoves(pawnBit, fullMap);
@@ -79,17 +79,17 @@ class WhitePawnMap final
         return attackMoves | plainMoves;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr uint64_t GetElPassantSuspectedFields(uint64_t elPassantField) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t GetElPassantSuspectedFields(uint64_t elPassantField) {
         const uint64_t leftField = (WhitePawnMapConstants::LeftMask & elPassantField) >> 1;
         const uint64_t rightField = (WhitePawnMapConstants::RightMask & elPassantField) << 1;
         return leftField | rightField;
     }
 
-    [[nodiscard]] FAST_CALL static constexpr uint64_t GetElPassantMoveField(uint64_t elPassantField) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t GetElPassantMoveField(uint64_t elPassantField) {
         return elPassantField << 8;
     }
 
-    [[nodiscard]] FAST_CALL static uint64_t GetElPassantField(uint64_t moveField, uint64_t startField) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static uint64_t GetElPassantField(uint64_t moveField, uint64_t startField) {
         return moveField & WhitePawnMapConstants::ElPassantMask & (WhitePawnMapConstants::StartMask & startField) << 16;
     }
 };

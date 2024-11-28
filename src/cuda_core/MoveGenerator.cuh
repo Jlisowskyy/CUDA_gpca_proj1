@@ -19,6 +19,8 @@
 #include "QueenMap.cuh"
 #include "RookMap.cuh"
 #include "cuda_Array.cuh"
+#include "RookMapRuntime.cuh"
+#include "BishopMapRuntime.cuh"
 
 #include <cassert>
 #include <type_traits>

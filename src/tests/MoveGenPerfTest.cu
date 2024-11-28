@@ -48,7 +48,8 @@ SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *res
         result[1] += generatedMoves.size;
 
         if (generatedMoves.size == 0) {
-            break;
+            ++depth;
+            continue;
         }
 
         const auto nextMove = generatedMoves[seed % generatedMoves.size];
