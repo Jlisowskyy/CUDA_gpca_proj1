@@ -12,7 +12,7 @@
 #include "cuda_Array.cuh"
 
 HYBRID [[nodiscard]] constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS>
-GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *rowCords) {
+GenStaticMoves(const __uint32_t maxMovesCount, const int *movesCords, const int *rowCords) {
     cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesRet{};
 
     for (int x = 0; x < 8; ++x) {
@@ -21,7 +21,7 @@ GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *row
             const int msbInd = ConvertToReversedPos(bInd);
 
             __uint64_t packedMoves = 0;
-            for (size_t i = 0; i < maxMovesCount; ++i) {
+            for (__uint32_t i = 0; i < maxMovesCount; ++i) {
                 const int moveYCord = (bInd + movesCords[i]) / 8;
                 const int knightYCord = bInd / 8;
 
@@ -38,9 +38,9 @@ GenStaticMoves(const size_t maxMovesCount, const int *movesCords, const int *row
 }
 
 template<class NeighborCountingFuncT>
-HYBRID [[nodiscard]] constexpr size_t
+HYBRID [[nodiscard]] constexpr __uint32_t
 CalculateTotalOfPossibleHashMapElements(NeighborCountingFuncT func) {
-    size_t sum{};
+    __uint32_t sum{};
     for (int x = 0; x < 8; ++x) {
         for (int y = 0; y < 8; ++y) {
             sum += func(x, y);
@@ -68,11 +68,11 @@ GenMask(const int startInd, const int boarderIndex, const int offset) {
     return ret;
 }
 
-HYBRID [[nodiscard]] constexpr size_t
+HYBRID [[nodiscard]] constexpr __uint32_t
 
 MyCeil(const double x) {
-    return (static_cast<double>(static_cast<size_t>(x)) == x) ? static_cast<size_t>(x)
-                                                              : static_cast<size_t>(x) + ((x > 0) ? 1 : 0);
+    return (static_cast<double>(static_cast<__uint32_t>(x)) == x) ? static_cast<__uint32_t>(x)
+                                                              : static_cast<__uint32_t>(x) + ((x > 0) ? 1 : 0);
 }
 
 
@@ -98,7 +98,7 @@ HYBRID constexpr void
 MoveInitializer(MapT &map, MoveGeneratorT mGen, NeighborGeneratorT nGen, NeighborStripT nStrip, const int bInd) {
     const auto [possibilities, posSize] = nGen(map.getMasks());
 
-    for (size_t j = 0; j < posSize; ++j) {
+    for (__uint32_t j = 0; j < posSize; ++j) {
         const __uint64_t strippedNeighbors = nStrip(possibilities[j], map.getMasks());
         const __uint64_t moves = mGen(strippedNeighbors, bInd);
 

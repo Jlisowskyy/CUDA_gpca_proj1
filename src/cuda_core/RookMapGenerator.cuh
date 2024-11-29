@@ -13,9 +13,9 @@
 #include "MoveGenerationUtils.cuh"
 #include "Helpers.cuh"
 
-__device__ static constexpr size_t rook_DirectedMaskCount = 4;
-__device__ static constexpr size_t MaxRookPossibleNeighborsWoutOverlap = 144;
-__device__ static constexpr size_t MaxRookPossibleNeighborsWithOverlap = 4096;
+__device__ static constexpr __uint32_t rook_DirectedMaskCount = 4;
+__device__ static constexpr __uint32_t MaxRookPossibleNeighborsWoutOverlap = 144;
+__device__ static constexpr __uint32_t MaxRookPossibleNeighborsWithOverlap = 4096;
 __device__ static constexpr int NorthOffset = 8;
 __device__ static constexpr int SouthOffset = -8;
 __device__ static constexpr int WestOffset = -1;
@@ -92,10 +92,10 @@ public:
     }
 
 
-    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap>, size_t>
+    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap>, __uint32_t>
     GenPossibleNeighborsWoutOverlap(int bInd, const MasksT &masks) {
         cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap> ret{};
-        size_t usedFields = 0;
+        __uint32_t usedFields = 0;
 
         const int westBarrier = ((bInd >> 3) << 3) - 1;
         const int eastBarrier = westBarrier + 9;
@@ -133,17 +133,17 @@ public:
         return {ret, usedFields};
     }
 
-    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap>, size_t>
+    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap>, __uint32_t>
     GenPossibleNeighborsWithOverlap(const MasksT &masks) {
         cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap> ret{};
         const __uint64_t fullMask = masks[nMask] | masks[sMask] | masks[eMask] | masks[wMask];
 
-        size_t usedFields = GenerateBitPermutations(fullMask, ret);
+        __uint32_t usedFields = GenerateBitPermutations(fullMask, ret);
 
         return {ret, usedFields};
     }
 
-    [[nodiscard]] HYBRID static constexpr size_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
+    [[nodiscard]] HYBRID static constexpr __uint32_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
         const int westCount = cuda_max(1, x);
         const int southCount = cuda_max(1, y);
         const int northCount = cuda_max(1, 7 - y);

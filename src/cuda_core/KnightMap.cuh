@@ -10,7 +10,7 @@
 #include "cuda_Array.cuh"
 
 namespace KnightMapConstants {
-    __device__ static constexpr size_t maxMovesCount = 8;
+    __device__ static constexpr __uint32_t maxMovesCount = 8;
 
     // Describes knight possible moves coordinates.
     __device__ static constexpr int movesCords[] = {6, 15, 17, 10, -6, -15, -17, -10};
@@ -35,7 +35,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(int color) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t GetBoardIndex(int color) {
         return BIT_BOARDS_PER_COLOR * color + KNIGHT_INDEX;
     }
 

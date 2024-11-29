@@ -119,7 +119,7 @@ FAST_DCALL_ALWAYS int CountSameBits(const __uint64_t a, const __uint64_t b) { re
 
 template<class IndexableT>
 HYBRID constexpr void
-GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container, size_t &containerPos) {
+GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container, __uint32_t &containerPos) {
     if (bitPos == -1 || number == 0)
         return;
     __uint64_t nextBit{};
@@ -131,8 +131,8 @@ GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, Inde
             break;
         }
 
-    const size_t rangeEnd = containerPos;
-    for (size_t i = 0; i < rangeEnd; ++i) {
+    const __uint32_t rangeEnd = containerPos;
+    for (__uint32_t i = 0; i < rangeEnd; ++i) {
         container[rangeEnd + i] = container[i] | nextBit;
     }
 
@@ -140,9 +140,9 @@ GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, Inde
 }
 
 template<class IndexableT>
-FAST_CALL constexpr size_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
+FAST_CALL constexpr __uint32_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
     container[0] = 0;
-    size_t index = 1;
+    __uint32_t index = 1;
 
     GenerateBitPermutationsRecursion(number, 63, container, index);
     return index;

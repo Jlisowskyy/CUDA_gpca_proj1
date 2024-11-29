@@ -23,7 +23,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(int color) { return BIT_BOARDS_PER_COLOR * color + ROOK_INDEX; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t GetBoardIndex(int color) { return BIT_BOARDS_PER_COLOR * color + ROOK_INDEX; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static __uint64_t GetMoves(__uint32_t msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
         return G_ROOK_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);

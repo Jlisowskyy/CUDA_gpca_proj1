@@ -14,15 +14,15 @@
 
 #include "cuda_Array.cuh"
 
-__device__ static constexpr size_t MaxPossibleNeighborsWoutOverlap = 108;
-__device__ static constexpr size_t MaxPossibleNeighborsWithOverlap = 512;
+__device__ static constexpr __uint32_t MaxPossibleNeighborsWoutOverlap = 108;
+__device__ static constexpr __uint32_t MaxPossibleNeighborsWithOverlap = 512;
 
 __device__ static constexpr int NWOffset = 7;
 __device__ static constexpr int NEOffset = 9;
 __device__ static constexpr int SWOffset = -9;
 __device__ static constexpr int SEOffset = -7;
 
-__device__ static constexpr size_t DirectedMaskCount = 4;
+__device__ static constexpr __uint32_t DirectedMaskCount = 4;
 
 
 class BishopMapGenerator final {
@@ -39,10 +39,10 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ static constexpr thrust::pair<cuda_Array<__uint64_t, MaxPossibleNeighborsWoutOverlap>, size_t>
+    [[nodiscard]] __device__ static constexpr thrust::pair<cuda_Array<__uint64_t, MaxPossibleNeighborsWoutOverlap>, __uint32_t>
     GenPossibleNeighborsWoutOverlap(int bInd, const MasksT &masks) {
         cuda_Array<__uint64_t, MaxPossibleNeighborsWoutOverlap> ret{};
-        size_t usedFields = 0;
+        __uint32_t usedFields = 0;
 
         const int x = bInd % 8;
         const int y = bInd / 8;
@@ -83,12 +83,12 @@ public:
         return {ret, usedFields};
     }
 
-    [[nodiscard]] __device__ static constexpr thrust::pair<cuda_Array<__uint64_t, MaxPossibleNeighborsWithOverlap>, size_t>
+    [[nodiscard]] __device__ static constexpr thrust::pair<cuda_Array<__uint64_t, MaxPossibleNeighborsWithOverlap>, __uint32_t>
     GenPossibleNeighborsWithOverlap(const MasksT &masks) {
         cuda_Array<__uint64_t, MaxPossibleNeighborsWithOverlap> ret{};
         const __uint64_t fullMask = masks[neMask] | masks[nwMask] | masks[seMask] | masks[swMask];
 
-        size_t usedFields = GenerateBitPermutations(fullMask, ret);
+        __uint32_t usedFields = GenerateBitPermutations(fullMask, ret);
 
         return {ret, usedFields};
     }
@@ -127,11 +127,11 @@ public:
         return moves;
     }
 
-    [[nodiscard]] __device__ static constexpr size_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
-        const size_t nwCount = cuda_max(1, cuda_min(x, 7 - y));
-        const size_t neCount = cuda_max(1, cuda_min(7 - x, 7 - y));
-        const size_t swCount = cuda_max(1, cuda_min(x, y));
-        const size_t seCount = cuda_max(1, cuda_min(7 - x, y));
+    [[nodiscard]] __device__ static constexpr __uint32_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
+        const __uint32_t nwCount = cuda_max(1, cuda_min(x, 7 - y));
+        const __uint32_t neCount = cuda_max(1, cuda_min(7 - x, 7 - y));
+        const __uint32_t swCount = cuda_max(1, cuda_min(x, y));
+        const __uint32_t seCount = cuda_max(1, cuda_min(7 - x, y));
 
         return nwCount * neCount * swCount * seCount;
     }

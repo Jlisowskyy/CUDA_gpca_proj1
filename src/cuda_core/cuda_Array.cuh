@@ -11,7 +11,7 @@
 
 #include "Helpers.cuh"
 
-template<class T, size_t Size>
+template<class T, __uint32_t Size>
 class cuda_Array final {
 public:
     // ------------------------------
@@ -23,19 +23,19 @@ public:
     constexpr ~cuda_Array() = default;
 
     HYBRID constexpr explicit cuda_Array(T *data) {
-        for (size_t i = 0; i < Size; ++i) {
+        for (__uint32_t i = 0; i < Size; ++i) {
             m_data[i] = data[i];
         }
     }
 
     HYBRID constexpr cuda_Array(const cuda_Array &other) {
-        for (size_t i = 0; i < Size; ++i) {
+        for (__uint32_t i = 0; i < Size; ++i) {
             m_data[i] = other.m_data[i];
         }
     }
 
     HYBRID constexpr cuda_Array(cuda_Array &&other) noexcept {
-        for (size_t i = 0; i < Size; ++i) {
+        for (__uint32_t i = 0; i < Size; ++i) {
             m_data[i] = other.m_data[i];
         }
     }
@@ -45,7 +45,7 @@ public:
             return *this;
         }
 
-        for (size_t i = 0; i < Size; ++i) {
+        for (__uint32_t i = 0; i < Size; ++i) {
             m_data[i] = other.m_data[i];
         }
 
@@ -57,7 +57,7 @@ public:
             return *this;
         }
 
-        for (size_t i = 0; i < Size; ++i) {
+        for (__uint32_t i = 0; i < Size; ++i) {
             m_data[i] = other.m_data[i];
         }
 
@@ -65,7 +65,7 @@ public:
     }
 
     HYBRID constexpr explicit cuda_Array(const T *data) {
-        for (size_t i = 0; i < Size; ++i) {
+        for (__uint32_t i = 0; i < Size; ++i) {
             m_data[i] = data[i];
         }
     }
@@ -76,7 +76,7 @@ public:
         }
 
         auto it = init.begin();
-        for (size_t i = 0; i < Size; ++i, ++it) {
+        for (__uint32_t i = 0; i < Size; ++i, ++it) {
             m_data[i] = *it;
         }
     }
@@ -85,9 +85,9 @@ public:
     // Class interaction
     // ------------------------------
 
-    __forceinline__ HYBRID constexpr T &operator[](const size_t index) { return m_data[index]; }
+    __forceinline__ HYBRID constexpr T &operator[](const __uint32_t index) { return m_data[index]; }
 
-    __forceinline__ HYBRID constexpr const T &operator[](const size_t index) const { return m_data[index]; }
+    __forceinline__ HYBRID constexpr const T &operator[](const __uint32_t index) const { return m_data[index]; }
 
     __forceinline__ HYBRID constexpr T *data() { return m_data; }
 

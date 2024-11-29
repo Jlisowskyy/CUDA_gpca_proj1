@@ -43,12 +43,12 @@ class BlackPawnMap final
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t
     GetBoardIndex([[maybe_unused]] const int color) { return B_PAWN_INDEX; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr int GetColor() { return BLACK; }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetEnemyPawnBoardIndex() { return W_PAWN_INDEX; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t GetEnemyPawnBoardIndex() { return W_PAWN_INDEX; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetAttackFields(__uint64_t pawnBits) {
         const __uint64_t leftAttack = (BlackPawnMapConstants::LeftMask & pawnBits) >> 9;

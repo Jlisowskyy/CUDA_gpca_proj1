@@ -165,7 +165,7 @@ struct VolatileBoardData {
     const __uint64_t OldElPassant;
 };
 
-__device__ static constexpr size_t move_CastlingIdxArr[5]{
+__device__ static constexpr __uint32_t move_CastlingIdxArr[5]{
         SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
 };
 
@@ -233,7 +233,7 @@ public:
         bd.ElPassantField = cuda_MaxMsbPossible >> mv.GetElPassantField();
 
         // applying additional castling operation
-        const size_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
+        const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
         const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
         bd.BitBoards[boardIndex] |= newKingPos;
 
@@ -263,7 +263,7 @@ public:
         bd.ElPassantField = data.OldElPassant;
 
         // reverting castling operation
-        const size_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
+        const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
         const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
 
         bd.BitBoards[boardIndex] ^= newKingPos;

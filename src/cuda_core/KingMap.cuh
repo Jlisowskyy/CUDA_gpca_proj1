@@ -12,7 +12,7 @@
 #include "cuda_Array.cuh"
 
 namespace KingMapConstants {
-    __device__ static constexpr size_t maxMovesCount = 8;
+    __device__ static constexpr __uint32_t maxMovesCount = 8;
 
     // Describes king possible moves cordinates.
     __device__ static constexpr int movesCords[] = {-1, -9, -8, -7, 1, 9, 8, 7};
@@ -40,7 +40,7 @@ struct KingMap final {
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr size_t GetBoardIndex(__uint32_t color) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t GetBoardIndex(__uint32_t color) {
         return BIT_BOARDS_PER_COLOR * color + KING_INDEX;
     }
 

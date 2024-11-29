@@ -17,16 +17,16 @@ struct Stack {
 
     struct StackPayload {
         ItemT *data;
-        size_t size;
+        __uint32_t size;
 
         FAST_DCALL_ALWAYS void Push(Stack &s, ItemT item) {
             s.Push(item);
             ++size;
         }
 
-        FAST_DCALL_ALWAYS const ItemT &operator[](size_t ind) const { return data[ind]; }
+        FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const { return data[ind]; }
 
-        FAST_DCALL_ALWAYS ItemT &operator[](size_t ind) { return data[ind]; }
+        FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) { return data[ind]; }
     };
 
     // ------------------------------
@@ -66,9 +66,9 @@ struct Stack {
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t Size() const { return *_last; }
 
-    FAST_DCALL_ALWAYS const ItemT &operator[](size_t ind) const { return _data[ind]; }
+    FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const { return _data[ind]; }
 
-    FAST_DCALL_ALWAYS ItemT &operator[](size_t ind) { return _data[ind]; }
+    FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) { return _data[ind]; }
 
     // ------------------------------
     // Aggregates

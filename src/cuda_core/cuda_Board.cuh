@@ -147,7 +147,7 @@ public:
     cuda_Board &operator=(const cuda_Board &) = default;
 
     explicit cuda_Board(const cpu::external_board &board) {
-        for (size_t i = 0; i < 12; ++i)
+        for (__uint32_t i = 0; i < 12; ++i)
             BitBoards[i] = board[i];
 
         ElPassantField = board[12];
@@ -172,11 +172,11 @@ public:
         return BitBoards[col * BIT_BOARDS_PER_COLOR + figDesc];
     }
 
-    FAST_DCALL_ALWAYS void SetCastlingRight(size_t castlingIndex, bool value) {
+    FAST_DCALL_ALWAYS void SetCastlingRight(__uint32_t castlingIndex, bool value) {
         SetBitBoardBit(Castlings, castlingIndex, value);
     }
 
-    [[nodiscard]] FAST_CALL_ALWAYS bool GetCastlingRight(size_t castlingIndex) const {
+    [[nodiscard]] FAST_CALL_ALWAYS bool GetCastlingRight(__uint32_t castlingIndex) const {
         return Castlings & (cuda_MinMsbPossible << castlingIndex);
     }
 
