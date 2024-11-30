@@ -13,7 +13,7 @@
 #include "cuda_PackedBoard.cuh"
 
 
-static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE = 512;
+static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE = 384;
 void __global__
 SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth);
 

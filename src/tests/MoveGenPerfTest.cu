@@ -29,7 +29,7 @@
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 2;
+static constexpr __uint32_t RETRIES = 100;
 static constexpr __uint32_t MAX_DEPTH = 100;
 
 std::vector<std::string> LoadFenDb() {
@@ -103,11 +103,17 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
     thrust::device_vector<__uint64_t> dResults(sizeThreads);
     thrust::device_vector<cuda_Move> dMoves(sizeThreads * 256);
 
+    auto packedBoard = DefaultPackedBoardT(boards);
+
+    DefaultPackedBoardT *d_boards;
+    CUDA_ASSERT_SUCCESS(cudaMalloc(&d_boards, sizeof(DefaultPackedBoardT)));
+
     const auto t1 = std::chrono::high_resolution_clock::now();
 
     for (__uint32_t i = 0; i < RETRIES; ++i) {
-        thrust::device_vector<DefaultPackedBoardT> dBoards{DefaultPackedBoardT(boards)};
-        func<<<blocks, BATCH_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
+        CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, &packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
+
+        func<<<blocks, BATCH_SIZE>>>(d_boards,
                                      thrust::raw_pointer_cast(dSeeds.data()),
                                      thrust::raw_pointer_cast(dResults.data()),
                                      thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
@@ -125,7 +131,6 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
 template<class FuncT>
 void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
                  const std::vector<__uint32_t> &seeds) {
-    assert((totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE) * SINGLE_RUN_BOARDS_SIZE == totalBoardsToProcess);
     std::vector<cuda_Board> boards(totalBoardsToProcess);
 
     for (__uint32_t i = 0; i < totalBoardsToProcess; ++i) {
@@ -135,17 +140,21 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
     thrust::device_vector<__uint32_t> dSeeds = seeds;
     thrust::device_vector<__uint64_t> dResults(totalBoardsToProcess);
     thrust::device_vector<cuda_Move> dMoves(totalBoardsToProcess * 256);
+    auto packedBoard = DefaultPackedBoardT(boards);
 
-    const auto t1 = std::chrono::high_resolution_clock::now();
+    DefaultPackedBoardT *d_boards;
+    CUDA_ASSERT_SUCCESS(cudaMalloc(&d_boards, sizeof(DefaultPackedBoardT)));
 
     const __uint32_t bIdxRange = totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE;
+
+    const auto t1 = std::chrono::high_resolution_clock::now();
     for (__uint32_t i = 0; i < RETRIES; ++i) {
-        thrust::device_vector<DefaultPackedBoardT> dBoards{DefaultPackedBoardT(boards)};
+        CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, &packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
 
         for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
             for (__uint32_t j = 0; j < 2 && bIdx < bIdxRange; ++j, ++bIdx) {
                 func<<<SINGLE_RUN_BLOCK_SIZE, SINGLE_BATCH_SIZE>>>(
-                        thrust::raw_pointer_cast(dBoards.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
+                        d_boards,
                         thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
                         thrust::raw_pointer_cast(dResults.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
                         thrust::raw_pointer_cast((dMoves.data())) + bIdx * SINGLE_RUN_BOARDS_SIZE * 256, MAX_DEPTH);
@@ -174,8 +183,6 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
 
 void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
                       const std::vector<__uint32_t> &seeds) {
-    \
-
     std::cout << "Running MoveGen V2 Performance Test on GPU" << std::endl;
     SplitTester(SimulateGamesKernelSplitMoves, totalBoardsToProcess, fenDb, seeds);
 }
