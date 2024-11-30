@@ -30,13 +30,12 @@ namespace BlackPawnMapConstants {
     static constexpr __uint64_t RightMask = ~GenMask(7, 64, 8);
 }
 
-class BlackPawnMap final
-{
+class BlackPawnMap final {
     // ------------------------------
     // Class creation
     // ------------------------------
 
-    public:
+public:
     BlackPawnMap() = delete;
 
     // ------------------------------

@@ -33,12 +33,30 @@ FAST_CALL_ALWAYS int ExtractMsbPosNeutral(const __uint64_t x) {
     int pos = 0;
 
     // Binary search approach to find MSB position
-    if (val > 0xFFFFFFFF) { val >>= 32; pos += 32; }
-    if (val > 0xFFFF)     { val >>= 16; pos += 16; }
-    if (val > 0xFF)       { val >>= 8;  pos += 8;  }
-    if (val > 0xF)        { val >>= 4;  pos += 4;  }
-    if (val > 0x3)        { val >>= 2;  pos += 2;  }
-    if (val > 0x1)        { val >>= 1;  pos += 1;  }
+    if (val > 0xFFFFFFFF) {
+        val >>= 32;
+        pos += 32;
+    }
+    if (val > 0xFFFF) {
+        val >>= 16;
+        pos += 16;
+    }
+    if (val > 0xFF) {
+        val >>= 8;
+        pos += 8;
+    }
+    if (val > 0xF) {
+        val >>= 4;
+        pos += 4;
+    }
+    if (val > 0x3) {
+        val >>= 2;
+        pos += 2;
+    }
+    if (val > 0x1) {
+        val >>= 1;
+        pos += 1;
+    }
 
     return 63 - pos;
 }
@@ -65,7 +83,7 @@ FAST_CALL constexpr __uint32_t ConvertToReversedPos(const __uint32_t x) {
 }
 
 template<typename NumT>
-FAST_CALL constexpr void SetBitBoardBit(NumT& bitBoard, const __uint32_t pos, const bool value) {
+FAST_CALL constexpr void SetBitBoardBit(NumT &bitBoard, const __uint32_t pos, const bool value) {
     bitBoard = (value << pos) | (bitBoard & ~(cuda_MinMsbPossible << pos));
 }
 
@@ -84,10 +102,14 @@ FAST_DCALL_ALWAYS int ExtractLsbReversedPos(const __uint64_t x) { return Convert
 FAST_CALL constexpr int NoOp(const int m) { return m; }
 
 /* Functions returns BitMap with MsbPos as 1 */
-FAST_DCALL_ALWAYS __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) { return cuda_MaxMsbPossible >> ExtractMsbPos(x); }
+FAST_DCALL_ALWAYS __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) {
+    return cuda_MaxMsbPossible >> ExtractMsbPos(x);
+}
 
 /* Functions returns BitMap with LsbPos as 1 */
-FAST_DCALL_ALWAYS __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) { return cuda_MinMsbPossible << ExtractLsbReversedPos(x); }
+FAST_DCALL_ALWAYS __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) {
+    return cuda_MinMsbPossible << ExtractLsbReversedPos(x);
+}
 
 /* Functions returns BitMap with LsbPos as 1 */
 FAST_CALL constexpr __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
@@ -103,13 +125,17 @@ FAST_CALL constexpr __uint64_t ExtractMsbBitConstexpr(const __uint64_t x) {
 FAST_CALL constexpr __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }
 
 /* Function simply returns a map with remove all bits that are present on b*/
-FAST_CALL constexpr __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) { return a ^ (a & b); }
+FAST_CALL constexpr __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) {
+    return a ^ (a & b);
+}
 
 /* Function simply counts ones on the given BitMap*/
 FAST_DCALL_ALWAYS int CountOnesInBoard(const __uint64_t bitMap) { return __popcll(bitMap); }
 
 /* Count same bits */
-FAST_DCALL_ALWAYS int CountSameBits(const __uint64_t a, const __uint64_t b) { return __popcll((a & b) | ((~a) & (~b))); }
+FAST_DCALL_ALWAYS int CountSameBits(const __uint64_t a, const __uint64_t b) {
+    return __popcll((a & b) | ((~a) & (~b)));
+}
 
 /*          IMPORTANT NOTES:
  *  Function assumes that containerPos is already set to 1
@@ -119,7 +145,8 @@ FAST_DCALL_ALWAYS int CountSameBits(const __uint64_t a, const __uint64_t b) { re
 
 template<class IndexableT>
 HYBRID constexpr void
-GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container, __uint32_t &containerPos) {
+GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container,
+                                 __uint32_t &containerPos) {
     if (bitPos == -1 || number == 0)
         return;
     __uint64_t nextBit{};

@@ -44,17 +44,20 @@ struct KingMap final {
         return BIT_BOARDS_PER_COLOR * color + KING_INDEX;
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetMoves(__uint32_t msbInd) { return KingMapConstants::movesMap[msbInd]; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
+    GetMoves(__uint32_t msbInd) { return KingMapConstants::movesMap[msbInd]; }
 
     // genarates tiles on which pawns currently attacks king
-    [[nodiscard]] FAST_DCALL_ALWAYS  static constexpr __uint64_t GetSimpleFigCheckPawnAllowedTiles(const cuda_Board &bd) {
+    [[nodiscard]] FAST_DCALL_ALWAYS  static constexpr __uint64_t
+    GetSimpleFigCheckPawnAllowedTiles(const cuda_Board &bd) {
         const __uint64_t detectionFields =
                 bd.MovingColor == WHITE ? _getWhiteKingDetectionTiles(bd) : _getBlackKingDetectionTiles(bd);
 
         return detectionFields & bd.BitBoards[BIT_BOARDS_PER_COLOR * SwapColor(bd.MovingColor) + PAWN_INDEX];
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetSimpleFigCheckKnightsAllowedTiles(const cuda_Board &bd) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
+    GetSimpleFigCheckKnightsAllowedTiles(const cuda_Board &bd) {
         const __uint64_t detectionFields = KnightMap::GetMoves(bd.GetKingMsbPos(bd.MovingColor));
 
         return detectionFields & bd.BitBoards[BIT_BOARDS_PER_COLOR * SwapColor(bd.MovingColor) + KNIGHT_INDEX];
@@ -84,7 +87,7 @@ private:
 
         return leftDetectionTile | rightDetectionTile;
     }
-    
+
 };
 
 

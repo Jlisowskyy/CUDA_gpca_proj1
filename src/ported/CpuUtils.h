@@ -11,11 +11,11 @@
 
 namespace cpu {
 
-    [[nodiscard]] external_board TranslateFromFen(const std::string& fen);
+    [[nodiscard]] external_board TranslateFromFen(const std::string &fen);
 
     [[nodiscard]] external_board GetDefaultBoard();
 
-    [[nodiscard]] bool Translate(const std::string& fen, external_board& board);
+    [[nodiscard]] bool Translate(const std::string &fen, external_board &board);
 }
 
 #endif //SRC_CPUUTILS_H

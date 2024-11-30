@@ -126,7 +126,8 @@ struct ChessMechanics {
     }
 
     // does not check kings BitBoards!!!
-    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t
+    GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
         const __uint32_t colIndex = col * BIT_BOARDS_PER_COLOR;
         __uint32_t rv = 0;
         for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
@@ -294,7 +295,8 @@ struct ChessMechanics {
         }
 
         __syncthreads();
-        return {_moveGenData->blockedMap, (__uint8_t)_moveGenData->checksCount, (bool)_moveGenData->wasCheckedBySimple};
+        return {_moveGenData->blockedMap, (__uint8_t) _moveGenData->checksCount,
+                (bool) _moveGenData->wasCheckedBySimple};
     }
 
     [[nodiscard]] FAST_DCALL __uint64_t
@@ -315,7 +317,8 @@ struct ChessMechanics {
 
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<PinnedFigGen genType>
-    [[nodiscard]] FAST_CALL thrust::pair<__uint64_t, __uint64_t> GetPinnedFigsMap(__uint32_t col, __uint64_t fullMap) const {
+    [[nodiscard]] FAST_CALL thrust::pair<__uint64_t, __uint64_t>
+    GetPinnedFigsMap(__uint32_t col, __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
         ASSERT(col == 1 || col == 0, "Invalid color!");
 
@@ -358,7 +361,7 @@ private:
 
     FAST_DCALL thrust::pair<__uint64_t, __uint8_t>
     _getRookBlockedMap(__uint64_t rookMap, __uint64_t fullMapWoutKing, __uint64_t kingMap) const {
-        ASSERT(kingMap != 0,"King map is empty!");
+        ASSERT(kingMap != 0, "King map is empty!");
 
         __uint64_t blockedTiles{};
         __uint8_t checks{};

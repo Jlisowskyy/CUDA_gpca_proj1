@@ -127,7 +127,8 @@ __device__ static constexpr __uint64_t CASTLING_SENSITIVE_FIELDS[CASTLING_COUNT]
 };
 
 __device__ static constexpr __uint64_t CASTLING_TOUCHED_FIELDS[CASTLING_COUNT]{
-        cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3 | cuda_MinMsbPossible << 1,
+        cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5,
+        cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3 | cuda_MinMsbPossible << 1,
         cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62,
         cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
 };

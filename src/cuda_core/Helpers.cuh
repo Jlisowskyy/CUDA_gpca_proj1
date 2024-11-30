@@ -78,7 +78,8 @@ FAST_DCALL_ALWAYS void simpleRand(NumT &state) {
 }
 
 class cuda_Board;
-__device__ void DisplayBoard(const cuda_Board* board);
+
+__device__ void DisplayBoard(const cuda_Board *board);
 
 #ifndef NDEBUG
 
@@ -95,15 +96,16 @@ __device__ constexpr void ASSERT_DISPLAY(const cuda_Board* board, bool cond, con
 
 #endif
 
-FAST_DCALL_ALWAYS void lock(int* mutex) {
+FAST_DCALL_ALWAYS void lock(int *mutex) {
     while (atomicExch(mutex, 1) == 1);
 }
 
-FAST_DCALL_ALWAYS void unlock(int* mutex) {
+FAST_DCALL_ALWAYS void unlock(int *mutex) {
     atomicExch(mutex, 0);
 }
 
 __device__ void printLock();
+
 __device__ void printUnlock();
 
 #define GUARDED_SYNC()                                              \

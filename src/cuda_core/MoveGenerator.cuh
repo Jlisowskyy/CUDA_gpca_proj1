@@ -61,7 +61,7 @@ class MoveGenerator : ChessMechanics {
     }
 
 public:
-    Stack<cuda_Move>& stack;
+    Stack<cuda_Move> &stack;
     using payload = Stack<cuda_Move>::StackPayload;
 
     // ------------------------------
@@ -367,7 +367,8 @@ private:
         // calculation preparation
         const __uint64_t suspectedFields = MapT::GetElPassantSuspectedFields(_board.ElPassantField);
         const __uint32_t enemyCord = SwapColor(_board.MovingColor) * BIT_BOARDS_PER_COLOR;
-        const __uint64_t enemyRookFigs = _board.BitBoards[enemyCord + QUEEN_INDEX] | _board.BitBoards[enemyCord + ROOK_INDEX];
+        const __uint64_t enemyRookFigs =
+                _board.BitBoards[enemyCord + QUEEN_INDEX] | _board.BitBoards[enemyCord + ROOK_INDEX];
         __uint64_t possiblePawnsToMove = _board.BitBoards[MapT::GetBoardIndex(0)] & suspectedFields;
 
         GET_PAWN_FIELD(EnemyElPassantMask);
@@ -379,7 +380,8 @@ private:
             const __uint64_t processedPawns = pawnMap | _board.ElPassantField;
             const __uint64_t cleanedFromPawnsMap = fullMap ^ processedPawns;
             if (const __uint64_t kingHorizontalLine =
-                        RookMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor), cleanedFromPawnsMap) & EnemyElPassantMask;
+                        RookMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor), cleanedFromPawnsMap) &
+                        EnemyElPassantMask;
                     (kingHorizontalLine & enemyRookFigs) != 0) {
                 return;
             }
@@ -431,7 +433,7 @@ private:
     __device__ void _processFigMoves(
             payload &results, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
             __uint64_t figureSelector = 0, __uint64_t allowedMoveSelector = 0
-    )  {
+    ) {
         ASSERT(enemyMap != 0, "Enemy map is empty!");
         ASSERT(allyMap != 0, "Ally map is empty!");
 
@@ -457,8 +459,7 @@ private:
             const __uint64_t figMoves = [&]() constexpr {
                 if (!IsFlagOn(flags, ASSUME_CHECK)) {
                     return MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap;
-                }
-                else {
+                } else {
                     return MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedMoveSelector;
                 }
             }();
@@ -553,14 +554,16 @@ private:
                 mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             }
 
-            mv.SetTargetBoardIndex(IsFlagOn(flags, PROMOTE_PAWNS) ? _board.MovingColor * BIT_BOARDS_PER_COLOR + QUEEN_INDEX
-                                                                  : figBoardIndex);
+            mv.SetTargetBoardIndex(
+                    IsFlagOn(flags, PROMOTE_PAWNS) ? _board.MovingColor * BIT_BOARDS_PER_COLOR + QUEEN_INDEX
+                                                   : figBoardIndex);
             mv.SetMoveType(IsFlagOn(flags, PROMOTE_PAWNS) ? PromoFlag | PromoFlags[QUEEN_INDEX] : 0);
 
             results.Push(stack, mv);
             nonAttackingMoves ^= moveBoard;
         }
     }
+
     FAST_DCALL void _processAttackingMoves(
             payload &results, __uint64_t attackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
             __uint32_t castlings, bool promotePawns
@@ -584,7 +587,8 @@ private:
             mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
             mv.SetCasltingRights(castlings);
             mv.SetMoveType(CaptureFlag);
-            mv.SetTargetBoardIndex(promotePawns ? _board.MovingColor * BIT_BOARDS_PER_COLOR + QUEEN_INDEX : figBoardIndex);
+            mv.SetTargetBoardIndex(
+                    promotePawns ? _board.MovingColor * BIT_BOARDS_PER_COLOR + QUEEN_INDEX : figBoardIndex);
             mv.SetMoveType(promotePawns ? PromoFlag | PromoFlags[QUEEN_INDEX] : 0);
 
             results.Push(stack, mv);
@@ -599,7 +603,7 @@ private:
 
         // generating moves
         const __uint64_t kingMoves = KingMap::GetMoves(_board.GetKingMsbPos(_board.MovingColor)) &
-                ~blockedFigMap & ~allyMap;
+                                     ~blockedFigMap & ~allyMap;
 
         __uint64_t attackingMoves = kingMoves & enemyMap;
         [[maybe_unused]] __uint64_t nonAttackingMoves = kingMoves ^ attackingMoves;

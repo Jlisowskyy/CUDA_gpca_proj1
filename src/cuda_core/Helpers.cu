@@ -46,7 +46,7 @@ __device__ void DisplayBoard(const cuda_Board *board) {
 
     for (__uint32_t y = 0; y < FigsPerCol; ++y) {
         for (__uint32_t x = 0; x < FigsPerRow; ++x) {
-            const uint64_t field = 1LLU << (y*8 + x);
+            const uint64_t field = 1LLU << (y * 8 + x);
             printf(" ");
 
             bool found = false;

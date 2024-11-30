@@ -17,6 +17,7 @@ class CpuCore final {
 public:
 
     CpuCore();
+
     ~CpuCore();
 
     // ------------------------------
@@ -35,7 +36,7 @@ public:
         return m_deviceThreads;
     }
 
-    [[nodiscard]] const cudaDeviceProp& getDeviceProps() const {
+    [[nodiscard]] const cudaDeviceProp &getDeviceProps() const {
         return *m_deviceProps;
     }
 
@@ -54,7 +55,7 @@ private:
     // Class fields
     // ------------------------------
 
-    cuda_Board* m_board{};
+    cuda_Board *m_board{};
 
     int m_deviceThreads{};
 

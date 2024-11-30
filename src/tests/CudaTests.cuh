@@ -67,7 +67,9 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
 
 /* Helpers */
 std::tuple<__uint32_t, __uint32_t> GetDims(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+
 std::vector<std::string> LoadFenDb();
+
 std::vector<__uint32_t> GenSeeds(__uint32_t size);
 
 #endif //SRC_CUDATESTS_CUH

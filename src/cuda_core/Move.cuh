@@ -55,8 +55,7 @@ __device__ static constexpr __uint16_t CastlingBits = CastlingFlag << 12;
 
 class alignas(8) cuda_Move;
 
-inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb)
-{
+inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
     const int boardPos = ConvertToReversedPos(boardPosMsb);
     return {static_cast<char>('a' + (boardPos % 8)), static_cast<char>('1' + (boardPos / 8))};
 }
@@ -88,10 +87,10 @@ struct cuda_PackedMove final {
         static constexpr char PromoFigs[] = {'q', 'r', 'b', 'n'};
         std::string rv;
 
-        auto [c1, c2] = ConvertToCharPos((int)GetStartField());
+        auto [c1, c2] = ConvertToCharPos((int) GetStartField());
         rv += c1;
         rv += c2;
-        auto [c3, c4] = ConvertToCharPos((int)GetTargetField());
+        auto [c3, c4] = ConvertToCharPos((int) GetTargetField());
         rv += c3;
         rv += c4;
 
@@ -138,7 +137,9 @@ struct cuda_PackedMove final {
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsValidMove() const { return !IsEmpty(); }
 
     // debugging tool
-    [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkeyMove() const { return !IsEmpty() && GetTargetField() != GetStartField(); }
+    [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkeyMove() const {
+        return !IsEmpty() && GetTargetField() != GetStartField();
+    }
 
     [[nodiscard]] __uint16_t Dump() const { return _packedMove; }
 
@@ -199,7 +200,9 @@ public:
 // Class interaction
 // ------------------------------
 
-    FAST_DCALL_ALWAYS friend bool operator==(const cuda_Move a, const cuda_Move b) { return a._packedMove == b._packedMove; }
+    FAST_DCALL_ALWAYS friend bool operator==(const cuda_Move a, const cuda_Move b) {
+        return a._packedMove == b._packedMove;
+    }
 
     FAST_DCALL_ALWAYS friend bool operator!=(const cuda_Move a, const cuda_Move b) { return !(a == b); }
 
@@ -209,7 +212,9 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetMoveType() const { return _packedMove.GetMoveType(); }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS bool IsQuietMove() const { return !_packedMove.IsCapture() && !_packedMove.IsPromo(); }
+    [[nodiscard]] FAST_DCALL_ALWAYS bool IsQuietMove() const {
+        return !_packedMove.IsCapture() && !_packedMove.IsPromo();
+    }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsValidMove() const { return _packedMove.IsValidMove(); }
 
@@ -281,23 +286,27 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetStartBoardIndex() const {
         static constexpr __uint16_t
-        StartBoardMask = Bit4;
+                StartBoardMask = Bit4;
         return _packedIndexes & StartBoardMask;
     }
 
-    FAST_DCALL_ALWAYS void SetTargetBoardIndex(const __uint16_t targetBoardIndex) { _packedIndexes |= targetBoardIndex << 4; }
+    FAST_DCALL_ALWAYS void SetTargetBoardIndex(const __uint16_t targetBoardIndex) {
+        _packedIndexes |= targetBoardIndex << 4;
+    }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetTargetBoardIndex() const {
         static constexpr __uint16_t
-        TargetBoardIndexMask = Bit4 << 4;
+                TargetBoardIndexMask = Bit4 << 4;
         return (_packedIndexes & TargetBoardIndexMask) >> 4;
     }
 
-    FAST_DCALL_ALWAYS void SetKilledBoardIndex(const __uint16_t killedBoardIndex) { _packedIndexes |= killedBoardIndex << 8; }
+    FAST_DCALL_ALWAYS void SetKilledBoardIndex(const __uint16_t killedBoardIndex) {
+        _packedIndexes |= killedBoardIndex << 8;
+    }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetKilledBoardIndex() const {
         static constexpr __uint16_t
-        KilledBoardIndexMask = Bit4 << 8;
+                KilledBoardIndexMask = Bit4 << 8;
         return (_packedIndexes & KilledBoardIndexMask) >> 8;
     }
 
@@ -305,7 +314,7 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetCastlingType() const {
         static constexpr __uint16_t
-        CastlingTypeMask = Bit3 << 12;
+                CastlingTypeMask = Bit3 << 12;
         return (_packedIndexes & CastlingTypeMask) >> 12;
     }
 
@@ -316,15 +325,16 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsChecking() const {
         static constexpr __uint16_t
-        CheckTypeBit = 1LLU << 15;
+                CheckTypeBit = 1LLU << 15;
         return (_packedIndexes & CheckTypeBit) > 0;
     }
 
-    FAST_DCALL_ALWAYS void SetKilledFigureField(const __uint16_t killedFigureField) { _packedMisc |= killedFigureField; }
+    FAST_DCALL_ALWAYS void
+    SetKilledFigureField(const __uint16_t killedFigureField) { _packedMisc |= killedFigureField; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetKilledFigureField() const {
         static constexpr __uint16_t
-        KilledFigureFieldMask = Bit6;
+                KilledFigureFieldMask = Bit6;
         return _packedMisc & KilledFigureFieldMask;
     }
 
@@ -342,7 +352,7 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetCastlingRights() const {
         static constexpr __uint32_t
-        CastlingMask = Bit4 << 12;
+                CastlingMask = Bit4 << 12;
         const __uint32_t rights = (_packedMisc & CastlingMask) >> 12;
 
         return rights;

@@ -28,20 +28,20 @@ namespace WhitePawnMapConstants {
     __device__ static constexpr __uint64_t RightMask = ~GenMask(7, 64, 8);
 }
 
-class WhitePawnMap final
-{
+class WhitePawnMap final {
     // ------------------------------
     // Class creation
     // ------------------------------
 
-    public:
+public:
     WhitePawnMap() = delete;
 
     // ------------------------------
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t GetBoardIndex([[maybe_unused]] int color) { return W_PAWN_INDEX; }
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t
+    GetBoardIndex([[maybe_unused]] int color) { return W_PAWN_INDEX; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr int GetColor() { return WHITE; }
 
@@ -62,7 +62,8 @@ class WhitePawnMap final
         return frontMove | frontDoubleMove;
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetSinglePlainMoves(__uint64_t pawnBit, __uint64_t fullMap) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
+    GetSinglePlainMoves(__uint64_t pawnBit, __uint64_t fullMap) {
         return (pawnBit << 8) & ~fullMap;
     }
 
@@ -71,7 +72,8 @@ class WhitePawnMap final
     }
 
     // Returns all moves excepts ElPassantOnes
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetMoves(int msbPos, __uint64_t fullMap, __uint64_t enemyMap) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
+    GetMoves(int msbPos, __uint64_t fullMap, __uint64_t enemyMap) {
         const __uint64_t pawnBit = cuda_MaxMsbPossible >> msbPos;
         const __uint64_t attackMoves = GetAttackFields(pawnBit) & enemyMap;
         const __uint64_t plainMoves = GetPlainMoves(pawnBit, fullMap);

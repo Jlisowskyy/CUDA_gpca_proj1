@@ -9,7 +9,7 @@
 #include "BaseMoveHashMap.cuh"
 #include "RookMapGenerator.cuh"
 
-__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK_PARAMS {
+__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK_PARAMS{
         1170940307609551394LLU,
         864693331908632740LLU,
         18577430269659234LLU,
@@ -76,7 +76,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK
         612489824202555536LLU,
 };
 
-__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> OFFSETS_ROOK_PARAMS {
+__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> OFFSETS_ROOK_PARAMS{
         12,
         11,
         11,

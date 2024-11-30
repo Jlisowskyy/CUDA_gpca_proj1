@@ -35,7 +35,8 @@ SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *res
 }
 
 __global__ void
-SimulateGamesKernelShared(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth) {
+SimulateGamesKernelShared(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
+                          int maxDepth) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
     __uint32_t seed = seeds[idx];
 

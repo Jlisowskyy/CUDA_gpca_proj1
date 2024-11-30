@@ -72,13 +72,14 @@ HYBRID [[nodiscard]] constexpr __uint32_t
 
 MyCeil(const double x) {
     return (static_cast<double>(static_cast<__uint32_t>(x)) == x) ? static_cast<__uint32_t>(x)
-                                                              : static_cast<__uint32_t>(x) + ((x > 0) ? 1 : 0);
+                                                                  : static_cast<__uint32_t>(x) + ((x > 0) ? 1 : 0);
 }
 
 
 template<class BoundaryCheckFuncT>
 HYBRID constexpr __uint64_t
-GenSlidingMoves(const __uint64_t neighbors, const int bInd, const int offset, const int boundary, BoundaryCheckFuncT boundaryCheck) {
+GenSlidingMoves(const __uint64_t neighbors, const int bInd, const int offset, const int boundary,
+                BoundaryCheckFuncT boundaryCheck) {
     __uint64_t ret = 0;
     int actPos = bInd;
 

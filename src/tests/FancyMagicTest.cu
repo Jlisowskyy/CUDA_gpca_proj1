@@ -244,7 +244,7 @@ void FancyMagicTestCorrectness_() {
 
     try {
         const auto records = TryReadingFilePath(std::string(ROOK_PATH), " for the RookMap");
-        RunCorrectnessTestOnMap<RookMap>(cpu::AccessCpuRookMap ,records, "RookMap");
+        RunCorrectnessTestOnMap<RookMap>(cpu::AccessCpuRookMap, records, "RookMap");
         std::cout << std::string(80, '-') << std::endl;
         RunCorrectnessTestOnMap<RookMapRuntime>(cpu::AccessCpuRookMap, records, "RookMapRuntime");
     } catch (const std::exception &e) {

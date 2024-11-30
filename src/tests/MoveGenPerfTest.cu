@@ -170,7 +170,8 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
 }
 
 void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
-                      const std::vector<__uint32_t> &seeds) {\
+                      const std::vector<__uint32_t> &seeds) {
+    \
 
     std::cout << "Running MoveGen V2 Performance Test on GPU" << std::endl;
     SplitTester(SimulateGamesKernelSplitMoves, totalBoardsToProcess, fenDb, seeds);
@@ -212,7 +213,8 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
-    const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable, RETRIES,
+    const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable,
+                                                                              RETRIES,
                                                                               seeds);
     DisplayPerfResults(seconds, boardResults, moveResults);
 }
