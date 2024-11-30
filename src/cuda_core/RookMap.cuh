@@ -6,6 +6,7 @@
 #define SRC_ROOKMAP_CUH
 
 #include "FancyMagicRookMap.cuh"
+#include "cuda_PackedBoard.cuh"
 
 extern __device__ FancyMagicRookMap G_ROOK_FANCY_MAP_INSTANCE;
 
@@ -13,6 +14,8 @@ class RookMap final {
     // ---------------------------------------
     // Class creation and initialization
     // ---------------------------------------
+
+    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
 public:
 
     RookMap() = delete;
@@ -33,10 +36,10 @@ public:
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t
-    GetMatchingCastlingIndex(const cuda_Board &bd, __uint64_t figBoard) {
+    GetMatchingCastlingIndex(const _fetcher_t &fetcher, __uint64_t figBoard) {
         for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i)
-            if (const __uint32_t index = bd.MovingColor * CASTLINGS_PER_COLOR + i;
-                    bd.GetCastlingRight(index) && (CASTLING_ROOK_MAPS[index] & figBoard) != 0)
+            if (const __uint32_t index = fetcher.MovingColor() * CASTLINGS_PER_COLOR + i;
+                    fetcher.GetCastlingRight(index) && (CASTLING_ROOK_MAPS[index] & figBoard) != 0)
                 return index;
 
         return SENTINEL_CASTLING_INDEX;

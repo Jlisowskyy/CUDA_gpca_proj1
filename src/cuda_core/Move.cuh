@@ -9,6 +9,7 @@
 #include <string>
 
 #include "cuda_Board.cuh"
+#include "cuda_PackedBoard.cuh"
 
 /*      Class encodes chess move and heuristic evaluation
  *  together inside some __uint64_t value. Encoding corresponds to value below:
@@ -56,7 +57,7 @@ __device__ static constexpr __uint16_t CastlingBits = CastlingFlag << 12;
 class alignas(8) cuda_Move;
 
 inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
-    const int boardPos = ConvertToReversedPos(boardPosMsb);
+    const __uint32_t boardPos = ConvertToReversedPos(boardPosMsb);
     return {static_cast<char>('a' + (boardPos % 8)), static_cast<char>('1' + (boardPos / 8))};
 }
 
@@ -156,10 +157,16 @@ private:
 
 /* Class used to preserve some crucial board state between moves */
 struct VolatileBoardData {
+    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
+
     VolatileBoardData() = delete;
 
     FAST_CALL explicit VolatileBoardData(const cuda_Board &bd)
             : Castlings(bd.Castlings), OldElPassant(bd.ElPassantField) {
+    }
+
+    FAST_CALL explicit VolatileBoardData(const _fetcher_t &fetcher)
+            : Castlings(fetcher.Castlings()), OldElPassant(fetcher.ElPassantField()) {
     }
 
     const __uint32_t Castlings;
@@ -176,6 +183,7 @@ __device__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
 };
 
 class alignas(8) cuda_Move final {
+    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
 public:
 // ------------------------------
 // Class creation
@@ -221,57 +229,65 @@ public:
     // debugging tool
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkeyMove() const { return _packedMove.IsOkeyMove(); }
 
-    FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, cuda_Board &bd) {
+    FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, _fetcher_t &fetcher) {
         // removing the old piece from the board
-        bd.BitBoards[mv.GetStartBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetStartField();
+        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetStartBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetStartField()),
+                            mv.GetStartBoardIndex());
 
         // placing the figure on new field
-        bd.BitBoards[mv.GetTargetBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetTargetField();
+        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetTargetBoardIndex()) | (cuda_MaxMsbPossible >> mv.GetTargetField()),
+                            mv.GetTargetBoardIndex());
 
         // removing the killed figure in case no figure is killed index should be indicating to the sentinel
-        bd.BitBoards[mv.GetKilledBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetKilledFigureField();
+        fetcher.SetBitBoard(
+                fetcher.BitBoard(mv.GetKilledBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetKilledFigureField()),
+                mv.GetKilledBoardIndex());
 
         // applying new castling rights
-        bd.Castlings = mv.GetCastlingRights();
+        fetcher.Castlings() = mv.GetCastlingRights();
 
         // applying new el passant field
-        bd.ElPassantField = cuda_MaxMsbPossible >> mv.GetElPassantField();
+        fetcher.SetElPassantField(cuda_MaxMsbPossible >> mv.GetElPassantField());
 
         // applying additional castling operation
         const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
         const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
-        bd.BitBoards[boardIndex] |= newKingPos;
+        fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) | newKingPos, boardIndex);
 
-        bd.ChangePlayingColor();
+        fetcher.ChangePlayingColor();
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsAttackingMove() const { return _packedMove.IsCapture(); }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsEmpty() const { return _packedMove.IsEmpty(); }
 
-    FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
-        bd.ChangePlayingColor();
+    FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, _fetcher_t &fetcher, const VolatileBoardData &data) {
+        fetcher.ChangePlayingColor();
 
         // placing the piece on old board
-        bd.BitBoards[mv.GetStartBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetStartField();
+        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetStartBoardIndex()) | (cuda_MaxMsbPossible >> mv.GetStartField()),
+                            mv.GetStartBoardIndex());
 
         // removing the figure from the new field
-        bd.BitBoards[mv.GetTargetBoardIndex()] ^= cuda_MaxMsbPossible >> mv.GetTargetField();
+        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetTargetBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetTargetField()),
+                            mv.GetTargetBoardIndex());
 
         // placing the killed figure in good place
-        bd.BitBoards[mv.GetKilledBoardIndex()] |= cuda_MaxMsbPossible >> mv.GetKilledFigureField();
+        fetcher.SetBitBoard(
+                fetcher.BitBoard(mv.GetKilledBoardIndex()) | (cuda_MaxMsbPossible >> mv.GetKilledFigureField()),
+                mv.GetKilledBoardIndex());
 
         // recovering old castlings
-        bd.Castlings = data.Castlings;
+        fetcher.Castlings() = data.Castlings;
 
         // recovering old el passant field
-        bd.ElPassantField = data.OldElPassant;
+        fetcher.SetElPassantField(data.OldElPassant);
 
         // reverting castling operation
         const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingType()];
         const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
 
-        bd.BitBoards[boardIndex] ^= newKingPos;
+        fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) ^ newKingPos, boardIndex);
     }
 
     FAST_DCALL_ALWAYS void SetStartField(const __uint16_t startField) { _packedMove.SetStartField(startField); }
