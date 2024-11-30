@@ -13,6 +13,7 @@
 
 #include "cuda_BitOperations.cuh"
 #include "cuda_Board.cuh"
+#include "cuda_PackedBoard.cuh"
 #include "Move.cuh"
 
 #include "BishopMap.cuh"
@@ -38,6 +39,8 @@ struct ChessMechanics {
     // Class inner types
     // ------------------------------
 
+    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
+
     enum checkType {
         slidingFigCheck,
         simpleFigCheck
@@ -54,7 +57,8 @@ struct ChessMechanics {
 
     ChessMechanics() = delete;
 
-    FAST_CALL explicit ChessMechanics(const cuda_Board &bd, MoveGenDataMem *md) : _board(bd), _moveGenData(md) {}
+    FAST_CALL explicit ChessMechanics(_fetcher_t fetcher, MoveGenDataMem *md) : _boardFetcher(fetcher),
+                                                                                _moveGenData(md) {}
 
     ChessMechanics(ChessMechanics &other) = delete;
 
@@ -67,13 +71,13 @@ struct ChessMechanics {
     // ------------------------------
 
     [[nodiscard]] __device__ bool IsCheck() const {
-        const __uint32_t enemyCol = SwapColor(_board.MovingColor);
-        const __uint32_t kingsMsb = _board.GetKingMsbPos(_board.MovingColor);
+        const __uint32_t enemyCol = SwapColor(_boardFetcher.MovingColor());
+        const __uint32_t kingsMsb = _boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor());
         const __uint64_t fullBoard = GetFullBitMap();
 
         // Checking rook's perspective
-        const __uint64_t enemyRooks = _board.GetFigBoard(enemyCol, ROOK_INDEX);
-        const __uint64_t enemyQueens = _board.GetFigBoard(enemyCol, QUEEN_INDEX);
+        const __uint64_t enemyRooks = _boardFetcher.GetFigBoard(enemyCol, ROOK_INDEX);
+        const __uint64_t enemyQueens = _boardFetcher.GetFigBoard(enemyCol, QUEEN_INDEX);
 
         const __uint64_t kingsRookPerspective = RookMap::GetMoves(kingsMsb, fullBoard);
 
@@ -81,7 +85,7 @@ struct ChessMechanics {
             return true;
 
         // Checking bishop's perspective
-        const __uint64_t enemyBishops = _board.GetFigBoard(enemyCol, BISHOP_INDEX);
+        const __uint64_t enemyBishops = _boardFetcher.GetFigBoard(enemyCol, BISHOP_INDEX);
 
         const __uint64_t kingsBishopPerspective = BishopMap::GetMoves(kingsMsb, fullBoard);
 
@@ -89,7 +93,7 @@ struct ChessMechanics {
             return true;
 
         // checking knights attacks
-        const __uint64_t enemyKnights = _board.GetFigBoard(enemyCol, KNIGHT_INDEX);
+        const __uint64_t enemyKnights = _boardFetcher.GetFigBoard(enemyCol, KNIGHT_INDEX);
 
         const __uint64_t knightsPerspective = KnightMap::GetMoves(kingsMsb);
 
@@ -97,7 +101,7 @@ struct ChessMechanics {
             return true;
 
         // pawns checks
-        const __uint64_t enemyPawns = _board.GetFigBoard(enemyCol, PAWN_INDEX);
+        const __uint64_t enemyPawns = _boardFetcher.GetFigBoard(enemyCol, PAWN_INDEX);
         const __uint64_t pawnAttacks =
                 enemyCol == WHITE ? WhitePawnMap::GetAttackFields(enemyPawns) : BlackPawnMap::GetAttackFields(
                         enemyPawns);
@@ -112,7 +116,7 @@ struct ChessMechanics {
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFullBitMap() const {
         __uint64_t map = 0;
-        for (__uint32_t i = 0; i < BIT_BOARDS_COUNT; ++i) map |= _board.BitBoards[i];
+        for (__uint32_t i = 0; i < BIT_BOARDS_COUNT; ++i) map |= _boardFetcher.BitBoard(i);
         return map;
     }
 
@@ -121,19 +125,18 @@ struct ChessMechanics {
         ASSERT(col == 1 || col == 0, "col == 1 || col == 0");
 
         __uint64_t map = 0;
-        for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) map |= _board.BitBoards[BIT_BOARDS_PER_COLOR * col + i];
+        for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) map |= _boardFetcher.GetFigBoard(col, i);
         return map;
     }
 
     // does not check kings BitBoards!!!
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t
     GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
-        const __uint32_t colIndex = col * BIT_BOARDS_PER_COLOR;
         __uint32_t rv = 0;
         for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
-            rv += ((_board.BitBoards[colIndex + i] & map) != 0) * i;
+            rv += ((_boardFetcher.GetFigBoard(col, i) & map) != 0) * i;
         }
-        return colIndex + rv;
+        return col * BIT_BOARDS_PER_COLOR + rv;
     }
 
     /*      IMPORTANT NOTES:
@@ -153,16 +156,16 @@ struct ChessMechanics {
         __uint64_t blockedMap{};
         bool wasCheckedBySimple{};
 
-        const __uint32_t enemyFigInd = SwapColor(_board.MovingColor) * BIT_BOARDS_PER_COLOR;
-        const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
+        const __uint32_t enemyFigInd = SwapColor(_boardFetcher.MovingColor()) * BIT_BOARDS_PER_COLOR;
+        const __uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor()));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
         // King attacks generation.
-        blockedMap |= KingMap::GetMoves(_board.GetKingMsbPos(SwapColor(_board.MovingColor)));
+        blockedMap |= KingMap::GetMoves(_boardFetcher.GetKingMsbPos(SwapColor(_boardFetcher.MovingColor())));
 
         // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
         const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
-                _board.BitBoards[enemyFigInd + ROOK_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
+                _boardFetcher.BitBoard(enemyFigInd + ROOK_INDEX) | _boardFetcher.BitBoard(enemyFigInd + QUEEN_INDEX),
                 fullMap ^ allyKingMap,
                 allyKingMap
         );
@@ -173,7 +176,7 @@ struct ChessMechanics {
 
         // Bishop attacks generation.
         const __uint64_t bishopBlockedMap = _blockIterativeGenerator(
-                _board.BitBoards[enemyFigInd + BISHOP_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
+                _boardFetcher.BitBoard(enemyFigInd + BISHOP_INDEX) | _boardFetcher.BitBoard(enemyFigInd + QUEEN_INDEX),
                 [=](const int pos) {
                     return BishopMap::GetMoves(pos, fullMap ^ allyKingMap);
                 }
@@ -186,9 +189,9 @@ struct ChessMechanics {
         blockedMap |= bishopBlockedMap;
 
         // Pawns attacks generation.
-        const __uint64_t pawnsMap = _board.BitBoards[enemyFigInd + PAWN_INDEX];
+        const __uint64_t pawnsMap = _boardFetcher.BitBoard(enemyFigInd + PAWN_INDEX);
         const __uint64_t pawnBlockedMap =
-                SwapColor(_board.MovingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
+                SwapColor(_boardFetcher.MovingColor()) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
                                                        : BlackPawnMap::GetAttackFields(pawnsMap);
 
         const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
@@ -199,7 +202,7 @@ struct ChessMechanics {
 
         // Knight attacks generation.
         const __uint64_t knightBlockedMap = _blockIterativeGenerator(
-                _board.BitBoards[enemyFigInd + KNIGHT_INDEX],
+                _boardFetcher.BitBoard(enemyFigInd + KNIGHT_INDEX),
                 [=](const int pos) {
                     return KnightMap::GetMoves(pos);
                 }
@@ -219,17 +222,17 @@ struct ChessMechanics {
     GetBlockedFieldBitMapSplit(__uint64_t fullMap, __uint32_t figIdx) const {
         ASSERT(fullMap != 0, "Full map is empty!");
 
-        const __uint32_t enemyFigInd = SwapColor(_board.MovingColor) * BIT_BOARDS_PER_COLOR;
-        const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
+        const __uint32_t enemyFigInd = SwapColor(_boardFetcher.MovingColor()) * BIT_BOARDS_PER_COLOR;
+        const __uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor()));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
         // Specific figure processing
         switch (figIdx) {
             case PAWN_INDEX: {
                 // Pawns attacks generation.
-                const __uint64_t pawnsMap = _board.BitBoards[enemyFigInd + PAWN_INDEX];
+                const __uint64_t pawnsMap = _boardFetcher.BitBoard(enemyFigInd + PAWN_INDEX);
                 const __uint64_t pawnBlockedMap =
-                        SwapColor(_board.MovingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
+                        SwapColor(_boardFetcher.MovingColor()) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
                                                                : BlackPawnMap::GetAttackFields(pawnsMap);
 
                 const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
@@ -242,7 +245,7 @@ struct ChessMechanics {
             case KNIGHT_INDEX: {
                 // Knight attacks generation.
                 const __uint64_t knightBlockedMap = _blockIterativeGenerator(
-                        _board.BitBoards[enemyFigInd + KNIGHT_INDEX],
+                        _boardFetcher.BitBoard(enemyFigInd + KNIGHT_INDEX),
                         [=](const int pos) {
                             return KnightMap::GetMoves(pos);
                         }
@@ -258,7 +261,8 @@ struct ChessMechanics {
             case BISHOP_INDEX: {
                 // Bishop attacks generation.
                 const __uint64_t bishopBlockedMap = _blockIterativeGenerator(
-                        _board.BitBoards[enemyFigInd + BISHOP_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
+                        _boardFetcher.BitBoard(enemyFigInd + BISHOP_INDEX) |
+                        _boardFetcher.BitBoard(enemyFigInd + QUEEN_INDEX),
                         [=](const int pos) {
                             return BishopMap::GetMoves(pos, fullMap ^ allyKingMap);
                         }
@@ -274,7 +278,8 @@ struct ChessMechanics {
             case ROOK_INDEX: {
                 // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
                 const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
-                        _board.BitBoards[enemyFigInd + ROOK_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
+                        _boardFetcher.BitBoard(enemyFigInd + ROOK_INDEX) |
+                        _boardFetcher.BitBoard(enemyFigInd + QUEEN_INDEX),
                         fullMap ^ allyKingMap,
                         allyKingMap
                 );
@@ -286,7 +291,8 @@ struct ChessMechanics {
             case QUEEN_INDEX:
                 break;
             case KING_INDEX: {
-                const __uint64_t kingMap = KingMap::GetMoves(_board.GetKingMsbPos(SwapColor(_board.MovingColor)));
+                const __uint64_t kingMap = KingMap::GetMoves(
+                        _boardFetcher.GetKingMsbPos(SwapColor(_boardFetcher.MovingColor())));
                 atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), kingMap);
             }
                 break;
@@ -305,7 +311,7 @@ struct ChessMechanics {
         ASSERT(CountOnesInBoard(figBoard) == 1, "Only one figure should be pinned!");
 
         const int msbPos = ExtractMsbPos(figBoard);
-        const __uint64_t KingBoard = _board.BitBoards[_board.MovingColor * BIT_BOARDS_PER_COLOR + KING_INDEX];
+        const __uint64_t KingBoard = _boardFetcher.GetFigBoard(_boardFetcher.MovingColor(), KING_INDEX);
 
         const __uint64_t RookPerspectiveMoves = RookMap::GetMoves(msbPos, fullMap);
         if ((RookPerspectiveMoves & KingBoard) != 0)
@@ -325,11 +331,13 @@ struct ChessMechanics {
         const __uint32_t enemyCord = SwapColor(col) * BIT_BOARDS_PER_COLOR;
 
         const auto [pinnedByRooks, allowedRooks] = _getPinnedFigMaps<RookMap, genType>(
-                fullMap, _board.BitBoards[enemyCord + ROOK_INDEX] | _board.BitBoards[enemyCord + QUEEN_INDEX]
+                fullMap,
+                _boardFetcher.BitBoard(enemyCord + ROOK_INDEX) | _boardFetcher.BitBoard(enemyCord + QUEEN_INDEX)
         );
 
         const auto [pinnedByBishops, allowedBishops] = _getPinnedFigMaps<BishopMap, genType>(
-                fullMap, _board.BitBoards[enemyCord + BISHOP_INDEX] | _board.BitBoards[enemyCord + QUEEN_INDEX]
+                fullMap,
+                _boardFetcher.BitBoard(enemyCord + BISHOP_INDEX) | _boardFetcher.BitBoard(enemyCord + QUEEN_INDEX)
         );
 
         return {pinnedByBishops | pinnedByRooks, allowedBishops | allowedRooks};
@@ -338,8 +346,8 @@ struct ChessMechanics {
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetAllowedTilesWhenCheckedByNonSliding() const {
         __uint64_t allowedTiles{};
 
-        allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles(_board);
-        allowedTiles |= KingMap::GetSimpleFigCheckPawnAllowedTiles(_board);
+        allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles(_boardFetcher);
+        allowedTiles |= KingMap::GetSimpleFigCheckPawnAllowedTiles(_boardFetcher);
 
         return allowedTiles;
     }
@@ -400,7 +408,7 @@ private:
         __uint64_t allowedTilesFigMap{};
         [[maybe_unused]] __uint64_t pinnedFigMap{};
 
-        const __uint32_t kingPos = _board.GetKingMsbPos(_board.MovingColor);
+        const __uint32_t kingPos = _boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor());
         // generating figs seen from king's rook perspective
         const __uint64_t kingFigPerspectiveAttackedFields = MoveMapT::GetMoves(kingPos, fullMap);
         const __uint64_t kingFigPerspectiveAttackedFigs = kingFigPerspectiveAttackedFields & fullMap;
@@ -438,7 +446,7 @@ private:
     // ------------------------------
 
 protected:
-    const cuda_Board &_board;
+    const _fetcher_t _boardFetcher;
     MoveGenDataMem *_moveGenData;
 };
 
