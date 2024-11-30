@@ -10,9 +10,6 @@
 #include <string>
 #include <iostream>
 
-#include "cuda_core/Move.cuh"
-#include "cuda_core/Stack.cuh"
-
 int main() {
     CpuCore core{};
     core.init();
