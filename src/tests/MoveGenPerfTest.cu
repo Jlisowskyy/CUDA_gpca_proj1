@@ -28,8 +28,8 @@
 #include <chrono>
 #include <format>
 
-static constexpr size_t RETRIES = 10;
-static constexpr size_t MAX_DEPTH = 100;
+static constexpr __uint32_t RETRIES = 10;
+static constexpr __uint32_t MAX_DEPTH = 100;
 
 std::vector<std::string> LoadFenDb() {
     const auto sourcePath = std::filesystem::path(__FILE__).parent_path();
@@ -89,25 +89,23 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
     const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
     const auto sizeThreads = blocks * threads;
     assert(sizeThreads == threadsAvailable && "Wrongly generated block/threads");
-
-    const __uint32_t threadsSize = threads * blocks;
     assert(threadsSize == seeds.size());
 
-    std::cout << "Running MoveGen Performance Test on GPU" << std::endl;
+    std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
 
-    std::vector<cuda_Board> boards(threadsSize);
+    std::vector<cuda_Board> boards(sizeThreads);
 
-    for (__uint32_t i = 0; i < threadsSize; ++i) {
+    for (__uint32_t i = 0; i < sizeThreads; ++i) {
         boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
     }
 
     thrust::device_vector<__uint32_t> dSeeds = seeds;
-    thrust::device_vector<__uint64_t> dResults(threadsSize);
-    thrust::device_vector<cuda_Move> dMoves(threadsSize * 256);
+    thrust::device_vector<__uint64_t> dResults(sizeThreads);
+    thrust::device_vector<cuda_Move> dMoves(sizeThreads * 256);
 
     const auto t1 = std::chrono::high_resolution_clock::now();
 
-    for (size_t i = 0; i < RETRIES; ++i) {
+    for (__uint32_t i = 0; i < RETRIES; ++i) {
         thrust::device_vector<cuda_Board> dBoards = boards;
         SimulateGamesKernel<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
                                                          thrust::raw_pointer_cast(dSeeds.data()),
@@ -126,7 +124,52 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
 
 void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
                       const std::vector<__uint32_t> &seeds) {
+    static constexpr __uint32_t WARP_SIZE = 32;
+    static constexpr __uint32_t MINIMAL_BATCH_SIZE = WARP_SIZE * BIT_BOARDS_PER_COLOR;
+    static constexpr __uint32_t SINGLE_BATCH_NUM_MINIMAL_BATCHES = 2;
+    static constexpr __uint32_t SINGLE_BATCH_SIZE = MINIMAL_BATCH_SIZE * SINGLE_BATCH_NUM_MINIMAL_BATCHES;
+    static constexpr __uint32_t SINGLE_BATCH_BOARD_SIZE = WARP_SIZE * SINGLE_BATCH_NUM_MINIMAL_BATCHES;
+    static constexpr __uint32_t SINGLE_RUN_BLOCK_SIZE = 32 * 2;
+    static constexpr __uint32_t SINGLE_RUN_BOARDS_SIZE = SINGLE_RUN_BLOCK_SIZE * SINGLE_BATCH_BOARD_SIZE;
 
+    assert((totalBoardsToProcess / SINGLE_BATCH_BOARD_SIZE) * SINGLE_RUN_BLOCK_SIZE == totalBoardsToProcess);
+
+    std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
+
+    std::vector<cuda_Board> boards(totalBoardsToProcess);
+
+    for (__uint32_t i = 0; i < totalBoardsToProcess; ++i) {
+        boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
+    }
+
+    thrust::device_vector<__uint32_t> dSeeds = seeds;
+    thrust::device_vector<__uint64_t> dResults(totalBoardsToProcess);
+    thrust::device_vector<cuda_Move> dMoves(totalBoardsToProcess * 256);
+
+    const auto t1 = std::chrono::high_resolution_clock::now();
+
+    const __uint32_t bIdxRange = totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE;
+    for (__uint32_t i = 0; i < RETRIES; ++i) {
+        thrust::device_vector<cuda_Board> dBoards = boards;
+
+        for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
+            for (__uint32_t j = 0; j < 2 && bIdx < bIdxRange; ++j, ++bIdx) {
+                SimulateGamesKernelSplitMoves<<<SINGLE_RUN_BLOCK_SIZE, SINGLE_BATCH_SIZE>>>(
+                        thrust::raw_pointer_cast(dBoards.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
+                        thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
+                        thrust::raw_pointer_cast(dResults.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
+                        thrust::raw_pointer_cast((dMoves.data())) + bIdx * SINGLE_RUN_BOARDS_SIZE * 256, MAX_DEPTH);
+                CUDA_TRACE_ERROR(cudaGetLastError());
+            }
+            GuardedSync();
+        }
+    }
+
+    const auto t2 = std::chrono::high_resolution_clock::now();
+    thrust::host_vector<__uint64_t> hResults = dResults;
+
+    const double seconds = std::chrono::duration<double>(t2 - t1).count();
+    DisplayPerfResults(seconds, hResults);
 }
 
 void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
