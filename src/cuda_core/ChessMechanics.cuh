@@ -25,6 +25,12 @@
 #include <cassert>
 #include <cinttypes>
 
+struct MoveGenDataMem {
+    __uint32_t checksCount{};
+    __uint32_t wasCheckedBySimple{};
+    __uint64_t blockedMap{};
+};
+
 #define ASSERT(cond, msg) ASSERT_DISPLAY(&_board, cond, msg)
 
 struct ChessMechanics {
@@ -48,7 +54,7 @@ struct ChessMechanics {
 
     ChessMechanics() = delete;
 
-    FAST_CALL explicit ChessMechanics(const cuda_Board &bd) : _board(bd) {}
+    FAST_CALL explicit ChessMechanics(const cuda_Board &bd, MoveGenDataMem *md) : _board(bd), _moveGenData(md) {}
 
     ChessMechanics(ChessMechanics &other) = delete;
 
@@ -207,6 +213,90 @@ struct ChessMechanics {
         return {blockedMap, checksCount, wasCheckedBySimple};
     }
 
+    // [blockedFigMap, checksCount, checkType]
+    [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
+    GetBlockedFieldBitMapSplit(__uint64_t fullMap, __uint32_t figIdx) const {
+        ASSERT(fullMap != 0, "Full map is empty!");
+
+        const __uint32_t enemyFigInd = SwapColor(_board.MovingColor) * BIT_BOARDS_PER_COLOR;
+        const __uint32_t allyKingShift = ConvertToReversedPos(_board.GetKingMsbPos(_board.MovingColor));
+        const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
+
+        // Specific figure processing
+        switch (figIdx) {
+            case PAWN_INDEX: {
+                // Pawns attacks generation.
+                const __uint64_t pawnsMap = _board.BitBoards[enemyFigInd + PAWN_INDEX];
+                const __uint64_t pawnBlockedMap =
+                        SwapColor(_board.MovingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
+                                                               : BlackPawnMap::GetAttackFields(pawnsMap);
+
+                const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
+
+                atomicAdd((unsigned int *) &(_moveGenData->checksCount), wasCheckedByPawnFlag);
+                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), pawnBlockedMap);
+                atomicAdd((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByPawnFlag);
+            }
+                break;
+            case KNIGHT_INDEX: {
+                // Knight attacks generation.
+                const __uint64_t knightBlockedMap = _blockIterativeGenerator(
+                        _board.BitBoards[enemyFigInd + KNIGHT_INDEX],
+                        [=](const int pos) {
+                            return KnightMap::GetMoves(pos);
+                        }
+                );
+
+                const bool wasCheckedByKnightFlag = knightBlockedMap & allyKingMap;
+
+                atomicAdd((unsigned int *) &(_moveGenData->checksCount), wasCheckedByKnightFlag);
+                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), knightBlockedMap);
+                atomicAdd((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByKnightFlag);
+            }
+                break;
+            case BISHOP_INDEX: {
+                // Bishop attacks generation.
+                const __uint64_t bishopBlockedMap = _blockIterativeGenerator(
+                        _board.BitBoards[enemyFigInd + BISHOP_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
+                        [=](const int pos) {
+                            return BishopMap::GetMoves(pos, fullMap ^ allyKingMap);
+                        }
+                );
+
+                // = 1 or 0 depending on whether hits or not
+                const __uint8_t wasCheckedByBishopFlag = (bishopBlockedMap & allyKingMap) >> allyKingShift;
+
+                atomicAdd((unsigned int *) &(_moveGenData->checksCount), wasCheckedByBishopFlag);
+                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), bishopBlockedMap);
+            }
+                break;
+            case ROOK_INDEX: {
+                // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
+                const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
+                        _board.BitBoards[enemyFigInd + ROOK_INDEX] | _board.BitBoards[enemyFigInd + QUEEN_INDEX],
+                        fullMap ^ allyKingMap,
+                        allyKingMap
+                );
+
+                atomicAdd((unsigned int *) &(_moveGenData->checksCount), checkCountRook);
+                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), rookBlockedMap);
+            }
+                break;
+            case QUEEN_INDEX:
+                break;
+            case KING_INDEX: {
+                const __uint64_t kingMap = KingMap::GetMoves(_board.GetKingMsbPos(SwapColor(_board.MovingColor)));
+                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), kingMap);
+            }
+                break;
+            default:
+                ASSERT(false, "Shit happens");
+        }
+
+        __syncthreads();
+        return {_moveGenData->blockedMap, (__uint8_t)_moveGenData->checksCount, (bool)_moveGenData->wasCheckedBySimple};
+    }
+
     [[nodiscard]] FAST_DCALL __uint64_t
     GenerateAllowedTilesForPrecisedPinnedFig(__uint64_t figBoard, __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
@@ -346,6 +436,7 @@ private:
 
 protected:
     const cuda_Board &_board;
+    MoveGenDataMem *_moveGenData;
 };
 
 

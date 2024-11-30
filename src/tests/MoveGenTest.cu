@@ -80,7 +80,7 @@ void TestMoveCount(const std::string_view &fen, int depth) {
     GetGPUMoveCountsKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth,
                                      thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
-    GuardedSync();
+    GUARDED_SYNC();
 
     thrust::host_vector<__uint64_t> hdCount = dCount;
     const __uint64_t hCount = hdCount[0];
@@ -110,7 +110,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
     GetGPUMovesKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), thrust::raw_pointer_cast(dMoves.data()),
                                 thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
-    GuardedSync();
+    GUARDED_SYNC();
 
     const auto cMoves = cpu::GenerateMoves(externalBoard);
 
@@ -202,7 +202,7 @@ void MoveGenSplit() {
                                                                thrust::raw_pointer_cast(dResults1.data()),
                                                                thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
     CUDA_TRACE_ERROR(cudaGetLastError());
-    GuardedSync();
+    GUARDED_SYNC();
     thrust::host_vector<__uint64_t> hResults1 = dResults1;
 
     thrust::device_vector<__uint64_t> dResults2(WARP_SIZE);
@@ -212,7 +212,7 @@ void MoveGenSplit() {
                                                                            thrust::raw_pointer_cast(dResults2.data()),
                                                                            thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
     CUDA_TRACE_ERROR(cudaGetLastError());
-    GuardedSync();
+    GUARDED_SYNC();
     thrust::host_vector<__uint64_t> hResults2 = dResults2;
 
     for (__uint32_t i = 0; i < WARP_SIZE; ++i) {

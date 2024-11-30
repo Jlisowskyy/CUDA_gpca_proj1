@@ -18,16 +18,16 @@ public:
     ~RookMapRuntime() = delete;
 
     [[nodiscard]] __device__ static __uint64_t
-    GetMoves(int msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
+    GetMoves(__uint32_t msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
         const __uint64_t startPos = cuda_MaxMsbPossible >> msbInd;
 
-        const int row = msbInd / 8;
-        const int col = msbInd % 8;
+        const __uint32_t row = msbInd / 8;
+        const __uint32_t col = msbInd % 8;
 
-        const int startRow = row * 8;
+        const __uint32_t startRow = row * 8;
         const __uint64_t startRowMask = cuda_MaxMsbPossible >> startRow;
 
-        const int endRow = startRow + 7;
+        const __uint32_t endRow = startRow + 7;
         const __uint64_t endRowMask = cuda_MaxMsbPossible >> endRow;
 
         __uint64_t moves{};
@@ -50,10 +50,10 @@ public:
             } while ((mask & endRowMask) == 0 && (mask & fullBoard) == 0);
         }
 
-        const int startCol = col;
+        const __uint32_t startCol = col;
         const __uint64_t startColMask = cuda_MaxMsbPossible >> startCol;
 
-        const int endCol = col + 56;
+        const __uint32_t endCol = col + 56;
         const __uint64_t endColMask = cuda_MaxMsbPossible >> endCol;
 
         if ((startPos & startColMask) == 0) {

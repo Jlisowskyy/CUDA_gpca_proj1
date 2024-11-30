@@ -106,13 +106,14 @@ FAST_DCALL_ALWAYS void unlock(int* mutex) {
 __device__ void printLock();
 __device__ void printUnlock();
 
-inline static void GuardedSync() {
-    const auto rc = cudaDeviceSynchronize();
-    CUDA_TRACE_ERROR(rc);
-
-    if (rc != cudaSuccess) {
-        throw std::runtime_error("Failed to launch kernel");
-    }
-}
+#define GUARDED_SYNC()                                              \
+{                                                                   \
+    const auto rc = cudaDeviceSynchronize();                        \
+    CUDA_TRACE_ERROR(rc);                                           \
+                                                                    \
+    if (rc != cudaSuccess) {                                        \
+        throw std::runtime_error("Failed to launch kernel");        \
+    }                                                               \
+}                                                                   \
 
 #endif //SRC_HELPERS_CUH

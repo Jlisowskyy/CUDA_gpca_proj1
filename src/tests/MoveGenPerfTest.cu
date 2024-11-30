@@ -28,7 +28,7 @@
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 10;
+static constexpr __uint32_t RETRIES = 2;
 static constexpr __uint32_t MAX_DEPTH = 100;
 
 std::vector<std::string> LoadFenDb() {
@@ -83,15 +83,14 @@ void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64
     DisplayPerfResults(seconds, boardEvaluated, movesGenerated);
 }
 
-void
-MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
-                 const std::vector<__uint32_t> &seeds) {
-    const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
-    const auto sizeThreads = blocks * threads;
+template<class FuncT, __uint32_t BATCH_SIZE = 512>
+void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
+                  const std::vector<std::string> &fenDb,
+                  const std::vector<__uint32_t> &seeds) {
+    const __uint32_t blocks = threadsAvailable / BATCH_SIZE;
+    const auto sizeThreads = blocks * BATCH_SIZE;
     assert(sizeThreads == threadsAvailable && "Wrongly generated block/threads");
-    assert(threadsSize == seeds.size());
-
-    std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
+    assert(sizeThreads == seeds.size());
 
     std::vector<cuda_Board> boards(sizeThreads);
 
@@ -107,13 +106,13 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
 
     for (__uint32_t i = 0; i < RETRIES; ++i) {
         thrust::device_vector<cuda_Board> dBoards = boards;
-        SimulateGamesKernel<<<4 * blocks, threads / 4>>>(thrust::raw_pointer_cast(dBoards.data()),
-                                                         thrust::raw_pointer_cast(dSeeds.data()),
-                                                         thrust::raw_pointer_cast(dResults.data()),
-                                                         thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
+        func<<<blocks, BATCH_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
+                                     thrust::raw_pointer_cast(dSeeds.data()),
+                                     thrust::raw_pointer_cast(dResults.data()),
+                                     thrust::raw_pointer_cast((dMoves.data())), MAX_DEPTH);
         CUDA_TRACE_ERROR(cudaGetLastError());
     }
-    GuardedSync();
+    GUARDED_SYNC();
 
     const auto t2 = std::chrono::high_resolution_clock::now();
     thrust::host_vector<__uint64_t> hResults = dResults;
@@ -122,20 +121,10 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
     DisplayPerfResults(seconds, hResults);
 }
 
-void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
-                      const std::vector<__uint32_t> &seeds) {
-    static constexpr __uint32_t WARP_SIZE = 32;
-    static constexpr __uint32_t MINIMAL_BATCH_SIZE = WARP_SIZE * BIT_BOARDS_PER_COLOR;
-    static constexpr __uint32_t SINGLE_BATCH_NUM_MINIMAL_BATCHES = 2;
-    static constexpr __uint32_t SINGLE_BATCH_SIZE = MINIMAL_BATCH_SIZE * SINGLE_BATCH_NUM_MINIMAL_BATCHES;
-    static constexpr __uint32_t SINGLE_BATCH_BOARD_SIZE = WARP_SIZE * SINGLE_BATCH_NUM_MINIMAL_BATCHES;
-    static constexpr __uint32_t SINGLE_RUN_BLOCK_SIZE = 32 * 2;
-    static constexpr __uint32_t SINGLE_RUN_BOARDS_SIZE = SINGLE_RUN_BLOCK_SIZE * SINGLE_BATCH_BOARD_SIZE;
-
+template<class FuncT>
+void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
+                 const std::vector<__uint32_t> &seeds) {
     assert((totalBoardsToProcess / SINGLE_BATCH_BOARD_SIZE) * SINGLE_RUN_BLOCK_SIZE == totalBoardsToProcess);
-
-    std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
-
     std::vector<cuda_Board> boards(totalBoardsToProcess);
 
     for (__uint32_t i = 0; i < totalBoardsToProcess; ++i) {
@@ -154,14 +143,14 @@ void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::st
 
         for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
             for (__uint32_t j = 0; j < 2 && bIdx < bIdxRange; ++j, ++bIdx) {
-                SimulateGamesKernelSplitMoves<<<SINGLE_RUN_BLOCK_SIZE, SINGLE_BATCH_SIZE>>>(
+                func<<<SINGLE_RUN_BLOCK_SIZE, SINGLE_BATCH_SIZE>>>(
                         thrust::raw_pointer_cast(dBoards.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
                         thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
                         thrust::raw_pointer_cast(dResults.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
                         thrust::raw_pointer_cast((dMoves.data())) + bIdx * SINGLE_RUN_BOARDS_SIZE * 256, MAX_DEPTH);
                 CUDA_TRACE_ERROR(cudaGetLastError());
             }
-            GuardedSync();
+            GUARDED_SYNC();
         }
     }
 
@@ -170,6 +159,38 @@ void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::st
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     DisplayPerfResults(seconds, hResults);
+}
+
+void
+MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
+                 const std::vector<__uint32_t> &seeds) {
+
+    std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
+    SimpleTester(SimulateGamesKernel, threadsAvailable, deviceProps, fenDb, seeds);
+}
+
+void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
+                      const std::vector<__uint32_t> &seeds) {\
+
+    std::cout << "Running MoveGen V2 Performance Test on GPU" << std::endl;
+    SplitTester(SimulateGamesKernelSplitMoves, totalBoardsToProcess, fenDb, seeds);
+}
+
+void MoveGenPerfGPUV4(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
+                      const std::vector<__uint32_t> &seeds) {
+
+    std::cout << "Running MoveGen V4 Performance Test on GPU" << std::endl;
+    SplitTester(SimulateGamesKernelSplitMovesShared, totalBoardsToProcess, fenDb, seeds);
+}
+
+void
+MoveGenPerfGPUV3(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
+                 const std::vector<__uint32_t> &seeds) {
+
+    std::cout << "Running MoveGen V3 Performance Test on GPU" << std::endl;
+    SimpleTester<decltype(SimulateGamesKernelShared), SINGLE_THREAD_SINGLE_GAME_SHARED_BATCH_SIZE>(
+            SimulateGamesKernelShared, threadsAvailable,
+            deviceProps, fenDb, seeds);
 }
 
 void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
@@ -186,6 +207,10 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     MoveGenPerfGPUV1(threadsAvailable, deviceProps, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV2(threadsAvailable, fenDb, seeds);
+    std::cout << std::string(80, '-') << std::endl;
+    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
+    std::cout << std::string(80, '-') << std::endl;
+    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
     const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable, RETRIES,
                                                                               seeds);

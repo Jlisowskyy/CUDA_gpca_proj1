@@ -70,6 +70,8 @@ struct Stack {
 
     FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) { return _data[ind]; }
 
+    FAST_DCALL_ALWAYS ItemT* Top() { return _data + *_last; }
+
     // ------------------------------
     // Aggregates
     // ------------------------------

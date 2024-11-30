@@ -184,10 +184,10 @@ public:
     // Main processing components
     // --------------------------------
 
-    __uint64_t BitBoards[BIT_BOARDS_COUNT + 1]{}; // additional sentinel board
-    __uint64_t ElPassantField{cuda_MaxMsbPossible >> INVALID_EL_PASSANT_FIELD};
-    __uint32_t Castlings{0}; // additional sentinel field
-    __uint32_t MovingColor{WHITE};
+    __uint64_t BitBoards[BIT_BOARDS_COUNT + 1]; // additional sentinel board
+    __uint64_t ElPassantField;
+    __uint32_t Castlings; // additional sentinel field
+    __uint32_t MovingColor;
 };
 
 #endif // CUDA_BOARD_CUH
