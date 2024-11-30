@@ -79,6 +79,25 @@ struct cuda_PackedBoard {
         // Interactions
         // ------------------------------
 
+        FAST_CALL_ALWAYS void ChangePlayingColor() {
+            MovingColor() ^= 1;
+        }
+
+        [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetKingMsbPos(const __uint32_t col) const {
+            return ExtractMsbPos(BitBoard(col * BIT_BOARDS_PER_COLOR + KING_INDEX));
+        }
+
+        [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFigBoard(__uint32_t col, __uint32_t figDesc) const {
+            return BitBoard(col * BIT_BOARDS_PER_COLOR + figDesc);
+        }
+
+        FAST_DCALL_ALWAYS void SetCastlingRight(__uint32_t castlingIndex, bool value) {
+            SetBitBoardBit(Castlings(), castlingIndex, value);
+        }
+
+        [[nodiscard]] FAST_CALL_ALWAYS bool GetCastlingRight(__uint32_t castlingIndex) const {
+            return Castlings() & (cuda_MinMsbPossible << castlingIndex);
+        }
 
         // ------------------------------
         // Class fields
