@@ -95,6 +95,7 @@ enum CastlingPossibilities : __uint32_t {
  * */
 
 __device__ static constexpr __uint32_t BIT_BOARDS_COUNT = 12;
+__device__ static constexpr __uint32_t BIT_BOARDS_GUARDED_COUNT = BIT_BOARDS_COUNT + 1;
 __device__ static constexpr __uint32_t CASTLING_COUNT = 4;
 __device__ static constexpr __uint32_t BIT_BOARD_FIELDS = 64;
 __device__ static constexpr __uint32_t BIT_BOARDS_PER_COLOR = 6;
@@ -185,7 +186,7 @@ public:
     // Main processing components
     // --------------------------------
 
-    __uint64_t BitBoards[BIT_BOARDS_COUNT + 1]; // additional sentinel board
+    __uint64_t BitBoards[BIT_BOARDS_GUARDED_COUNT]; // additional sentinel board
     __uint64_t ElPassantField;
     __uint32_t Castlings; // additional sentinel field
     __uint32_t MovingColor;

@@ -83,7 +83,7 @@ void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64
     DisplayPerfResults(seconds, boardEvaluated, movesGenerated);
 }
 
-template<class FuncT, __uint32_t BATCH_SIZE = 512>
+template<class FuncT, __uint32_t BATCH_SIZE>
 void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
                   const std::vector<std::string> &fenDb,
                   const std::vector<__uint32_t> &seeds) {
@@ -124,7 +124,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
 template<class FuncT>
 void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
                  const std::vector<__uint32_t> &seeds) {
-    assert((totalBoardsToProcess / SINGLE_BATCH_BOARD_SIZE) * SINGLE_RUN_BLOCK_SIZE == totalBoardsToProcess);
+    assert((totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE) * SINGLE_RUN_BOARDS_SIZE == totalBoardsToProcess);
     std::vector<cuda_Board> boards(totalBoardsToProcess);
 
     for (__uint32_t i = 0; i < totalBoardsToProcess; ++i) {
@@ -166,7 +166,9 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
                  const std::vector<__uint32_t> &seeds) {
 
     std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
-    SimpleTester(SimulateGamesKernel, threadsAvailable, deviceProps, fenDb, seeds);
+    SimpleTester<decltype(SimulateGamesKernel), SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE>(SimulateGamesKernel,
+                                                                                      threadsAvailable, deviceProps,
+                                                                                      fenDb, seeds);
 }
 
 void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
@@ -209,9 +211,9 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV2(threadsAvailable, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
-    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
+//    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
-    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
+//    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
     std::cout << std::string(80, '-') << std::endl;
     const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable,
                                                                               RETRIES,
