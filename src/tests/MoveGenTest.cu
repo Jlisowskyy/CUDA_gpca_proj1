@@ -9,6 +9,7 @@
 #include "../cuda_core/MoveGenerator.cuh"
 #include "../cuda_core/cuda_Board.cuh"
 #include "../cuda_core/ComputeKernels.cuh"
+#include "../cuda_core/cuda_PackedBoard.cuh"
 
 #include "../ported/CpuTests.h"
 #include "../ported/CpuUtils.h"
@@ -27,6 +28,7 @@
 #include <random>
 #include <chrono>
 #include <format>
+#include <vector>
 
 using u16d = std::bitset<16>;
 
@@ -45,9 +47,9 @@ static constexpr std::array TestFEN{
 
 static constexpr __uint32_t TEST_DEPTH = 3;
 
-void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, int *outCount, void *ptr) {
+void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves, int *outCount, void *ptr) {
     Stack<cuda_Move> stack(ptr);
-    MoveGenerator gen{*board, stack};
+    MoveGenerator<1> gen{(*board)[0], stack};
 
     const auto moves = gen.GetMovesFast();
     *outCount = static_cast<int>(moves.size);
@@ -59,9 +61,9 @@ void __global__ GetGPUMovesKernel(const cuda_Board *board, cuda_Move *outMoves, 
     gen.stack.PopAggregate(moves);
 }
 
-void __global__ GetGPUMoveCountsKernel(const cuda_Board *board, const int depth, __uint64_t *outCount, void *ptr) {
+void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, __uint64_t *outCount, void *ptr) {
     Stack<cuda_Move> stack(ptr);
-    MoveGenerator gen{*board, stack};
+    MoveGenerator<1> gen{(*board)[0], stack};
 
     const auto moves = gen.CountMoves(depth);
     *outCount = moves;
@@ -71,9 +73,9 @@ void TestMoveCount(const std::string_view &fen, int depth) {
     std::cout << "Testing position: " << fen << std::endl;
 
     const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
-    const cuda_Board board(externalBoard);
+    cuda_Board board(externalBoard);
 
-    thrust::device_vector<cuda_Board> dBoard{board};
+    thrust::device_vector<SmallPackedBoardT> dBoard{SmallPackedBoardT(std::vector{board})};
     thrust::device_vector<__uint64_t> dCount(1);
     thrust::device_vector<cuda_Move> dStack(16384);
 
@@ -103,7 +105,7 @@ void TestSinglePositionOutput(const std::string_view &fen) {
     const cuda_Board board(externalBoard);
 
     thrust::device_vector<cuda_Move> dMoves(256);
-    thrust::device_vector<cuda_Board> dBoard{board};
+    thrust::device_vector<SmallPackedBoardT> dBoard{SmallPackedBoardT(std::vector{board})};
     thrust::device_vector<int> dCount(1);
 
     thrust::device_vector<cuda_Move> dStack(16384);
@@ -180,7 +182,6 @@ void TestSinglePositionOutput(const std::string_view &fen) {
 }
 
 void MoveGenSplit() {
-    static constexpr __uint32_t WARP_SIZE = 32;
     static constexpr __uint32_t MAX_DEPTH = 32;
 
     const auto fenDb = LoadFenDb();
@@ -196,7 +197,7 @@ void MoveGenSplit() {
     thrust::device_vector<__uint64_t> dResults1(WARP_SIZE);
     thrust::device_vector<cuda_Move> dMoves(WARP_SIZE * 256);
 
-    thrust::device_vector<cuda_Board> dBoards = boards;
+    thrust::device_vector<DefaultPackedBoardT> dBoards{DefaultPackedBoardT(boards)};
     SimulateGamesKernelSplitMoves<<<1, BIT_BOARDS_PER_COLOR * WARP_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
                                                                            thrust::raw_pointer_cast(dSeeds.data()),
                                                                            thrust::raw_pointer_cast(dResults1.data()),
@@ -207,7 +208,7 @@ void MoveGenSplit() {
     thrust::host_vector<__uint64_t> hResults1 = dResults1;
 
     thrust::device_vector<__uint64_t> dResults2(WARP_SIZE);
-    dBoards = boards;
+    dBoards = thrust::device_vector<DefaultPackedBoardT>{DefaultPackedBoardT(boards)};
     SimulateGamesKernel<<<1, WARP_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
                                           thrust::raw_pointer_cast(dSeeds.data()),
                                           thrust::raw_pointer_cast(dResults2.data()),
@@ -244,6 +245,8 @@ void MoveGenTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps
 }
 
 void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+    std::cout << sizeof(DefaultPackedBoardT) << std::endl;
+
     try {
         MoveGenTest_(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {

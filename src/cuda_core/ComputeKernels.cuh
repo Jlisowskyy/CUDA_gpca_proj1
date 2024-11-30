@@ -10,15 +10,17 @@
 #include "Move.cuh"
 #include "MoveGenerator.cuh"
 #include "cuda_Board.cuh"
+#include "cuda_PackedBoard.cuh"
+
 
 static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE = 512;
 void __global__
-SimulateGamesKernel(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth);
+SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth);
 
 static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_SHARED_BATCH_SIZE = 384;
 
 void __global__
-SimulateGamesKernelShared(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
+SimulateGamesKernelShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
                           int maxDepth);
 
 static constexpr __uint32_t WARP_SIZE = 32;
@@ -30,11 +32,11 @@ static constexpr __uint32_t SINGLE_RUN_BLOCK_SIZE = 32 * 2;
 static constexpr __uint32_t SINGLE_RUN_BOARDS_SIZE = SINGLE_RUN_BLOCK_SIZE * SINGLE_BATCH_BOARD_SIZE;
 
 void __global__
-SimulateGamesKernelSplitMoves(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
+SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
                               int maxDepth);
 
 void __global__
-SimulateGamesKernelSplitMovesShared(cuda_Board *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
+SimulateGamesKernelSplitMovesShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
                                     int maxDepth);
 
 #endif //SRC_COMPUTEKERNELS_CUH

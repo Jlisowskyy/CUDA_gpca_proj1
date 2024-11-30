@@ -9,6 +9,7 @@
 #include "../cuda_core/MoveGenerator.cuh"
 #include "../cuda_core/cuda_Board.cuh"
 #include "../cuda_core/ComputeKernels.cuh"
+#include "../cuda_core/cuda_PackedBoard.cuh"
 
 #include "../ported/CpuTests.h"
 #include "../ported/CpuUtils.h"
@@ -105,7 +106,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
     const auto t1 = std::chrono::high_resolution_clock::now();
 
     for (__uint32_t i = 0; i < RETRIES; ++i) {
-        thrust::device_vector<cuda_Board> dBoards = boards;
+        thrust::device_vector<DefaultPackedBoardT> dBoards{DefaultPackedBoardT(boards)};
         func<<<blocks, BATCH_SIZE>>>(thrust::raw_pointer_cast(dBoards.data()),
                                      thrust::raw_pointer_cast(dSeeds.data()),
                                      thrust::raw_pointer_cast(dResults.data()),
@@ -139,7 +140,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
 
     const __uint32_t bIdxRange = totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE;
     for (__uint32_t i = 0; i < RETRIES; ++i) {
-        thrust::device_vector<cuda_Board> dBoards = boards;
+        thrust::device_vector<DefaultPackedBoardT> dBoards{DefaultPackedBoardT(boards)};
 
         for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
             for (__uint32_t j = 0; j < 2 && bIdx < bIdxRange; ++j, ++bIdx) {

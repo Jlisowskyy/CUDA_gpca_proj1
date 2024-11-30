@@ -14,8 +14,6 @@ class RookMap final {
     // ---------------------------------------
     // Class creation and initialization
     // ---------------------------------------
-
-    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
 public:
 
     RookMap() = delete;
@@ -35,8 +33,9 @@ public:
         return G_ROOK_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
     }
 
+    template<__uint32_t NUM_BOARDS>
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t
-    GetMatchingCastlingIndex(const _fetcher_t &fetcher, __uint64_t figBoard) {
+    GetMatchingCastlingIndex(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher, __uint64_t figBoard) {
         for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i)
             if (const __uint32_t index = fetcher.MovingColor() * CASTLINGS_PER_COLOR + i;
                     fetcher.GetCastlingRight(index) && (CASTLING_ROOK_MAPS[index] & figBoard) != 0)

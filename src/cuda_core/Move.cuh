@@ -165,6 +165,10 @@ struct VolatileBoardData {
             : Castlings(bd.Castlings), OldElPassant(bd.ElPassantField) {
     }
 
+    FAST_CALL explicit VolatileBoardData(__uint32_t c, __uint64_t ep)
+            : Castlings(c), OldElPassant(ep) {
+    }
+
     FAST_CALL explicit VolatileBoardData(const _fetcher_t &fetcher)
             : Castlings(fetcher.Castlings()), OldElPassant(fetcher.ElPassantField()) {
     }
@@ -229,7 +233,8 @@ public:
     // debugging tool
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkeyMove() const { return _packedMove.IsOkeyMove(); }
 
-    FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, _fetcher_t &fetcher) {
+    template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
+    FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher) {
         // removing the old piece from the board
         fetcher.SetBitBoard(fetcher.BitBoard(mv.GetStartBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetStartField()),
                             mv.GetStartBoardIndex());
@@ -261,7 +266,8 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsEmpty() const { return _packedMove.IsEmpty(); }
 
-    FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, _fetcher_t &fetcher, const VolatileBoardData &data) {
+    template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
+    FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher, const VolatileBoardData &data) {
         fetcher.ChangePlayingColor();
 
         // placing the piece on old board

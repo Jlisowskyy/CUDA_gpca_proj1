@@ -32,14 +32,16 @@ struct MoveGenDataMem {
     __uint64_t blockedMap{};
 };
 
-#define ASSERT(cond, msg) ASSERT_DISPLAY(&_board, cond, msg)
+//#define ASSERT(cond, msg) ASSERT_DISPLAY(&_board, cond, msg)
+#define ASSERT(cond, msg) assert(cond && msg)
 
+template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
 struct ChessMechanics {
     // ------------------------------
     // Class inner types
     // ------------------------------
 
-    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
+    using _fetcher_t = cuda_PackedBoard<NUM_BOARDS>::BoardFetcher;
 
     enum checkType {
         slidingFigCheck,
@@ -346,8 +348,8 @@ struct ChessMechanics {
     [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetAllowedTilesWhenCheckedByNonSliding() const {
         __uint64_t allowedTiles{};
 
-        allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles(_boardFetcher);
-        allowedTiles |= KingMap::GetSimpleFigCheckPawnAllowedTiles(_boardFetcher);
+        allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles<NUM_BOARDS>(_boardFetcher);
+        allowedTiles |= KingMap::GetSimpleFigCheckPawnAllowedTiles<NUM_BOARDS>(_boardFetcher);
 
         return allowedTiles;
     }

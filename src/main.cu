@@ -10,8 +10,6 @@
 #include <string>
 #include <iostream>
 
-#include "cuda_core/cuda_PackedBoard.cuh"
-
 int main() {
     CpuCore core{};
     core.init();

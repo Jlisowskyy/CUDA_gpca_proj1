@@ -78,12 +78,12 @@ set_target_properties(src
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set_source_files_properties(
             ${CUDA_SOURCES}
-            PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3"
+            PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3"
     )
 else()
     set_source_files_properties(
             ${CUDA_SOURCES}
-            PROPERTIES COMPILE_OPTIONS "--expt-relaxed-constexpr;-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
+            PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
     )
 endif()
 
@@ -94,4 +94,5 @@ target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}/tests/cpu
 )
 
-target_compile_definitions(src PRIVATE -DTESTING=\"move_perf\")
+target_compile_definitions(src PRIVATE -DTESTING=\"move_gen_perf\")
+set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 89-real 89-virtual)

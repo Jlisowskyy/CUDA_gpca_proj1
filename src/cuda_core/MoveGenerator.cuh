@@ -41,7 +41,20 @@ __device__ static constexpr uint16_t PromoFlags[]{
         0, KnightFlag, BishopFlag, RookFlag, QueenFlag,
 };
 
-class MoveGenerator : ChessMechanics {
+template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
+class MoveGenerator : ChessMechanics<NUM_BOARDS> {
+    using ChessMechanics<NUM_BOARDS>::GetColBitMap;
+    using ChessMechanics<NUM_BOARDS>::GetBlockedFieldBitMap;
+    using ChessMechanics<NUM_BOARDS>::GetPinnedFigsMap;
+    using ChessMechanics<NUM_BOARDS>::_boardFetcher;
+    using ChessMechanics<NUM_BOARDS>::_moveGenData;
+    using ChessMechanics<NUM_BOARDS>::GetFullBitMap;
+    using ChessMechanics<NUM_BOARDS>::GenerateAllowedTilesForPrecisedPinnedFig;
+    using ChessMechanics<NUM_BOARDS>::GetIndexOfContainingBitBoard;
+    using ChessMechanics<NUM_BOARDS>::GetBlockedFieldBitMapSplit;
+    using ChessMechanics<NUM_BOARDS>::GetAllowedTilesWhenCheckedByNonSliding;
+
+    using _fetcher_t = cuda_PackedBoard<NUM_BOARDS>::BoardFetcher;
 
     enum MoveGenFlags : __uint32_t {
         EMPTY_FLAGS = 0,
@@ -71,7 +84,7 @@ public:
     MoveGenerator() = delete;
 
     FAST_DCALL explicit MoveGenerator(const _fetcher_t &fetcher, Stack<cuda_Move> &s, MoveGenDataMem *md = nullptr)
-            : ChessMechanics(fetcher, md), stack(s) {}
+            : ChessMechanics<NUM_BOARDS>(fetcher, md), stack(s) {}
 
     MoveGenerator(MoveGenerator &other) = delete;
 
@@ -152,7 +165,7 @@ public:
         if (depth == 0)
             return 1;
 
-        MoveGenerator mGen{fetcher, stack};
+        MoveGenerator<NUM_BOARDS> mGen{fetcher, stack};
         const auto moves = mGen.GetMovesFast();
 
         if (depth == 1) {
@@ -162,18 +175,20 @@ public:
 
         __uint64_t sum{};
 
-        VolatileBoardData data(fetcher);
+        __uint32_t castlings = fetcher.Castlings();
+        __uint64_t ep = fetcher.ElPassantField();
+        VolatileBoardData data(castlings, ep);
         for (__uint32_t i = 0; i < moves.size; ++i) {
-            cuda_Move::MakeMove(moves[i], fetcher);
+            cuda_Move::MakeMove<NUM_BOARDS>(moves[i], fetcher);
             sum += CountMovesRecursive(fetcher, depth - 1);
-            cuda_Move::UnmakeMove(moves[i], fetcher, data);
+            cuda_Move::UnmakeMove<NUM_BOARDS>(moves[i], fetcher, data);
         }
 
         stack.PopAggregate(moves);
         return sum;
     }
 
-    using ChessMechanics::IsCheck;
+    using ChessMechanics<NUM_BOARDS>::IsCheck;
 
     // ------------------------------
     // private methods
@@ -190,17 +205,20 @@ private:
 
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
-                return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WoutAllowedTiles>(_boardFetcher.MovingColor(),
+                return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
+                        _boardFetcher.MovingColor(),
                                                                                         fullMap);
             }
 
             if (!wasCheckedBySimpleFig) {
-                return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WAllowedTiles>(_boardFetcher.MovingColor(),
+                return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WAllowedTiles>(
+                        _boardFetcher.MovingColor(),
                                                                                      fullMap);
             }
 
             [[maybe_unused]] const auto [rv, _] =
-                    GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WoutAllowedTiles>(_boardFetcher.MovingColor(),
+                    GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
+                            _boardFetcher.MovingColor(),
                                                                                      fullMap);
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
         }();
@@ -266,17 +284,20 @@ private:
 
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
-                return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WoutAllowedTiles>(_boardFetcher.MovingColor(),
+                return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
+                        _boardFetcher.MovingColor(),
                                                                                         fullMap);
             }
 
             if (!wasCheckedBySimpleFig) {
-                return GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WAllowedTiles>(_boardFetcher.MovingColor(),
+                return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WAllowedTiles>(
+                        _boardFetcher.MovingColor(),
                                                                                      fullMap);
             }
 
             [[maybe_unused]] const auto [rv, _] =
-                    GetPinnedFigsMap<ChessMechanics::PinnedFigGen::WoutAllowedTiles>(_boardFetcher.MovingColor(),
+                    GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
+                            _boardFetcher.MovingColor(),
                                                                                      fullMap);
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
         }();
@@ -476,7 +497,8 @@ private:
             // Performing checks for castlings
             __uint32_t updatedCastlings = _boardFetcher.Castlings();
             if (IsFlagOn(flags, CHECK_CASTLINGS)) {
-                SetBitBoardBit(updatedCastlings, RookMap::GetMatchingCastlingIndex(_boardFetcher, figBoard), false);
+                SetBitBoardBit(updatedCastlings, RookMap::GetMatchingCastlingIndex<NUM_BOARDS>(_boardFetcher, figBoard),
+                               false);
             }
 
             // preparing moves
