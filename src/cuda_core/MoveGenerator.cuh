@@ -134,23 +134,22 @@ public:
                          wasCheckedBySimple);
     }
 
-    [[nodiscard]] __device__ __uint64_t CountMoves(int depth) {
+    [[nodiscard]] __device__ __uint64_t CountMoves(int depth, void *ptr) {
         _fetcher_t fetcher = _boardFetcher;
-        return CountMovesRecursive(fetcher, depth);
+        return CountMovesRecursive(fetcher, ptr, 0, depth);
     }
 
-    [[nodiscard]] __device__ __uint64_t CountMovesRecursive(_fetcher_t &fetcher, int depth) {
-        if (depth == 0)
+    [[nodiscard]] __device__ __uint64_t
+    CountMovesRecursive(_fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
+        if (curDepth == maxDepth)
             return 1;
 
-        cuda_Move threadStackMoves[256];
-        __uint32_t threadStackCounter{};
-        Stack<cuda_Move> localStack(threadStackMoves, &threadStackCounter);
+        Stack<cuda_Move> localStack((cuda_Move *) (ptr) + curDepth * DEFAULT_STACK_SIZE);
 
         MoveGenerator<NUM_BOARDS> mGen{fetcher, localStack};
         mGen.GetMovesFast();
 
-        if (depth == 1) {
+        if ((maxDepth - curDepth) == 1) {
             return localStack.Size();
         }
 
@@ -159,7 +158,7 @@ public:
         VolatileBoardData data(fetcher.Castlings(), fetcher.ElPassantField());
         for (__uint32_t i = 0; i < localStack.Size(); ++i) {
             cuda_Move::MakeMove<NUM_BOARDS>(stack[i], fetcher);
-            sum += CountMovesRecursive(fetcher, depth - 1);
+            sum += CountMovesRecursive(fetcher, ptr, curDepth + 1, maxDepth);
             cuda_Move::UnmakeMove<NUM_BOARDS>(stack[i], fetcher, data);
         }
 

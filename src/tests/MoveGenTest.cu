@@ -52,7 +52,7 @@ void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves,
         char bytes[sizeof(cuda_Move)];
     };
 
-    __shared__ stub sharedStack[256];
+    __shared__ stub sharedStack[DEFAULT_STACK_SIZE];
     __shared__ __uint32_t counter;
     Stack<cuda_Move> stack((cuda_Move*)sharedStack, &counter);
 
@@ -66,41 +66,51 @@ void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves,
     }
 }
 
-void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, __uint64_t *outCount, void *ptr) {
-//    Stack<cuda_Move> stack(ptr);
-//    MoveGenerator<1> gen{(*board)[0], stack};
-//
-//    const auto moves = gen.CountMoves(depth);
-//    *outCount = moves;
+void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
+    struct stub {
+        char bytes[sizeof(cuda_Move)];
+    };
+
+    __shared__ stub sharedStack[10][DEFAULT_STACK_SIZE];
+    Stack<cuda_Move> stack(sharedStack);
+    MoveGenerator<1> gen{(*board)[0], stack};
+
+    const auto moves = gen.CountMoves(depth, sharedStack);
+    *outCount = moves;
 }
 
 void TestMoveCount(const std::string_view &fen, int depth) {
-//    std::cout << "Testing position: " << fen << std::endl;
-//
-//    const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
-//    cuda_Board board(externalBoard);
-//
-//    thrust::device_vector<SmallPackedBoardT> dBoard{SmallPackedBoardT(std::vector{board})};
-//    thrust::device_vector<__uint64_t> dCount(1);
-//    thrust::device_vector<cuda_Move> dStack(16384);
-//
-//    GetGPUMoveCountsKernel<<<1, 1>>>(thrust::raw_pointer_cast(dBoard.data()), depth,
-//                                     thrust::raw_pointer_cast(dCount.data()), thrust::raw_pointer_cast(dStack.data()));
-//    CUDA_TRACE_ERROR(cudaGetLastError());
-//    GUARDED_SYNC();
-//
-//    thrust::host_vector<__uint64_t> hdCount = dCount;
-//    const __uint64_t hCount = hdCount[0];
-//
-//    const auto cCount = cpu::CountMoves(externalBoard, depth);
-//
-//    if (cCount != hCount) {
-//        std::cerr << "Moves count mismatch: " << cCount << " != " << hCount << std::endl;
-//        std::cerr << "Depth: " << depth << std::endl;
-//        std::cerr << "Position: " << fen << std::endl;
-//    } else {
-//        std::cout << "Test passed for position: " << fen << std::endl;
-//    }
+    std::cout << "Testing position: " << fen << std::endl;
+
+    const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
+    cuda_Board board(externalBoard);
+
+    thrust::device_vector<__uint64_t> dCount(1);
+    thrust::device_vector<cuda_Move> dStack(16384);
+
+    auto *packedBoard = new SmallPackedBoardT(std::vector{board});
+    SmallPackedBoardT *dBoards;
+    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoards, sizeof(SmallPackedBoardT)));
+
+    GetGPUMoveCountsKernel<<<1, 1>>>(dBoards, depth, thrust::raw_pointer_cast(dCount.data()));
+    CUDA_TRACE_ERROR(cudaGetLastError());
+    GUARDED_SYNC();
+
+    thrust::host_vector<__uint64_t> hdCount = dCount;
+    const __uint64_t hCount = hdCount[0];
+
+    const auto cCount = cpu::CountMoves(externalBoard, depth);
+
+    if (cCount != hCount) {
+        std::cerr << "Moves count mismatch: " << cCount << " != " << hCount << std::endl;
+        std::cerr << "Depth: " << depth << std::endl;
+        std::cerr << "Position: " << fen << std::endl;
+    } else {
+        std::cout << "Test passed for position: " << fen << std::endl;
+    }
+
+    CUDA_ASSERT_SUCCESS(cudaFree(dBoards));
+    delete packedBoard;
 }
 
 void TestSinglePositionOutput(const std::string_view &fen) {
@@ -238,7 +248,23 @@ void MoveGenSplit() {
 //    }
 }
 
-void MoveGenTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void FenDBTest(bool fullBruteForceTest = false) {
+    auto fens = LoadFenDb();
+
+    for (const auto &fen: fens) {
+        TestSinglePositionOutput(fen);
+    }
+
+    if (!fullBruteForceTest) {
+        return;
+    }
+
+    for (const auto &fen: fens) {
+        TestMoveCount(fen, TEST_DEPTH);
+    }
+}
+
+void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     cudaDeviceSetLimit(cudaLimitStackSize, 16384);
     std::cout << "MoveGen Test" << std::endl;
 
@@ -248,13 +274,16 @@ void MoveGenTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps
     }
 
     std::cout << "Testing positions with non zero depth" << std::endl;
-    for (size_t i = 0; i < TestFEN.size(); ++i) {
-        TestMoveCount(TestFEN[i], TEST_DEPTH);
+    for (auto fen: TestFEN) {
+        TestMoveCount(fen, TEST_DEPTH);
     }
     cudaDeviceSetLimit(cudaLimitStackSize, 1024);
 
     std::cout << "Testing split move gen:" << std::endl;
     MoveGenSplit();
+
+    std::cout << "Testing move gen with whole fen db..." << std::endl;
+    FenDBTest();
 }
 
 void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
