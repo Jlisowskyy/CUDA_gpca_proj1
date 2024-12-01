@@ -39,4 +39,6 @@ void __global__
 SimulateGamesKernelSplitMovesShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
                                     int maxDepth);
 
+__global__ void PolluteCache(__uint32_t *data, const __uint32_t *seeds, __uint32_t *output, __uint32_t rounds);
+
 #endif //SRC_COMPUTEKERNELS_CUH

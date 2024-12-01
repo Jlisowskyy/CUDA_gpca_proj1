@@ -24,34 +24,12 @@
 #include <bitset>
 #include <array>
 #include <cassert>
-#include <filesystem>
 #include <random>
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 100;
-static constexpr __uint32_t MAX_DEPTH = 100;
-
-std::vector<std::string> LoadFenDb() {
-    const auto sourcePath = std::filesystem::path(__FILE__).parent_path();
-    const auto fenDbPath = sourcePath / "test_data/fen_db.txt";
-
-    const auto fenDb = cpu::LoadFenDb(fenDbPath);
-    std::cout << "Loaded " << fenDb.size() << " positions" << std::endl;
-
-    return fenDb;
-}
-
-std::vector<__uint32_t> GenSeeds(const __uint32_t size) {
-    std::vector<__uint32_t> seeds{};
-    seeds.reserve(size);
-
-    std::mt19937 rng{std::random_device{}()};
-    for (__uint32_t i = 0; i < size; ++i) {
-        seeds.push_back(rng());
-    }
-    return seeds;
-}
+static constexpr __uint32_t RETRIES = 1;
+static constexpr __uint32_t MAX_DEPTH = 32;
 
 void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, __uint64_t movesGenerated) {
     const double milliseconds = seconds * 1000.0;
@@ -90,6 +68,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
                   const std::vector<__uint32_t> &seeds) {
     const __uint32_t blocks = threadsAvailable / BATCH_SIZE;
     const auto sizeThreads = blocks * BATCH_SIZE;
+
     assert(sizeThreads == threadsAvailable && "Wrongly generated block/threads");
     assert(sizeThreads == seeds.size());
 
@@ -103,7 +82,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
     thrust::device_vector<__uint64_t> dResults(sizeThreads);
     thrust::device_vector<cuda_Move> dMoves(sizeThreads * 256);
 
-    auto packedBoard = DefaultPackedBoardT(boards);
+    auto *packedBoard = new DefaultPackedBoardT(boards);
 
     DefaultPackedBoardT *d_boards;
     CUDA_ASSERT_SUCCESS(cudaMalloc(&d_boards, sizeof(DefaultPackedBoardT)));
@@ -111,7 +90,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
     const auto t1 = std::chrono::high_resolution_clock::now();
 
     for (__uint32_t i = 0; i < RETRIES; ++i) {
-        CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, &packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
+        CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
 
         func<<<blocks, BATCH_SIZE>>>(d_boards,
                                      thrust::raw_pointer_cast(dSeeds.data()),
@@ -126,6 +105,9 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     DisplayPerfResults(seconds, hResults);
+
+    CUDA_ASSERT_SUCCESS(cudaFree(d_boards));
+    delete packedBoard;
 }
 
 template<class FuncT>
@@ -140,7 +122,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
     thrust::device_vector<__uint32_t> dSeeds = seeds;
     thrust::device_vector<__uint64_t> dResults(totalBoardsToProcess);
     thrust::device_vector<cuda_Move> dMoves(totalBoardsToProcess * 256);
-    auto packedBoard = DefaultPackedBoardT(boards);
+    auto *packedBoard = new DefaultPackedBoardT(boards);
 
     DefaultPackedBoardT *d_boards;
     CUDA_ASSERT_SUCCESS(cudaMalloc(&d_boards, sizeof(DefaultPackedBoardT)));
@@ -149,7 +131,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
 
     const auto t1 = std::chrono::high_resolution_clock::now();
     for (__uint32_t i = 0; i < RETRIES; ++i) {
-        CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, &packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
+        CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
 
         for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
             for (__uint32_t j = 0; j < 2 && bIdx < bIdxRange; ++j, ++bIdx) {
@@ -169,6 +151,8 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     DisplayPerfResults(seconds, hResults);
+    CUDA_ASSERT_SUCCESS(cudaFree(d_boards));
+    delete packedBoard;
 }
 
 void
@@ -216,12 +200,16 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
 
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV1(threadsAvailable, deviceProps, fenDb, seeds);
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV2(threadsAvailable, fenDb, seeds);
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
 //    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
+//    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
 //    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
+//    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable,
                                                                               RETRIES,

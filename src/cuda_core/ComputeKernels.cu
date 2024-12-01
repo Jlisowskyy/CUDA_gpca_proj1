@@ -9,10 +9,11 @@ SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
     __uint32_t seed = seeds[idx];
 
+    __shared__ __uint32_t counters[SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE];
     int depth{};
-
     while (depth < maxDepth) {
-        Stack<cuda_Move> stack(moves + idx * 256);
+        Stack<cuda_Move> stack(moves + idx * 256, counters + threadIdx.x);
+
         MoveGenerator mGen{(*boards)[idx], stack};
         const auto generatedMoves = mGen.GetMovesFast();
         __syncthreads();
@@ -201,4 +202,17 @@ SimulateGamesKernelSplitMovesShared(DefaultPackedBoardT *boards, const __uint32_
 //        simpleRand(seed);
 //        ++depth;
 //    }
+}
+
+__global__ void PolluteCache(__uint32_t *data, const __uint32_t *seeds, __uint32_t *output, __uint32_t rounds) {
+    const __uint32_t idx = blockIdx.x * blockDim.x + threadIdx.x;
+    __uint32_t seed = seeds[idx];
+
+    for (__uint32_t round = 0; round < rounds; ++round) {
+        output[idx] += data[idx];
+        data[idx] += data[idx];
+        data[idx] -= output[idx];
+
+        simpleRand(seed);
+    }
 }

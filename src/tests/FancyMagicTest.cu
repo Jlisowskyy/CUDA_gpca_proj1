@@ -265,18 +265,3 @@ void FancyMagicTest(__uint32_t threadsAvailable, const cudaDeviceProp &devicePro
         std::cerr << "Fancy Magic Test failed with exception: " << e.what() << std::endl;
     }
 }
-
-std::tuple<__uint32_t, __uint32_t> GetDims(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
-    //    const unsigned blocks = std::ceil(static_cast<double>(threadsAvailable) / deviceProps.maxThreadsPerBlock);
-    //    const unsigned threads = deviceProps.maxThreadsPerBlock;
-
-    const __uint32_t blocks = deviceProps.multiProcessorCount * 2;
-    const __uint32_t threads = deviceProps.maxThreadsPerMultiProcessor / 2;
-    const __uint32_t threadsUtilized = blocks * threads;
-
-    std::cout << "Utilizing " << blocks << " blocks..." << std::endl;
-    std::cout << "Utilizing " << threads << " threads per block..." << std::endl;
-    std::cout << "Totally utilizing " << threadsUtilized << " / " << threadsAvailable << " threads..." << std::endl;
-
-    return {blocks, threads};
-}

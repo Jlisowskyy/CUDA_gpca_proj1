@@ -43,6 +43,13 @@ struct Stack {
         }
     }
 
+    FAST_DCALL_ALWAYS explicit Stack(ItemT *ptr, __uint32_t *ctrPtr, bool ClearStack = true) :
+            _last(ctrPtr), _data(ptr) {
+        if (ClearStack) {
+            *_last = 0;
+        }
+    }
+
     ~Stack() = default;
 
     Stack(const Stack &) = delete;

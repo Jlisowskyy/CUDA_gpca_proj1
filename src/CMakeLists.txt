@@ -94,5 +94,5 @@ target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}/tests/cpu
 )
 
-target_compile_definitions(src PRIVATE -DTESTING=\"move_gen_perf\")
-set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 89-real 89-virtual)
+target_compile_definitions(src PRIVATE -DTESTING=\"move_perf\")
+#set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 89-real 89-virtual)

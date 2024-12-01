@@ -72,4 +72,6 @@ std::vector<std::string> LoadFenDb();
 
 std::vector<__uint32_t> GenSeeds(__uint32_t size);
 
+void PolluteCache();
+
 #endif //SRC_CUDATESTS_CUH
