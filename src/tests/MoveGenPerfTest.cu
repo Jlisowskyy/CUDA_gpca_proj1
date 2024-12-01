@@ -28,7 +28,7 @@
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 5;
+static constexpr __uint32_t RETRIES = 1;
 static constexpr __uint32_t MAX_DEPTH = 100;
 
 void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, __uint64_t movesGenerated) {
@@ -133,7 +133,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
         CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
 
         for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
-            for (__uint32_t j = 0; j < 2 && bIdx < bIdxRange; ++j, ++bIdx) {
+            for (__uint32_t j = 0; j < 4 && bIdx < bIdxRange; ++j, ++bIdx) {
                 func<<<SINGLE_RUN_BLOCK_SIZE, SINGLE_BATCH_SIZE>>>(
                         d_boards,
                         thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,

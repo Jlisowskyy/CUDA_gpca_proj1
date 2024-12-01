@@ -156,9 +156,7 @@ public:
 
         __uint64_t sum{};
 
-        __uint32_t castlings = fetcher.Castlings();
-        __uint64_t ep = fetcher.ElPassantField();
-        VolatileBoardData data(castlings, ep);
+        VolatileBoardData data(fetcher.Castlings(), fetcher.ElPassantField());
         for (__uint32_t i = 0; i < localStack.Size(); ++i) {
             cuda_Move::MakeMove<NUM_BOARDS>(stack[i], fetcher);
             sum += CountMovesRecursive(fetcher, depth - 1);

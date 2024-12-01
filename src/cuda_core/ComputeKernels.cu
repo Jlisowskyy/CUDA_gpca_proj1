@@ -70,8 +70,6 @@ SimulateGamesKernelShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, 
 
 __global__ void
 SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, int maxDepth) {
-    const auto [_, boardIdx, figIdx, resourceIdx] = CalcSplitIdx(threadIdx.x, blockIdx.x, blockDim.x);
-
     struct stub {
         char bytes[sizeof(cuda_Move)];
     };
@@ -79,42 +77,38 @@ SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *see
     __shared__ __uint32_t counters[SINGLE_BATCH_BOARD_SIZE];
     __shared__ stub stacks[SINGLE_BATCH_BOARD_SIZE][SPLIT_MAX_STACK_MOVES];
 
-    __uint32_t seed = seeds[boardIdx];
-    int depth{};
-
-    while (depth < maxDepth) {
+    __uint32_t seed = seeds[CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x)];
+    while (maxDepth --> 0) {
         __syncthreads();
 
-        Stack<cuda_Move> stack((cuda_Move*)stacks[resourceIdx], counters + resourceIdx, false);
+        Stack<cuda_Move> stack((cuda_Move*)stacks[CalcResourceIdx(threadIdx.x)], counters + CalcResourceIdx(threadIdx.x), false);
 
-        if (figIdx == 0) {
+        if (CalcFigIdx(threadIdx.x) == 0) {
             stack.Clear();
         }
 
         __syncthreads();
 
-        MoveGenerator<PACKED_BOARD_DEFAULT_SIZE, SPLIT_MAX_STACK_MOVES> mGen{(*boards)[boardIdx], stack};
-        mGen.GetMovesSplit(figIdx);
+        MoveGenerator<PACKED_BOARD_DEFAULT_SIZE, SPLIT_MAX_STACK_MOVES> mGen{(*boards)[CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x)], stack};
+        mGen.GetMovesSplit(CalcFigIdx(threadIdx.x));
         __syncthreads();
 
-        if (figIdx == 0) {
-            auto result = (__uint32_t *) (results + boardIdx);
+        if (CalcFigIdx(threadIdx.x) == 0) {
+            auto result = (__uint32_t *) (results + CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x));
             ++result[0];
             result[1] += stack.Size();
         }
 
         if (stack.Size() == 0) {
-            ++depth;
             continue;
         }
 
-        if (figIdx == 0) {
+        if (CalcFigIdx(threadIdx.x) == 0) {
             const auto nextMove = stack[seed % stack.Size()];
-            cuda_Move::MakeMove(nextMove, (*boards)[boardIdx]);
+            cuda_Move::MakeMove(nextMove, (*boards)[CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x)]);
         }
 
         simpleRand(seed);
-        ++depth;
     }
 }
 
@@ -217,12 +211,3 @@ __global__ void PolluteCache(__uint32_t *data, const __uint32_t *seeds, __uint32
     }
 }
 
-__host__ __device__ thrust::tuple<__uint32_t, __uint32_t, __uint32_t, __uint32_t>
-CalcSplitIdx(__uint32_t tx, __uint32_t bx, __uint32_t bs) {
-    const __uint32_t plainIdx = bx * bs + tx;
-    const __uint32_t boardIdx = (WARP_SIZE * (plainIdx / MINIMAL_BATCH_SIZE)) + (tx % WARP_SIZE);
-    const __uint32_t figIdx = (tx / WARP_SIZE) % BIT_BOARDS_PER_COLOR;
-    const __uint32_t counterIdx = WARP_SIZE * (tx / MINIMAL_BATCH_SIZE) + (tx % WARP_SIZE);
-
-    return {plainIdx, boardIdx, figIdx, counterIdx};
-}

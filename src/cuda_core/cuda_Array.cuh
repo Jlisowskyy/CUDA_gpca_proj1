@@ -12,7 +12,7 @@
 #include "Helpers.cuh"
 
 template<class T, __uint32_t SIZE>
-class cuda_Array final {
+class alignas(32) cuda_Array final {
 public:
     // ------------------------------
     // Class creation
@@ -101,7 +101,7 @@ public:
     // Class fields
     // ------------------------------
 protected:
-    T m_data[SIZE]{};
+    alignas(32) T m_data[SIZE]{};
 };
 
 #endif //SRC_CUDA_ARRAY_CUH

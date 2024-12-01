@@ -73,12 +73,13 @@ add_executable(src ${CUDA_SOURCES})
 set_target_properties(src
         PROPERTIES
         CUDA_SEPARABLE_COMPILATION ON
+        CUDA_RESOLVE_DEVICE_SYMBOLS ON
 )
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set_source_files_properties(
             ${CUDA_SOURCES}
-            PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3"
+            PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;"
     )
 else()
     set_source_files_properties(
@@ -95,5 +96,7 @@ target_include_directories(src PUBLIC
 )
 
 target_compile_definitions(src PRIVATE -DTESTING=\"move_perf\")
+target_compile_definitions(src PRIVATE -DAGGRESSIVE_INLINE=1)
 set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 70-real 70-virtual)
+#set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 60)
 

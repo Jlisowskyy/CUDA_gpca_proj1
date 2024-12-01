@@ -13,7 +13,7 @@
 #include <cassert>
 
 template<__uint32_t NUM_BOARDS>
-struct cuda_PackedBoard {
+struct alignas(128) cuda_PackedBoard {
     // ------------------------------
     // Inner types
     // ------------------------------
@@ -21,7 +21,7 @@ struct cuda_PackedBoard {
     struct BoardFetcher {
         BoardFetcher() = default;
 
-        HYBRID explicit BoardFetcher(__uint32_t idx, cuda_PackedBoard &packedBoard) : _idx(idx),
+        HYBRID explicit BoardFetcher(__uint32_t idx, cuda_PackedBoard *__restrict__ packedBoard) : _idx(idx),
                                                                                       _packedBoard(packedBoard) {}
 
         // ------------------------------
@@ -29,24 +29,24 @@ struct cuda_PackedBoard {
         // ------------------------------
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr __uint32_t &MovingColor() {
-            return _packedBoard.MovingColor[_idx];
+            return _packedBoard->MovingColor[_idx];
         }
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr const __uint32_t &MovingColor() const {
-            return _packedBoard.MovingColor[_idx];
+            return _packedBoard->MovingColor[_idx];
         }
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr __uint32_t &Castlings() {
-            return _packedBoard.Castlings[_idx];
+            return _packedBoard->Castlings[_idx];
         }
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr const __uint32_t &Castlings() const {
-            return _packedBoard.Castlings[_idx];
+            return _packedBoard->Castlings[_idx];
         }
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr __uint64_t ElPassantField() const {
-            __uint64_t lo = _packedBoard.ElPassantField[_idx];
-            __uint64_t hi = _packedBoard.ElPassantField[NUM_BOARDS + _idx];
+            __uint64_t lo = _packedBoard->ElPassantField[_idx];
+            __uint64_t hi = _packedBoard->ElPassantField[NUM_BOARDS + _idx];
 
             return lo | (hi << 32);
         }
@@ -57,13 +57,13 @@ struct cuda_PackedBoard {
             __uint64_t lo = field & MASK_32_BIT;
             __uint64_t hi = (field >> 32) & MASK_32_BIT;
 
-            _packedBoard.ElPassantField[_idx] = lo;
-            _packedBoard.ElPassantField[NUM_BOARDS + _idx] = hi;
+            _packedBoard->ElPassantField[_idx] = lo;
+            _packedBoard->ElPassantField[NUM_BOARDS + _idx] = hi;
         }
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr __uint64_t BitBoard(__uint32_t idx) const {
-            __uint64_t lo = _packedBoard.Boards[NUM_BOARDS * idx + _idx];
-            __uint64_t hi = _packedBoard.Boards[(NUM_BOARDS * BIT_BOARDS_GUARDED_COUNT) + NUM_BOARDS * idx + _idx];
+            __uint64_t lo = _packedBoard->Boards[NUM_BOARDS * idx + _idx];
+            __uint64_t hi = _packedBoard->Boards[(NUM_BOARDS * BIT_BOARDS_GUARDED_COUNT) + NUM_BOARDS * idx + _idx];
 
             return lo | (hi << 32);
         }
@@ -72,8 +72,8 @@ struct cuda_PackedBoard {
             __uint64_t lo = field & MASK_32_BIT;
             __uint64_t hi = (field >> 32) & MASK_32_BIT;
 
-            _packedBoard.Boards[NUM_BOARDS * idx + _idx] = lo;
-            _packedBoard.Boards[(NUM_BOARDS * BIT_BOARDS_GUARDED_COUNT) + NUM_BOARDS * idx + _idx] = hi;
+            _packedBoard->Boards[NUM_BOARDS * idx + _idx] = lo;
+            _packedBoard->Boards[(NUM_BOARDS * BIT_BOARDS_GUARDED_COUNT) + NUM_BOARDS * idx + _idx] = hi;
         }
 
         // ------------------------------
@@ -106,7 +106,7 @@ struct cuda_PackedBoard {
 
     protected:
         __uint32_t _idx;
-        cuda_PackedBoard &_packedBoard;
+        cuda_PackedBoard *__restrict__ _packedBoard;
     };
 
     // ------------------------------
@@ -125,7 +125,7 @@ struct cuda_PackedBoard {
         assert(boards.size() <= NUM_BOARDS);
 
         for (__uint32_t idx = 0; idx < boards.size(); ++idx) {
-            BoardFetcher fetcher(idx, *this);
+            BoardFetcher fetcher(idx, this);
 
             fetcher.MovingColor() = boards[idx].MovingColor;
             fetcher.Castlings() = boards[idx].Castlings;
@@ -142,21 +142,21 @@ struct cuda_PackedBoard {
     // ------------------------------
 
     [[nodiscard]] FAST_CALL_ALWAYS constexpr BoardFetcher operator[](__uint32_t boardIdx) {
-        return BoardFetcher(boardIdx, *this);
+        return BoardFetcher(boardIdx, this);
     }
 
     [[nodiscard]] FAST_CALL_ALWAYS constexpr const BoardFetcher &operator[](__uint32_t boardIdx) const {
-        return BoardFetcher(boardIdx, *this);
+        return BoardFetcher(boardIdx, this);
     }
 
     // --------------------------------
     // Main processing components
     // --------------------------------
 
-    cuda_Array<__uint32_t, NUM_BOARDS * BIT_BOARDS_GUARDED_COUNT * 2> Boards;
-    cuda_Array<__uint32_t, NUM_BOARDS * 2> ElPassantField;
-    cuda_Array<__uint32_t, NUM_BOARDS> Castlings;
-    cuda_Array<__uint32_t, NUM_BOARDS> MovingColor;
+    alignas(32) cuda_Array<__uint32_t, NUM_BOARDS * BIT_BOARDS_GUARDED_COUNT * 2> Boards;
+    alignas(32) cuda_Array<__uint32_t, NUM_BOARDS * 2> ElPassantField;
+    alignas(32) cuda_Array<__uint32_t, NUM_BOARDS> Castlings;
+    alignas(32) cuda_Array<__uint32_t, NUM_BOARDS> MovingColor;
 };
 
 using DefaultPackedBoardT = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>;

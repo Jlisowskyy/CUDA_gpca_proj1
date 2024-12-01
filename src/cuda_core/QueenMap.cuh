@@ -26,7 +26,7 @@ public:
         return BIT_BOARDS_PER_COLOR * color + QUEEN_INDEX;
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t
+    [[nodiscard]] FAST_DCALL_ALWAYS static __uint64_t
     GetMoves(__uint32_t msbInd, __uint64_t fullMap, [[maybe_unused]] __uint64_t = 0) {
         return BishopMap::GetMoves(msbInd, fullMap) | RookMap::GetMoves(msbInd, fullMap);
     }
