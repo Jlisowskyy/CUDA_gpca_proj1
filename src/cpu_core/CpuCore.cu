@@ -6,6 +6,7 @@
 
 #include "../cuda_core/Helpers.cuh"
 #include "../cuda_core/RookMap.cuh"
+#include "../cuda_core/KnightMap.cuh"
 
 #include <cuda_runtime.h>
 
@@ -15,16 +16,20 @@
 #include <string>
 #include <cassert>
 
-void initializeRookMap() {
+void initializeMaps() {
     FancyMagicRookMap hostMap{
             false}; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
     CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
+
+    KnightMapConstants::textureMap.Initialize();
 }
 
 CpuCore::CpuCore() = default;
 
 CpuCore::~CpuCore() {
     delete m_deviceProps;
+
+    KnightMapConstants::textureMap.Cleanup();
 }
 
 void CpuCore::runCVC() {
@@ -48,7 +53,7 @@ void CpuCore::init() {
     m_deviceThreads = deviceHardwareThreads;
     m_deviceProps = deviceProps;
 
-    initializeRookMap();
+    initializeMaps();
 }
 
 std::tuple<int, int, cudaDeviceProp *> CpuCore::_pickGpu() {
