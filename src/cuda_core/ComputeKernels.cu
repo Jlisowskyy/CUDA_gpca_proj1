@@ -222,6 +222,5 @@ CalcSplitIdx(__uint32_t tx, __uint32_t bx, __uint32_t bs) {
     const __uint32_t figIdx = (tx / WARP_SIZE) % BIT_BOARDS_PER_COLOR;
     const __uint32_t counterIdx = WARP_SIZE * (tx / MINIMAL_BATCH_SIZE) + (tx % WARP_SIZE);
 
-
     return {plainIdx, boardIdx, figIdx, counterIdx};
 }

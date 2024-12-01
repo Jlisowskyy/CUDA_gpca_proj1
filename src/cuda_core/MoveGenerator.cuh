@@ -129,7 +129,7 @@ public:
     FAST_DCALL void GetMovesSplit(const __uint32_t figIdx) {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
         const __uint64_t fullMap = GetFullBitMap();
-        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMapSplit(fullMap, figIdx);
+        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(fullMap);
 
         ASSERT(blockedFigMap != 0, "Blocked fig map must at least contains fields controlled by king!");
         ASSERT(checksCount <= 2,

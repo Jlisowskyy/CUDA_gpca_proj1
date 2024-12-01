@@ -6,6 +6,7 @@
 #define STACK_H
 
 #include <cstdlib>
+#include <cstdint>
 
 #include "Helpers.cuh"
 
@@ -20,8 +21,9 @@ struct Stack {
         __uint32_t size;
 
         FAST_DCALL_ALWAYS void Push(Stack &s, ItemT item) {
-            s.Push(item);
-            ++size;
+            if (s.Push(item)) {
+                ++size;
+            }
         }
 
         FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const { return data[ind]; }
@@ -64,9 +66,17 @@ struct Stack {
     // Class interaction
     // ------------------------------
 
-    FAST_DCALL_ALWAYS void Push(const ItemT item) {
+    template<__uint32_t MAX_ITEMS = UINT32_MAX>
+    FAST_DCALL_ALWAYS bool Push(const ItemT item) {
         __uint32_t idx = atomicAdd(_last, 1);
+
+        if (MAX_ITEMS != UINT32_MAX && idx >= MAX_ITEMS) {
+            atomicSub(_last, 1);
+            return false;
+        }
+
         _data[idx] = item;
+        return true;
     }
 
     FAST_DCALL_ALWAYS void Clear() { *_last = 0; }
