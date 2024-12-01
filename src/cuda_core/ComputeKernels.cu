@@ -15,19 +15,19 @@ SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint
         Stack<cuda_Move> stack(moves + idx * 256, counters + threadIdx.x);
 
         MoveGenerator mGen{(*boards)[idx], stack};
-        const auto generatedMoves = mGen.GetMovesFast();
+        mGen.GetMovesFast();
         __syncthreads();
 
         auto result = (__uint32_t *) (results + idx);
         ++result[0];
-        result[1] += generatedMoves.size;
+        result[1] += stack.Size();
 
-        if (generatedMoves.size == 0) {
+        if (stack.Size() == 0) {
             ++depth;
             continue;
         }
 
-        const auto nextMove = generatedMoves[seed % generatedMoves.size];
+        const auto nextMove = stack[seed % stack.Size()];
         cuda_Move::MakeMove(nextMove, (*boards)[idx]);
 
         simpleRand(seed);

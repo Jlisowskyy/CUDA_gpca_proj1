@@ -13,27 +13,6 @@
 template<class ItemT>
 struct Stack {
     // ------------------------------
-    // Class inner types
-    // ------------------------------
-
-    struct StackPayload {
-         __uint32_t size;
-
-        template<__uint32_t MAX_ITEMS = UINT32_MAX>
-        FAST_DCALL_ALWAYS bool Push(Stack &s, ItemT item) {
-            if (s.Push<MAX_ITEMS>(item)) {
-                ++size;
-                return true;
-            }
-            return false;
-        }
-
-        FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const { return data[ind]; }
-
-        FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) { return data[ind]; }
-    };
-
-    // ------------------------------
     // Class creation
     // ------------------------------
 
@@ -85,21 +64,17 @@ struct Stack {
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t Size() const { return *_last; }
 
-    FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const { return _data[ind]; }
+    FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const {
+        assert(ind < *last && "STACK OVERFLOW!");
+        return _data[ind];
+    }
 
-    FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) { return _data[ind]; }
+    FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) {
+        assert(ind < *last && "STACK OVERFLOW!");
+        return _data[ind];
+    }
 
     FAST_DCALL_ALWAYS ItemT *Top() { return _data + *_last; }
-
-    // ------------------------------
-    // Aggregates
-    // ------------------------------
-
-    /* Aggregates are not thread safe */
-
-    FAST_DCALL_ALWAYS StackPayload GetPayload() { return {_data + *_last, 0}; }
-
-    FAST_DCALL_ALWAYS void PopAggregate(const StackPayload payload) { *_last -= payload.size; }
 
     // ------------------------------
     // Class fields
