@@ -12,7 +12,7 @@
 #include "cuda_Array.cuh"
 #include "cuda_Board.cuh"
 
-__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_PARAMS_MAGICS{
+__device__ __constant__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_PARAMS_MAGICS{
         2459020380749179396LLU,
         18228596997040662761LLU,
         577023771530035456LLU,
@@ -79,7 +79,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_PARA
         18381131039969901408LLU,
 };
 
-__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_OFFSET_PARAMS{
+__device__ __constant__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_OFFSET_PARAMS{
         6,
         5,
         5,
@@ -180,7 +180,7 @@ public:
     // ------------------------------
 
 protected:
-    cuda_Array<_underlyingMapT, BIT_BOARD_FIELDS> _maps;
+    alignas(128) cuda_Array<_underlyingMapT, BIT_BOARD_FIELDS> _maps;
 };
 
 #endif //SRC_FANCYMAGICBISHOPMAP_CUH

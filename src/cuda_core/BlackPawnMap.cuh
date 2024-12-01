@@ -12,22 +12,22 @@
 #include "Helpers.cuh"
 
 namespace BlackPawnMapConstants {
-    static constexpr __uint64_t PromotingMask = GenMask(8, 16, 1);
+    __device__ __constant__ static constexpr __uint64_t PromotingMask = GenMask(8, 16, 1);
 
     // Mask indicating whether black pawn can be killed on that field by enemy pawn
-    static constexpr __uint64_t ElPassantMask = GenMask(32, 40, 1);
+    __device__ __constant__ static constexpr __uint64_t ElPassantMask = GenMask(32, 40, 1);
 
     // Mask indicating whether white pawn can be killed on that field by enemy pawn
-    static constexpr __uint64_t EnemyElPassantMask = GenMask(24, 32, 1);
+    __device__ __constant__ static constexpr __uint64_t EnemyElPassantMask = GenMask(24, 32, 1);
 
     // Mask with ones only on "x7" line
-    static constexpr __uint64_t StartMask = GenMask(48, 56, 1);
+    __device__ __constant__ static constexpr __uint64_t StartMask = GenMask(48, 56, 1);
 
-    // Mask with ones only on 'Ax" line
-    static constexpr __uint64_t LeftMask = ~GenMask(0, 57, 8);
+    // Mask with ones only on "Ax" line
+    __device__ __constant__ static constexpr __uint64_t LeftMask = ~GenMask(0, 57, 8);
 
     // Mask with ones only on "Hx" line
-    static constexpr __uint64_t RightMask = ~GenMask(7, 64, 8);
+    __device__ __constant__ static constexpr __uint64_t RightMask = ~GenMask(7, 64, 8);
 }
 
 class BlackPawnMap final {
@@ -85,8 +85,8 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetElPassantSuspectedFields(__uint64_t elPassantField) {
         const __uint64_t leftField = (BlackPawnMapConstants::LeftMask & elPassantField) >> 1;
-        const __uint64_t righField = (BlackPawnMapConstants::RightMask & elPassantField) << 1;
-        return leftField | righField;
+        const __uint64_t rightField = (BlackPawnMapConstants::RightMask & elPassantField) << 1;
+        return leftField | rightField;
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint64_t GetElPassantMoveField(__uint64_t elPassantField) {

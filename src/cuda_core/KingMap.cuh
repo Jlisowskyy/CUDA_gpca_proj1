@@ -13,21 +13,21 @@
 #include "cuda_Array.cuh"
 
 namespace KingMapConstants {
-    __device__ static constexpr __uint32_t maxMovesCount = 8;
+    __device__ __constant__ static constexpr __uint32_t maxMovesCount = 8;
 
     // Describes king possible moves coordinates.
-    __device__ static constexpr int movesCords[] = {-1, -9, -8, -7, 1, 9, 8, 7};
+    __device__ __constant__ static constexpr int movesCords[] = {-1, -9, -8, -7, 1, 9, 8, 7};
 
     // Describes accordingly y positions after the move relatively to king's y position.
     // Used to omit errors during generation.
-    __device__ static constexpr int rowCords[] = {0, -1, -1, -1, 0, 1, 1, 1};
+    __device__ __constant__ static constexpr int rowCords[] = {0, -1, -1, -1, 0, 1, 1, 1};
 
-    __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesMap =
+    alignas(128) __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesMap =
             GenStaticMoves(maxMovesCount, movesCords, rowCords);
 
     // Masks used to detect allowed tiles when checked by pawn
-    __device__ static constexpr __uint64_t LeftPawnDetectionMask = ~GenMask(0, 57, 8);
-    __device__ static constexpr __uint64_t RightPawnDetectionMask = ~GenMask(7, 64, 8);
+    __device__ __constant__ static constexpr __uint64_t LeftPawnDetectionMask = ~GenMask(0, 57, 8);
+    __device__ __constant__ static constexpr __uint64_t RightPawnDetectionMask = ~GenMask(7, 64, 8);
 }
 
 struct KingMap final {

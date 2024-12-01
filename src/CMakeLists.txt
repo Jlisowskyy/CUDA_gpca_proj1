@@ -97,6 +97,6 @@ target_include_directories(src PUBLIC
 set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 70-real 70-virtual)
 #set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 60)
 
-target_compile_definitions(src PRIVATE -DTESTING=\"move_gen\")
+target_compile_definitions(src PRIVATE -DTESTING=\"move_perf\")
 target_compile_definitions(src PRIVATE -DAGGRESSIVE_INLINE=1)
 

@@ -8,8 +8,7 @@
 #include "cuda_Array.cuh"
 #include "Helpers.cuh"
 
-__device__ static constexpr __uint32_t MASKS_COUNT = 4;
-__device__ static constexpr __uint64_t EMPTY_FIELD = ~0ULL;
+__device__ __constant__ static constexpr __uint32_t MASKS_COUNT = 4;
 
 template<__uint32_t SIZE = 256>
 class BaseMoveHashMap final {
@@ -67,12 +66,12 @@ protected:
     /* Hash function */
     __uint64_t m_magic{};
     __uint64_t m_shift{};
-
-    /* Map components */
-    cuda_Array<__uint64_t, MASKS_COUNT> m_masks{};
     __uint64_t m_fullMask{};
 
-    cuda_Array<__uint64_t, SIZE> m_map{};
+    /* Map components */
+    alignas(128) cuda_Array<__uint64_t, MASKS_COUNT> m_masks{};
+
+    alignas(128) cuda_Array<__uint64_t, SIZE> m_map{};
 };
 
 #endif // HASHMAP_H

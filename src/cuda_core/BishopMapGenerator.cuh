@@ -14,15 +14,15 @@
 
 #include "cuda_Array.cuh"
 
-__device__ static constexpr __uint32_t MaxPossibleNeighborsWoutOverlap = 108;
-__device__ static constexpr __uint32_t MaxPossibleNeighborsWithOverlap = 512;
+__device__ __constant__ static constexpr __uint32_t MaxPossibleNeighborsWoutOverlap = 108;
+__device__ __constant__ static constexpr __uint32_t MaxPossibleNeighborsWithOverlap = 512;
 
-__device__ static constexpr int NWOffset = 7;
-__device__ static constexpr int NEOffset = 9;
-__device__ static constexpr int SWOffset = -9;
-__device__ static constexpr int SEOffset = -7;
+__device__ __constant__ static constexpr int NWOffset = 7;
+__device__ __constant__ static constexpr int NEOffset = 9;
+__device__ __constant__ static constexpr int SWOffset = -9;
+__device__ __constant__ static constexpr int SEOffset = -7;
 
-__device__ static constexpr __uint32_t DirectedMaskCount = 4;
+__device__ __constant__ static constexpr __uint32_t DirectedMaskCount = 4;
 
 
 class BishopMapGenerator final {

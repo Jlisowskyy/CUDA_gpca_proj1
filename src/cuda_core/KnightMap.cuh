@@ -10,16 +10,16 @@
 #include "cuda_Array.cuh"
 
 namespace KnightMapConstants {
-    __device__ static constexpr __uint32_t maxMovesCount = 8;
+    __device__ __constant__ static constexpr __uint32_t maxMovesCount = 8;
 
     // Describes knight possible moves coordinates.
-    __device__ static constexpr int movesCords[] = {6, 15, 17, 10, -6, -15, -17, -10};
+    __device__ __constant__ static constexpr int movesCords[] = {6, 15, 17, 10, -6, -15, -17, -10};
 
     // Accordingly describes y positions after the move relatively to knight's y position.
     // Used to omit errors during generation.
-    __device__ static constexpr int rowCords[] = {1, 2, 2, 1, -1, -2, -2, -1};
+    __device__ __constant__ static constexpr int rowCords[] = {1, 2, 2, 1, -1, -2, -2, -1};
 
-    __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesMap =
+    alignas(128) __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesMap =
             GenStaticMoves(maxMovesCount, movesCords, rowCords);
 }
 

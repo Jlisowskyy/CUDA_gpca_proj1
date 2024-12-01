@@ -37,22 +37,22 @@
  *  ON BY DEFAULT INITIALIZED OBJECTS EVERY ONE OF THEM WORKS ONCE
  */
 
-__device__ static constexpr __uint16_t PromoFlag = 0b1000;
-__device__ static constexpr __uint16_t CaptureFlag = 0b100;
-__device__ static constexpr __uint16_t CastlingFlag = 0b10;
-__device__ static constexpr __uint16_t QueenFlag = 0;
-__device__ static constexpr __uint16_t RookFlag = 0b1;
-__device__ static constexpr __uint16_t BishopFlag = 0b10;
-__device__ static constexpr __uint16_t KnightFlag = 0b11;
-__device__ static constexpr __uint16_t PromoSpecBits = 0b11;
+__device__ __constant__ static constexpr __uint16_t PromoFlag = 0b1000;
+__device__ __constant__ static constexpr __uint16_t CaptureFlag = 0b100;
+__device__ __constant__ static constexpr __uint16_t CastlingFlag = 0b10;
+__device__ __constant__ static constexpr __uint16_t QueenFlag = 0;
+__device__ __constant__ static constexpr __uint16_t RookFlag = 0b1;
+__device__ __constant__ static constexpr __uint16_t BishopFlag = 0b10;
+__device__ __constant__ static constexpr __uint16_t KnightFlag = 0b11;
+__device__ __constant__ static constexpr __uint16_t PromoSpecBits = 0b11;
 
-__device__ static constexpr __uint16_t MoveTypeBits = 0xF << 12;
-__device__ static constexpr __uint16_t Bit6 = 0b111111;
-__device__ static constexpr __uint16_t Bit4 = 0b1111;
-__device__ static constexpr __uint16_t Bit3 = 0b111;
-__device__ static constexpr __uint16_t PromoBit = PromoFlag << 12;
-__device__ static constexpr __uint16_t CaptureBit = CaptureFlag << 12;
-__device__ static constexpr __uint16_t CastlingBits = CastlingFlag << 12;
+__device__ __constant__ static constexpr __uint16_t MoveTypeBits = 0xF << 12;
+__device__ __constant__ static constexpr __uint16_t Bit6 = 0b111111;
+__device__ __constant__ static constexpr __uint16_t Bit4 = 0b1111;
+__device__ __constant__ static constexpr __uint16_t Bit3 = 0b111;
+__device__ __constant__ static constexpr __uint16_t PromoBit = PromoFlag << 12;
+__device__ __constant__ static constexpr __uint16_t CaptureBit = CaptureFlag << 12;
+__device__ __constant__ static constexpr __uint16_t CastlingBits = CastlingFlag << 12;
 
 class cuda_Move;
 
@@ -88,10 +88,10 @@ struct cuda_PackedMove final {
         static constexpr char PromoFigs[] = {'q', 'r', 'b', 'n'};
         std::string rv;
 
-        auto [c1, c2] = ConvertToCharPos((int) GetStartField());
+        auto [c1, c2] = ConvertToCharPos((int) GetStartFieldCPU());
         rv += c1;
         rv += c2;
-        auto [c3, c4] = ConvertToCharPos((int) GetTargetField());
+        auto [c3, c4] = ConvertToCharPos((int) GetTargetFieldCPU());
         rv += c3;
         rv += c4;
 
@@ -109,14 +109,24 @@ struct cuda_PackedMove final {
 
     FAST_DCALL_ALWAYS void SetStartField(const __uint16_t startField) { _packedMove |= startField; }
 
-    [[nodiscard]] FAST_CALL __uint16_t GetStartField() const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetStartField() const {
+        __constant__ static constexpr __uint16_t StartFieldMask = Bit6;
+        return StartFieldMask & _packedMove;
+    }
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetStartFieldCPU() const {
         static constexpr __uint16_t StartFieldMask = Bit6;
         return StartFieldMask & _packedMove;
     }
 
     FAST_DCALL_ALWAYS void SetTargetField(const __uint16_t targetField) { _packedMove |= targetField << 6; }
 
-    [[nodiscard]] FAST_CALL __uint16_t GetTargetField() const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetTargetField() const {
+        __constant__ static constexpr __uint16_t TargetFieldMask = Bit6 << 6;
+        return (_packedMove & TargetFieldMask) >> 6;
+    }
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetTargetFieldCPU() const {
         static constexpr __uint16_t TargetFieldMask = Bit6 << 6;
         return (_packedMove & TargetFieldMask) >> 6;
     }
@@ -127,13 +137,13 @@ struct cuda_PackedMove final {
 
     [[nodiscard]] FAST_DCALL_ALWAYS  bool IsCapture() const { return (_packedMove & CaptureBit) != 0; }
 
-    [[nodiscard]] FAST_CALL  bool IsPromo() const { return (_packedMove & PromoBit) != 0; }
+    [[nodiscard]] FAST_CALL_ALWAYS  bool IsPromo() const { return (_packedMove & PromoBit) != 0; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS  bool IsCastling() const { return (_packedMove & MoveTypeBits) == CastlingBits; }
 
     FAST_DCALL_ALWAYS void SetMoveType(const __uint16_t MoveType) { _packedMove |= MoveType << 12; }
 
-    [[nodiscard]] FAST_CALL __uint16_t GetMoveType() const { return (_packedMove & MoveTypeBits) >> 12; }
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetMoveType() const { return (_packedMove & MoveTypeBits) >> 12; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsValidMove() const { return !IsEmpty(); }
 
@@ -177,11 +187,11 @@ struct VolatileBoardData {
     const __uint64_t OldElPassant;
 };
 
-__device__ static constexpr __uint32_t move_CastlingIdxArr[5]{
+__device__ __constant__ static constexpr __uint32_t move_CastlingIdxArr[5]{
         SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
 };
 
-__device__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
+__device__ __constant__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
         1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
         CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
@@ -307,8 +317,8 @@ public:
     FAST_DCALL_ALWAYS void SetStartBoardIndex(const __uint16_t startBoard) { _packedIndexes |= startBoard; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetStartBoardIndex() const {
-        static constexpr __uint16_t
-                StartBoardMask = Bit4;
+        __constant__ static constexpr __uint16_t StartBoardMask = Bit4;
+
         return _packedIndexes & StartBoardMask;
     }
 
@@ -317,8 +327,8 @@ public:
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetTargetBoardIndex() const {
-        static constexpr __uint16_t
-                TargetBoardIndexMask = Bit4 << 4;
+        __constant__ static constexpr __uint16_t TargetBoardIndexMask = Bit4 << 4;
+
         return (_packedIndexes & TargetBoardIndexMask) >> 4;
     }
 
@@ -327,27 +337,28 @@ public:
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetKilledBoardIndex() const {
-        static constexpr __uint16_t
-                KilledBoardIndexMask = Bit4 << 8;
+        __constant__ static constexpr __uint16_t KilledBoardIndexMask = Bit4 << 8;
+
         return (_packedIndexes & KilledBoardIndexMask) >> 8;
     }
 
     FAST_DCALL_ALWAYS void SetCastlingType(const __uint16_t castlingType) { _packedIndexes |= castlingType << 12; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetCastlingType() const {
-        static constexpr __uint16_t
-                CastlingTypeMask = Bit3 << 12;
+        __constant__ static constexpr __uint16_t CastlingTypeMask = Bit3 << 12;
+
         return (_packedIndexes & CastlingTypeMask) >> 12;
     }
 
     FAST_DCALL_ALWAYS void SetCheckType() {
-        static constexpr __uint16_t CheckTypeBit = 1LLU << 15;
+        __constant__ static constexpr __uint16_t CheckTypeBit = 1LLU << 15;
+
         _packedIndexes |= CheckTypeBit;
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsChecking() const {
-        static constexpr __uint16_t
-                CheckTypeBit = 1LLU << 15;
+        __constant__ static constexpr __uint16_t CheckTypeBit = 1LLU << 15;
+
         return (_packedIndexes & CheckTypeBit) > 0;
     }
 
@@ -355,26 +366,27 @@ public:
     SetKilledFigureField(const __uint16_t killedFigureField) { _packedMisc |= killedFigureField; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetKilledFigureField() const {
-        static constexpr __uint16_t
-                KilledFigureFieldMask = Bit6;
+        __constant__ static constexpr __uint16_t KilledFigureFieldMask = Bit6;
         return _packedMisc & KilledFigureFieldMask;
     }
 
     FAST_DCALL_ALWAYS void SetElPassantField(const __uint16_t elPassantField) { _packedMisc |= elPassantField << 6; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetElPassantField() const {
-        static constexpr __uint16_t ElPassantFieldMask = Bit6 << 6;
+        __constant__ static constexpr __uint16_t ElPassantFieldMask = Bit6 << 6;
+
         return (_packedMisc & ElPassantFieldMask) >> 6;
     }
 
     FAST_DCALL_ALWAYS void SetCasltingRights(const __uint32_t arr) {
         const __uint16_t rights = arr & static_cast<__uint32_t>(0xF);
+
         _packedMisc |= rights << 12;
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetCastlingRights() const {
-        static constexpr __uint32_t
-                CastlingMask = Bit4 << 12;
+        __constant__ static constexpr __uint32_t CastlingMask = Bit4 << 12;
+
         const __uint32_t rights = (_packedMisc & CastlingMask) >> 12;
 
         return rights;

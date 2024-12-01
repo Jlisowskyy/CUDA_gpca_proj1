@@ -183,7 +183,7 @@ public:
 
 protected:
 
-    cuda_Array<_underlyingMapT, BIT_BOARD_FIELDS> m_maps{};
+    alignas(128) cuda_Array<_underlyingMapT, BIT_BOARD_FIELDS> m_maps{};
 };
 
 #endif //SRC_FANCYMAGICROOKMAP_CUH

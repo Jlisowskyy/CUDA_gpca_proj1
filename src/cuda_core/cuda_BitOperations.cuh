@@ -11,8 +11,8 @@
 #include <cuda_device_runtime_api.h>
 
 /* This values should be used inside every shifting operation to ensure correct types under the operation */
-__device__ static constexpr __uint64_t cuda_MinMsbPossible = static_cast<__uint64_t>(1);
-__device__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible << 63;
+__device__ __constant__ static constexpr __uint64_t cuda_MinMsbPossible = static_cast<__uint64_t>(1);
+__device__ __constant__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible << 63;
 
 /*
  *  This header collects some functions used to manipulate bits in a 64-bit unsigned integers.
@@ -32,7 +32,7 @@ FAST_CALL_ALWAYS int ExtractMsbPosNeutral(const __uint64_t x) {
     __uint64_t val = x;
     int pos = 0;
 
-    // Binary search approach to find MSB position
+    /* Binary search approach to find MSB position */
     if (val > 0xFFFFFFFF) {
         val >>= 32;
         pos += 32;
@@ -147,16 +147,18 @@ template<class IndexableT>
 HYBRID constexpr void
 GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container,
                                  __uint32_t &containerPos) {
-    if (bitPos == -1 || number == 0)
+    if (bitPos == -1 || number == 0) {
         return;
+    }
     __uint64_t nextBit{};
 
-    for (int i = bitPos; i >= 0; --i)
+    for (int i = bitPos; i >= 0; --i) {
         if (const __uint64_t bitMap = 1LLU << i; (bitMap & number) != 0) {
             GenerateBitPermutationsRecursion(number ^ bitMap, i - 1, container, containerPos);
             nextBit = bitMap;
             break;
         }
+    }
 
     const __uint32_t rangeEnd = containerPos;
     for (__uint32_t i = 0; i < rangeEnd; ++i) {

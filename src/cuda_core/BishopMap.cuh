@@ -7,7 +7,7 @@
 
 #include "FancyMagicBishopMap.cuh"
 
-__device__ static constexpr FancyMagicBishopMap G_BISHOP_FANCY_MAP_INSTANCE{};
+alignas(128) __device__ static constexpr FancyMagicBishopMap G_BISHOP_FANCY_MAP_INSTANCE{};
 
 class BishopMap final {
     // ---------------------------------------
