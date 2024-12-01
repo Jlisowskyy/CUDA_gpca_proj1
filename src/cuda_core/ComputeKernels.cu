@@ -69,18 +69,16 @@ SimulateGamesKernelShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, 
 __global__ void
 SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
                               int maxDepth) {
-    const __uint32_t plainIdx = blockIdx.x * blockDim.x + threadIdx.x;
-    const __uint32_t boardIdx = (WARP_SIZE * (plainIdx / MINIMAL_BATCH_SIZE)) + (threadIdx.x % WARP_SIZE);
-    const __uint32_t figIdx = (threadIdx.x / WARP_SIZE) % BIT_BOARDS_PER_COLOR;
+    const auto [_, boardIdx, figIdx, counterIdx] = CalcSplitIdx(threadIdx.x, blockIdx.x, blockDim.x);
 
+    __shared__ __uint32_t counters[SINGLE_BATCH_BOARD_SIZE];
     __uint32_t seed = seeds[boardIdx];
-
     int depth{};
 
     while (depth < maxDepth) {
         __syncthreads();
 
-        Stack<cuda_Move> stack(moves + boardIdx * 256 + 2 /* 2 * sizeof(move) == 16 */, false);
+        Stack<cuda_Move> stack(moves + boardIdx * 256 + 2 /* 2 * sizeof(move) == 16 */, counters + counterIdx, false);
         auto *md = (MoveGenDataMem *) (moves + boardIdx * 256);
 
         if (figIdx == 0) {
@@ -215,4 +213,15 @@ __global__ void PolluteCache(__uint32_t *data, const __uint32_t *seeds, __uint32
 
         simpleRand(seed);
     }
+}
+
+__host__ __device__ thrust::tuple<__uint32_t, __uint32_t, __uint32_t, __uint32_t>
+CalcSplitIdx(__uint32_t tx, __uint32_t bx, __uint32_t bs) {
+    const __uint32_t plainIdx = bx * bs + tx;
+    const __uint32_t boardIdx = (WARP_SIZE * (plainIdx / MINIMAL_BATCH_SIZE)) + (tx % WARP_SIZE);
+    const __uint32_t figIdx = (tx / WARP_SIZE) % BIT_BOARDS_PER_COLOR;
+    const __uint32_t counterIdx = WARP_SIZE * (tx / MINIMAL_BATCH_SIZE) + (tx % WARP_SIZE);
+
+
+    return {plainIdx, boardIdx, figIdx, counterIdx};
 }

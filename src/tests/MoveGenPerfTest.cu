@@ -178,6 +178,23 @@ void MoveGenPerfGPUV4(__uint32_t totalBoardsToProcess, const std::vector<std::st
     SplitTester(SimulateGamesKernelSplitMovesShared, totalBoardsToProcess, fenDb, seeds);
 }
 
+
+void TestSplitIndexes() {
+    static constexpr __uint32_t BLOCKS = 2;
+    static constexpr __uint32_t BLOCK_SIZE = 384;
+
+    std::cout << "Testing split indexes:" << std::endl;
+    for (__uint32_t bx = 0; bx < BLOCKS; ++bx) {
+        for (__uint32_t tx = 0; tx < BLOCK_SIZE; ++tx) {
+            const auto [plainIdx, boardIdx, figIdx, counterIdx] = CalcSplitIdx(tx, bx, BLOCK_SIZE);
+
+            std::cout << std::format("[ bx: {}, tx: {} ] : [ plainIdx: {}, boardIdx: {}, figIdx: {}, counterIdx: {}]",
+                                     bx, tx, plainIdx, boardIdx, figIdx, counterIdx
+            ) << std::endl;
+        }
+    }
+}
+
 void
 MoveGenPerfGPUV3(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
                  const std::vector<__uint32_t> &seeds) {
@@ -198,6 +215,7 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
 
     std::cout << "MoveGen Performance Test" << std::endl;
 
+//    TestSplitIndexes();
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV1(threadsAvailable, deviceProps, fenDb, seeds);
     PolluteCache();

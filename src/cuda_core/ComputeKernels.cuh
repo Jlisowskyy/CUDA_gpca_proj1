@@ -12,12 +12,17 @@
 #include "cuda_Board.cuh"
 #include "cuda_PackedBoard.cuh"
 
+#include <thrust/tuple.h>
+
+HYBRID thrust::tuple<__uint32_t, __uint32_t, __uint32_t, __uint32_t>
+CalcSplitIdx(__uint32_t tx, __uint32_t bx, __uint32_t bs);
 
 static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE = 384;
 void __global__
 SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth);
 
 static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_SHARED_BATCH_SIZE = 384;
+
 
 void __global__
 SimulateGamesKernelShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
