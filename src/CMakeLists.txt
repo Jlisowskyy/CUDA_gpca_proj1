@@ -95,4 +95,5 @@ target_include_directories(src PUBLIC
 )
 
 target_compile_definitions(src PRIVATE -DTESTING=\"move_perf\")
-#set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 89-real 89-virtual)
+set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 70-real 70-virtual)
+

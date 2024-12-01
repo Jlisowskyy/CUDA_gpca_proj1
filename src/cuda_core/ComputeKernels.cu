@@ -93,7 +93,7 @@ SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *see
 
         __syncthreads();
 
-        MoveGenerator mGen{(*boards)[boardIdx], stack};
+        MoveGenerator<PACKED_BOARD_DEFAULT_SIZE, SPLIT_MAX_STACK_MOVES> mGen{(*boards)[boardIdx], stack};
         mGen.GetMovesSplit(figIdx);
         __syncthreads();
 

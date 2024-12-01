@@ -17,8 +17,7 @@ struct Stack {
     // ------------------------------
 
     struct StackPayload {
-        ItemT *data;
-        __uint32_t size;
+         __uint32_t size;
 
         template<__uint32_t MAX_ITEMS = UINT32_MAX>
         FAST_DCALL_ALWAYS bool Push(Stack &s, ItemT item) {
@@ -71,10 +70,10 @@ struct Stack {
 
     template<__uint32_t MAX_ITEMS = UINT32_MAX>
     FAST_DCALL_ALWAYS bool Push(const ItemT item) {
-        __uint32_t idx = atomicAdd(_last, 1);
+        __uint32_t idx = atomicAdd_block(_last, 1);
 
         if (MAX_ITEMS != UINT32_MAX && idx >= MAX_ITEMS) {
-            atomicSub(_last, 1);
+            atomicSub_block(_last, 1);
             return false;
         }
 
