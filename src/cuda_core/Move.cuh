@@ -54,7 +54,7 @@ __device__ static constexpr __uint16_t PromoBit = PromoFlag << 12;
 __device__ static constexpr __uint16_t CaptureBit = CaptureFlag << 12;
 __device__ static constexpr __uint16_t CastlingBits = CastlingFlag << 12;
 
-class alignas(8) cuda_Move;
+class cuda_Move;
 
 inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
     const __uint32_t boardPos = ConvertToReversedPos(boardPosMsb);
@@ -186,7 +186,7 @@ __device__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
         CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
 
-class alignas(8) cuda_Move final {
+class cuda_Move final {
     using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
 public:
 // ------------------------------

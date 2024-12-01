@@ -18,6 +18,7 @@ HYBRID thrust::tuple<__uint32_t, __uint32_t, __uint32_t, __uint32_t>
 CalcSplitIdx(__uint32_t tx, __uint32_t bx, __uint32_t bs);
 
 static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE = 384;
+static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_STACK_SIZE = 256;
 void __global__
 SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves, int maxDepth);
 
@@ -35,10 +36,10 @@ static constexpr __uint32_t SINGLE_BATCH_SIZE = MINIMAL_BATCH_SIZE * SINGLE_BATC
 static constexpr __uint32_t SINGLE_BATCH_BOARD_SIZE = WARP_SIZE * SINGLE_BATCH_NUM_MINIMAL_BATCHES;
 static constexpr __uint32_t SINGLE_RUN_BLOCK_SIZE = 32 * 2;
 static constexpr __uint32_t SINGLE_RUN_BOARDS_SIZE = SINGLE_RUN_BLOCK_SIZE * SINGLE_BATCH_BOARD_SIZE;
+static constexpr __uint32_t SPLIT_MAX_STACK_MOVES = 116;
 
 void __global__
-SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
-                              int maxDepth);
+SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, int maxDepth);
 
 void __global__
 SimulateGamesKernelSplitMovesShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,

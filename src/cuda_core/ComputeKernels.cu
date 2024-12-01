@@ -66,32 +66,34 @@ SimulateGamesKernelShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, 
 //    }
 }
 
+
+
 __global__ void
-SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
-                              int maxDepth) {
-    const auto [_, boardIdx, figIdx, counterIdx] = CalcSplitIdx(threadIdx.x, blockIdx.x, blockDim.x);
+SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, int maxDepth) {
+    const auto [_, boardIdx, figIdx, resourceIdx] = CalcSplitIdx(threadIdx.x, blockIdx.x, blockDim.x);
+
+    struct stub {
+        char bytes[sizeof(cuda_Move)];
+    };
 
     __shared__ __uint32_t counters[SINGLE_BATCH_BOARD_SIZE];
+    __shared__ stub stacks[SINGLE_BATCH_BOARD_SIZE][SPLIT_MAX_STACK_MOVES];
+
     __uint32_t seed = seeds[boardIdx];
     int depth{};
 
     while (depth < maxDepth) {
         __syncthreads();
 
-        Stack<cuda_Move> stack(moves + boardIdx * 256 + 2 /* 2 * sizeof(move) == 16 */, counters + counterIdx, false);
-        auto *md = (MoveGenDataMem *) (moves + boardIdx * 256);
+        Stack<cuda_Move> stack((cuda_Move*)stacks[resourceIdx], counters + resourceIdx, false);
 
         if (figIdx == 0) {
             stack.Clear();
-
-            md->checksCount = 0;
-            md->blockedMap = 0;
-            md->wasCheckedBySimple = 0;
         }
 
         __syncthreads();
 
-        MoveGenerator mGen{(*boards)[boardIdx], stack, md};
+        MoveGenerator mGen{(*boards)[boardIdx], stack};
         mGen.GetMovesSplit(figIdx);
         __syncthreads();
 

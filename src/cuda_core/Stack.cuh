@@ -20,10 +20,13 @@ struct Stack {
         ItemT *data;
         __uint32_t size;
 
-        FAST_DCALL_ALWAYS void Push(Stack &s, ItemT item) {
-            if (s.Push(item)) {
+        template<__uint32_t MAX_ITEMS = UINT32_MAX>
+        FAST_DCALL_ALWAYS bool Push(Stack &s, ItemT item) {
+            if (s.Push<MAX_ITEMS>(item)) {
                 ++size;
+                return true;
             }
+            return false;
         }
 
         FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const { return data[ind]; }

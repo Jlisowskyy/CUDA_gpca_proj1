@@ -28,8 +28,8 @@
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 1;
-static constexpr __uint32_t MAX_DEPTH = 32;
+static constexpr __uint32_t RETRIES = 5;
+static constexpr __uint32_t MAX_DEPTH = 100;
 
 void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, __uint64_t movesGenerated) {
     const double milliseconds = seconds * 1000.0;
@@ -121,7 +121,6 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
 
     thrust::device_vector<__uint32_t> dSeeds = seeds;
     thrust::device_vector<__uint64_t> dResults(totalBoardsToProcess);
-    thrust::device_vector<cuda_Move> dMoves(totalBoardsToProcess * 256);
     auto *packedBoard = new DefaultPackedBoardT(boards);
 
     DefaultPackedBoardT *d_boards;
@@ -138,8 +137,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
                 func<<<SINGLE_RUN_BLOCK_SIZE, SINGLE_BATCH_SIZE>>>(
                         d_boards,
                         thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
-                        thrust::raw_pointer_cast(dResults.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
-                        thrust::raw_pointer_cast((dMoves.data())) + bIdx * SINGLE_RUN_BOARDS_SIZE * 256, MAX_DEPTH);
+                        thrust::raw_pointer_cast(dResults.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE, MAX_DEPTH);
                 CUDA_TRACE_ERROR(cudaGetLastError());
             }
             GUARDED_SYNC();
@@ -175,7 +173,7 @@ void MoveGenPerfGPUV4(__uint32_t totalBoardsToProcess, const std::vector<std::st
                       const std::vector<__uint32_t> &seeds) {
 
     std::cout << "Running MoveGen V4 Performance Test on GPU" << std::endl;
-    SplitTester(SimulateGamesKernelSplitMovesShared, totalBoardsToProcess, fenDb, seeds);
+//    SplitTester(SimulateGamesKernelSplitMovesShared, totalBoardsToProcess, fenDb, seeds);
 }
 
 
@@ -216,6 +214,7 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     std::cout << "MoveGen Performance Test" << std::endl;
 
 //    TestSplitIndexes();
+
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV1(threadsAvailable, deviceProps, fenDb, seeds);
     PolluteCache();
@@ -223,11 +222,11 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     MoveGenPerfGPUV2(threadsAvailable, fenDb, seeds);
     PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
-//    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
-//    PolluteCache();
+    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
-//    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
-//    PolluteCache();
+    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable,
                                                                               RETRIES,

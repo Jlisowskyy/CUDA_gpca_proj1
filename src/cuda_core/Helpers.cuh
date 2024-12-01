@@ -119,5 +119,6 @@ __device__ void printUnlock();
 }                                                                   \
 
 static constexpr __uint32_t PACKED_BOARD_DEFAULT_SIZE = 100'000;
+static constexpr __uint32_t DEFAULT_STACK_SIZE = 256;
 
 #endif //SRC_HELPERS_CUH
