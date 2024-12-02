@@ -141,8 +141,9 @@ public:
 
     [[nodiscard]] __device__ __uint64_t
     CountMovesRecursive(_fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
-        if (curDepth == maxDepth)
+        if (curDepth == maxDepth) {
             return 1;
+        }
 
         Stack<cuda_Move> localStack((cuda_Move *) (ptr) + curDepth * DEFAULT_STACK_SIZE);
 

@@ -383,7 +383,7 @@ void RunDepthPosTest(FuncT func) {
     progBar.Start();
 
     for (auto fen: TestFEN) {
-        TestMoveCount(func, fen, TEST_DEPTH);
+        TestMoveCount(func, fen, TEST_DEPTH, &progBar, WRITE_OUT);
         progBar.Increment();
     }
 
