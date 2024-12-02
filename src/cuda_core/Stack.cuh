@@ -65,12 +65,12 @@ struct Stack {
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t Size() const { return *_last; }
 
     FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const {
-        assert(ind < *last && "STACK OVERFLOW!");
+        assert(ind < *_last && "STACK OVERFLOW!");
         return _data[ind];
     }
 
     FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) {
-        assert(ind < *last && "STACK OVERFLOW!");
+        assert(ind < *_last && "STACK OVERFLOW!");
         return _data[ind];
     }
 

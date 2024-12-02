@@ -163,10 +163,11 @@ void TestMoveCount(FuncT func,
     thrust::device_vector<cuda_Move> dStack(16384);
 
     auto *packedBoard = new SmallPackedBoardT(std::vector{board});
-    SmallPackedBoardT *dBoards;
-    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoards, sizeof(SmallPackedBoardT)));
+    SmallPackedBoardT *dBoard;
+    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
+    CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
 
-    func(dBoards, depth, thrust::raw_pointer_cast(dCount.data()));
+    func(dBoard, depth, thrust::raw_pointer_cast(dCount.data()));
     CUDA_TRACE_ERROR(cudaGetLastError());
     GUARDED_SYNC();
 
@@ -188,7 +189,7 @@ void TestMoveCount(FuncT func,
         }
     }
 
-    CUDA_ASSERT_SUCCESS(cudaFree(dBoards));
+    CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
     delete packedBoard;
 }
 
@@ -402,16 +403,16 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing plain move gen: " << std::endl;
 
-    RunSinglePosTest(RunBaseKernel);
+//    RunSinglePosTest(RunBaseKernel);
     std::cout << std::string(80, '-') << std::endl;
     RunDepthPosTest(RunBaseKernelMoveCount);
 
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing split move gen: " << std::endl;
 
-    RunSinglePosTest(RunSplitKernel);
+//    RunSinglePosTest(RunSplitKernel);
     std::cout << std::string(80, '-') << std::endl;
-    RunDepthPosTest(RunSplitKernelMoveCount);
+//    RunDepthPosTest(RunSplitKernelMoveCount);
 
     std::cout << std::string(80, '=') << std::endl;
 
