@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 02/12/24.
-//
-
 #ifndef SRC_PROGRESSBAR_CUH
 #define SRC_PROGRESSBAR_CUH
 
@@ -33,7 +29,7 @@ public:
             throw std::runtime_error("Extended progress bar points!");
         }
 
-        const __uint32_t newNumCharacters = m_current / m_total;
+        const auto newNumCharacters = static_cast<__uint32_t>((static_cast<double>(m_current) / m_total) * m_width);
 
         if (newNumCharacters > m_numCharacters) {
             m_numCharacters = newNumCharacters;
@@ -59,13 +55,13 @@ public:
 protected:
 
     static void _clearLine() {
-        std::cout << "\033[K";
+        std::cout << "\033[K\r";
     }
 
     void _redrawBar() const {
         const double progress = static_cast<double>(m_current) / static_cast<double>(m_total);
 
-        std::cout << "\r[";
+        std::cout << "[";
 
         for (__uint32_t i = 0; i < m_numCharacters; ++i) {
             std::cout << "#";
@@ -77,10 +73,15 @@ protected:
 
         std::cout << "] " << static_cast<int>(progress * 100) << "%";
         std::cout.flush();
+
+        if (m_numCharacters == m_width) {
+            std::cout << std::endl;
+        }
     }
 
     void _drawCancelled() const {
-        throw std::runtime_error("NOT IMPLEMENTED");
+        _clearLine();
+        std::cout << "[Cancelled]" << std::endl;
     }
 
     // ------------------------------

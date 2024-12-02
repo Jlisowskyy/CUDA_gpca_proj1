@@ -179,7 +179,8 @@ void ValidateMoves(const std::string &fen,
                    bool writeToOut = false) {
 
     if (cMoves.size() != hMoves.size()) {
-        const auto msg = std::format("GPU move gen failed: Moves count mismatch: {} != {}", cMoves.size(), hCount[0]);
+        const auto msg = std::format("GPU move gen failed: Moves count mismatch: {} != {}", cMoves.size(),
+                                     hMoves.size());
         DUMP_MSG
     }
 
@@ -223,8 +224,8 @@ void ValidateMoves(const std::string &fen,
         if (gpuMove.GetPackedIndexes() != (PackedIndexesMask & CPUmove[1])) {
             const auto msg = std::format(
                     "GPU move gen failed: Indexes mismatch device: {} != host {}\nDevice: {}\nHost: {}",
-                    u16d(gpuMove.GetPackedIndexes()),
-                    u16d(CPUmove[1]),
+                    u16d(gpuMove.GetPackedIndexes()).to_string(),
+                    u16d(CPUmove[1]).to_string(),
                     gpuMove.GetPackedMove().GetLongAlgebraicNotation(),
                     convertedCPUMove.GetLongAlgebraicNotation());
 
@@ -236,8 +237,8 @@ void ValidateMoves(const std::string &fen,
         if (gpuMove.GetPackedMisc() != CPUmove[2]) {
             const auto msg = std::format(
                     "GPU move gen failed: Misc mismatch device: {} != host: {}\nDevice: {}\nHost: {}",
-                    u16d(gpuMove.GetPackedMisc()),
-                    u16d(CPUmove[2]),
+                    u16d(gpuMove.GetPackedMisc()).to_string(),
+                    u16d(CPUmove[2]).to_string(),
                     gpuMove.GetPackedMove().GetLongAlgebraicNotation(),
                     convertedCPUMove.GetLongAlgebraicNotation()
             );
@@ -275,7 +276,10 @@ void ValidateMoves(const std::string &fen,
         DUMP_MSG
     } else {
         const auto msg = std::format("Test passed for position: {}", fen);
-        DUMP_MSG
+
+        if (writeToOut) {
+            DUMP_MSG
+        }
     }
 }
 
