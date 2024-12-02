@@ -10,6 +10,7 @@
 #include "../cuda_core/cuda_Board.cuh"
 #include "../cuda_core/ComputeKernels.cuh"
 #include "../cuda_core/cuda_PackedBoard.cuh"
+#include "../cpu_core/ProgressBar.cuh"
 
 #include "../ported/CpuTests.h"
 #include "../ported/CpuUtils.h"
@@ -29,6 +30,7 @@
 #include <chrono>
 #include <format>
 #include <vector>
+#include <map>
 
 using u16d = std::bitset<16>;
 
@@ -46,6 +48,24 @@ static constexpr std::array TestFEN{
 };
 
 static constexpr __uint32_t TEST_DEPTH = 3;
+
+#define DUMP_MSG                          \
+    if (progBar != nullptr) {             \
+        progBar->WriteLine(msg);          \
+    } else {                              \
+        std::cout << msg << std::endl;    \
+    }                                     \
+
+#ifdef WRITE_OUT
+
+static constexpr bool WRITE_OUT = true;
+
+#else
+
+static constexpr bool WRITE_OUT = false;
+
+#endif
+
 
 void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves, int *outCount) {
     struct stub {
@@ -65,6 +85,45 @@ void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves,
         outMoves[i] = stack[i];
     }
 }
+
+void __global__ GetGPUMovesKernelSplit(SmallPackedBoardT *board, cuda_Move *outMoves, int *outCount) {
+    struct stub {
+        char bytes[sizeof(cuda_Move)];
+    };
+
+    const __uint64_t figIdx = threadIdx.x % 6;
+    __shared__ stub sharedStack[DEFAULT_STACK_SIZE];
+    __shared__ __uint32_t counter;
+    Stack<cuda_Move> stack((cuda_Move *) sharedStack, &counter, false);
+
+    if (figIdx == 0) {
+        stack.Clear();
+    }
+
+    __syncthreads();
+    MoveGenerator<1> gen{(*board)[0], stack};
+
+    gen.GetMovesSplit(figIdx);
+
+    __syncthreads();
+
+    if (figIdx == 0) {
+        *outCount = static_cast<int>(stack.Size());
+
+        for (int i = 0; i < stack.Size(); ++i) {
+            outMoves[i] = stack[i];
+        }
+    }
+}
+
+void RunBaseKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount) {
+    GetGPUMovesKernel<<<1, 1>>>(dBoard, dMoves, dCount);
+};
+
+void RunSplitKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount) {
+    GetGPUMovesKernelSplit<<<1, 6>>>(dBoard, dMoves, dCount);
+};
+
 
 void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
     struct stub {
@@ -113,47 +172,46 @@ void TestMoveCount(const std::string_view &fen, int depth) {
     delete packedBoard;
 }
 
-void TestSinglePositionOutput(const std::string_view &fen) {
-    std::cout << "Testing moves of position: " << fen << std::endl;
+void ValidateMoves(const std::string &fen,
+                   const std::vector<cpu::external_move> &cMoves,
+                   const std::vector<cuda_Move> &hMoves,
+                   ProgressBar *progBar = nullptr,
+                   bool writeToOut = false) {
 
-    const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
-    const cuda_Board board(externalBoard);
-    auto packedBoard = new SmallPackedBoardT(std::vector{board});
-
-    SmallPackedBoardT *dBoard;
-    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
-
-    thrust::device_vector<cuda_Move> dMoves(256);
-    thrust::device_vector<int> dCount(1);
-
-    CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
-
-
-    GetGPUMovesKernel<<<1, 1>>>(dBoard, thrust::raw_pointer_cast(dMoves.data()),
-                                thrust::raw_pointer_cast(dCount.data()));
-    CUDA_TRACE_ERROR(cudaGetLastError());
-    GUARDED_SYNC();
-
-    const auto cMoves = cpu::GenerateMoves(externalBoard);
-
-    thrust::host_vector<cuda_Move> hMoves = dMoves;
-    thrust::host_vector<int> hCount = dCount;
-
-    if (cMoves.size() != hCount[0]) {
-        std::cerr << "Moves count mismatch: " << cMoves.size() << " != " << hCount[0] << std::endl;
+    if (cMoves.size() != hMoves.size()) {
+        const auto msg = std::format("GPU move gen failed: Moves count mismatch: {} != {}", cMoves.size(), hCount[0]);
+        DUMP_MSG
     }
 
-    const size_t size = std::min(cMoves.size(), static_cast<size_t>(hCount[0]));
+    std::map<std::string, cuda_Move> GPUMovesMap{};
+    for (const auto move: hMoves) {
+        const auto [_, result] = GPUMovesMap.emplace(move.GetPackedMove().GetLongAlgebraicNotation(), move);
 
-    __uint64_t errors = cMoves.size() - size;
-    for (size_t i = 0; i < size; ++i) {
-        const auto &cMove = cMoves[i];
-        cuda_PackedMove ccMove{cMove[0]};
-        const auto &hMove = hMoves[i];
+        assert(result && "GPU move gen failed: received repeated move");
+    }
 
-        if (hMove.GetPackedMove() != ccMove) {
-            std::cerr << "Packed move mismatch device:" << hMove.GetPackedMove().GetLongAlgebraicNotation() << " != "
-                      << " host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
+    __uint32_t errors{};
+    for (const auto CPUmove: cMoves) {
+        cuda_PackedMove convertedCPUMove{CPUmove[0]};
+
+        const auto it = GPUMovesMap.find(convertedCPUMove.GetLongAlgebraicNotation());
+
+        if (it == GPUMovesMap.end()) {
+            const auto msg = std::format("GPU move gen failed: {} was not generated by GPU",
+                                         convertedCPUMove.GetLongAlgebraicNotation());
+            DUMP_MSG
+
+            ++errors;
+            continue;
+        }
+
+        const cuda_Move gpuMove = it->second;
+
+        if (gpuMove.GetPackedMove() != convertedCPUMove) {
+            const auto msg = std::format("GPU move gen failed: Packed move mismatch device: {} != host {}",
+                                         gpuMove.GetPackedMove().GetLongAlgebraicNotation(),
+                                         convertedCPUMove.GetLongAlgebraicNotation());
+            DUMP_MSG
 
             errors++;
         }
@@ -162,43 +220,109 @@ void TestSinglePositionOutput(const std::string_view &fen) {
         static constexpr __uint32_t CheckTypeBit = (__uint32_t) 1 << 15;
         static constexpr __uint32_t PackedIndexesMask = ~(CheckTypeBit);
 
-        if (hMove.GetPackedIndexes() != (PackedIndexesMask & cMove[1])) {
-            std::cerr << "Indexes mismatch device:" << u16d(hMove.GetPackedIndexes()) << " != "
-                      << " host: " << u16d(cMove[1]) << std::endl;
+        if (gpuMove.GetPackedIndexes() != (PackedIndexesMask & CPUmove[1])) {
+            const auto msg = std::format(
+                    "GPU move gen failed: Indexes mismatch device: {} != host {}\nDevice: {}\nHost: {}",
+                    u16d(gpuMove.GetPackedIndexes()),
+                    u16d(CPUmove[1]),
+                    gpuMove.GetPackedMove().GetLongAlgebraicNotation(),
+                    convertedCPUMove.GetLongAlgebraicNotation());
 
-            std::cerr << "Device: " << hMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
-            std::cerr << "Host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
+            DUMP_MSG
+
+            errors++;
+        }
+
+        if (gpuMove.GetPackedMisc() != CPUmove[2]) {
+            const auto msg = std::format(
+                    "GPU move gen failed: Misc mismatch device: {} != host: {}\nDevice: {}\nHost: {}",
+                    u16d(gpuMove.GetPackedMisc()),
+                    u16d(CPUmove[2]),
+                    gpuMove.GetPackedMove().GetLongAlgebraicNotation(),
+                    convertedCPUMove.GetLongAlgebraicNotation()
+            );
+
+            DUMP_MSG
 
             errors++;
         }
 
-        if (hMove.GetPackedMisc() != cMove[2]) {
-            std::cerr << "Misc mismatch device:" << u16d(hMove.GetPackedMisc()) << " != "
-                      << " host: " << u16d(cMove[2]) << std::endl;
-
-            std::cerr << "Device: " << hMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
-            std::cerr << "Host: " << ccMove.GetLongAlgebraicNotation() << std::endl;
-
-            errors++;
-        }
+        GPUMovesMap.erase(convertedCPUMove.GetLongAlgebraicNotation());
     }
+
+    for (const auto &[move, _]: GPUMovesMap) {
+        const auto msg = std::format("GPU move gen failed: generated additional move: {}", move);
+
+        DUMP_MSG
+    }
+
 
     if (errors != 0) {
-        std::cerr << "Failed test for position: " << fen << std::endl;
-        std::cerr << "Errors: " << errors << std::endl;
+        std::string msg{};
+        msg += "Failed test for position: " + std::string(fen) + '\n';
+        msg += "Errors: " + std::to_string(errors) + '\n';
+        msg += "Device moves:\n";
 
-        std::cerr << "Device moves: " << std::endl;
-        for (size_t i = 0; i < size; ++i) {
-            std::cerr << hMoves[i].GetPackedMove().GetLongAlgebraicNotation() << std::endl;
+        for (const auto &move: hMoves) {
+            msg += move.GetPackedMove().GetLongAlgebraicNotation() + '\n';
         }
 
-        std::cerr << "Host moves: " << std::endl;
-        for (size_t i = 0; i < size; ++i) {
-            std::cerr << cuda_PackedMove(cMoves[i][0]).GetLongAlgebraicNotation() << std::endl;
+        msg += "Host moves:\n";
+        for (const auto &move: cMoves) {
+            msg += cuda_PackedMove(move[0]).GetLongAlgebraicNotation() + '\n';
         }
+
+        DUMP_MSG
     } else {
-        std::cout << "Test passed for position: " << fen << std::endl;
+        const auto msg = std::format("Test passed for position: {}", fen);
+        DUMP_MSG
     }
+}
+
+
+template<class FuncT>
+void TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *progBar = nullptr,
+                              bool writeToOut = false) {
+
+    /* welcome message */
+    if (writeToOut) {
+        const auto msg = std::format("Testing moves of position: {}", fen);
+        DUMP_MSG
+    }
+
+    /* Load boards */
+    const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
+    const cuda_Board board(externalBoard);
+    auto packedBoard = new SmallPackedBoardT(std::vector{board});
+
+    SmallPackedBoardT *dBoard;
+    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
+
+    /* Load resources to GPU */
+    thrust::device_vector<cuda_Move> dMoves(256);
+    thrust::device_vector<int> dCount(1);
+
+    CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
+
+    /* Generate Moves */
+    func(dBoard, thrust::raw_pointer_cast(dMoves.data()), thrust::raw_pointer_cast(dCount.data()));
+
+    CUDA_TRACE_ERROR(cudaGetLastError());
+    GUARDED_SYNC();
+
+    const auto cMoves = cpu::GenerateMoves(externalBoard);
+
+    thrust::host_vector<cuda_Move> hMoves = dMoves;
+    thrust::host_vector<int> hCount = dCount;
+
+    std::vector<cuda_Move> cudaMoves{};
+    cudaMoves.reserve(hCount[0]);
+    for (int i = 0; i < hCount[0]; ++i) {
+        cudaMoves.push_back(hMoves[i]);
+    };
+
+    /* validate returned moves */
+    ValidateMoves(std::string(fen), cMoves, cudaMoves, progBar, writeToOut);
 
     CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
     delete packedBoard;
@@ -248,42 +372,65 @@ void MoveGenSplit() {
 //    }
 }
 
-void FenDBTest(bool fullBruteForceTest = false) {
+
+template<class FuncT>
+void RunSinglePosTest(FuncT func) {
+    std::cout << "Starting position comparison test for move gen..." << std::endl;
+
     auto fens = LoadFenDb();
 
-    for (const auto &fen: fens) {
-        TestSinglePositionOutput(fen);
+    ProgressBar progBar(TestFEN.size() + fens.size(), 100);
+    progBar.Start();
+
+    progBar.WriteLine("Testing move gen with specialized positions");
+    for (const auto &fen: TestFEN) {
+        TestSinglePositionOutput(func, fen, &progBar, WRITE_OUT);
+        progBar.Increment();
     }
 
-    if (!fullBruteForceTest) {
-        return;
-    }
-
+    progBar.WriteLine("Testing move gen with whole fen db...");
     for (const auto &fen: fens) {
+        TestSinglePositionOutput(func, fen, &progBar, WRITE_OUT);
+        progBar.Increment();
+    }
+}
+
+template<class FuncT>
+void RunDepthPosTest(FuncT func) {
+    std::cout << "Testing positions with non zero depth" << std::endl;
+    for (auto fen: TestFEN) {
         TestMoveCount(fen, TEST_DEPTH);
     }
 }
 
 void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]] const cudaDeviceProp &deviceProps) {
-    cudaDeviceSetLimit(cudaLimitStackSize, 16384);
+    static constexpr __uint32_t EXTENDED_THREAD_STACK_SIZE = 16384;
+    static constexpr __uint32_t DEFAULT_THREAD_STACK_SIZE = 1024;
+
     std::cout << "MoveGen Test" << std::endl;
 
-    std::cout << "Testing positions with depth " << TEST_DEPTH << std::endl;
-    for (const auto &fen: TestFEN) {
-        TestSinglePositionOutput(fen);
-    }
+    std::cout << "Extending thread stack size to " << EXTENDED_THREAD_STACK_SIZE << "..." << std::endl;
+    cudaDeviceSetLimit(cudaLimitStackSize, EXTENDED_THREAD_STACK_SIZE);
 
-    std::cout << "Testing positions with non zero depth" << std::endl;
-    for (auto fen: TestFEN) {
-        TestMoveCount(fen, TEST_DEPTH);
-    }
-    cudaDeviceSetLimit(cudaLimitStackSize, 1024);
+    std::cout << std::string(80, '=') << std::endl;
+    std::cout << "Testing plain move gen: " << std::endl;
 
-    std::cout << "Testing split move gen:" << std::endl;
-    MoveGenSplit();
+    RunSinglePosTest(RunBaseKernel);
+    std::cout << std::string(80, '-') << std::endl;
+//    RunDepthPosTest()
 
-    std::cout << "Testing move gen with whole fen db..." << std::endl;
-    FenDBTest();
+    std::cout << std::string(80, '=') << std::endl;
+    std::cout << "Testing split move gen: " << std::endl;
+
+//    RunSinglePosTest(RunSplitKernel);
+    std::cout << std::string(80, '-') << std::endl;
+//    RunDepthPosTest()
+
+    std::cout << std::string(80, '=') << std::endl;
+
+
+    std::cout << "Reverting thread stack size to " << DEFAULT_THREAD_STACK_SIZE << "..." << std::endl;
+    cudaDeviceSetLimit(cudaLimitStackSize, DEFAULT_THREAD_STACK_SIZE);
 }
 
 void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {

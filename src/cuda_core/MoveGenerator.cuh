@@ -449,7 +449,7 @@ private:
             mv.SetKilledBoardIndex(MapT::GetEnemyPawnBoardIndex());
             mv.SetKilledFigureField(ExtractMsbPos(_boardFetcher.ElPassantField()));
             mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
-            mv.SetCasltingRights(_boardFetcher.Castlings());
+            mv.SetCastlingRights(_boardFetcher.Castlings());
             mv.SetMoveType(CaptureFlag);
 
             if (!stack.Push<STACK_SIZE>(mv)) {
@@ -588,7 +588,7 @@ private:
             mv.SetStartField(ExtractMsbPos(startField));
             mv.SetStartBoardIndex(figBoardIndex);
             mv.SetTargetField(movePos);
-            mv.SetCasltingRights(castlings);
+            mv.SetCastlingRights(castlings);
             mv.SetKilledBoardIndex(SENTINEL_BOARD_INDEX);
 
             if (IsFlagOn(flags, CONSIDER_EL_PASSANT)) {
@@ -639,7 +639,7 @@ private:
             mv.SetKilledBoardIndex(attackedFigBoardIndex);
             mv.SetKilledFigureField(movePos);
             mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
-            mv.SetCasltingRights(castlings);
+            mv.SetCastlingRights(castlings);
             mv.SetMoveType(CaptureFlag);
             mv.SetTargetBoardIndex(
                     promotePawns ? _boardFetcher.MovingColor() * BIT_BOARDS_PER_COLOR + QUEEN_INDEX : figBoardIndex);
@@ -688,7 +688,7 @@ private:
             mv.SetTargetBoardIndex(_boardFetcher.MovingColor() * BIT_BOARDS_PER_COLOR + KING_INDEX);
             mv.SetKilledBoardIndex(SENTINEL_BOARD_INDEX);
             mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
-            mv.SetCasltingRights(castlings);
+            mv.SetCastlingRights(castlings);
 
             if (!stack.Push<STACK_SIZE>(mv)) {
                 return false;
@@ -713,7 +713,7 @@ private:
             mv.SetKilledBoardIndex(GetIndexOfContainingBitBoard(newKingBoard, SwapColor(_boardFetcher.MovingColor())));
             mv.SetKilledFigureField(newPos);
             mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
-            mv.SetCasltingRights(castlings);
+            mv.SetCastlingRights(castlings);
             mv.SetMoveType(CaptureFlag);
 
             if (stack.Push<STACK_SIZE>(mv)) {
@@ -756,7 +756,7 @@ private:
                 mv.SetKilledBoardIndex(_boardFetcher.MovingColor() * BIT_BOARDS_PER_COLOR + ROOK_INDEX);
                 mv.SetKilledFigureField(ExtractMsbPos(CASTLING_ROOK_MAPS[castlingIndex]));
                 mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
-                mv.SetCasltingRights(castlings);
+                mv.SetCastlingRights(castlings);
                 mv.SetCastlingType(1 + castlingIndex); // God only knows why I made a sentinel at index 0 at this moment
                 mv.SetMoveType(CastlingFlag);
 

@@ -148,7 +148,7 @@ struct cuda_PackedMove final {
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsValidMove() const { return !IsEmpty(); }
 
     // debugging tool
-    [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkeyMove() const {
+    [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkayMove() const {
         return !IsEmpty() && GetTargetField() != GetStartField();
     }
 
@@ -197,7 +197,6 @@ __device__ __constant__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
 };
 
 class cuda_Move final {
-    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
 public:
 // ------------------------------
 // Class creation
@@ -241,7 +240,7 @@ public:
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsValidMove() const { return _packedMove.IsValidMove(); }
 
     // debugging tool
-    [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkeyMove() const { return _packedMove.IsOkeyMove(); }
+    [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkayMove() const { return _packedMove.IsOkayMove(); }
 
     template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
     FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher) {
@@ -378,7 +377,7 @@ public:
         return (_packedMisc & ElPassantFieldMask) >> 6;
     }
 
-    FAST_DCALL_ALWAYS void SetCasltingRights(const __uint32_t arr) {
+    FAST_DCALL_ALWAYS void SetCastlingRights(const __uint32_t arr) {
         const __uint16_t rights = arr & static_cast<__uint32_t>(0xF);
 
         _packedMisc |= rights << 12;
