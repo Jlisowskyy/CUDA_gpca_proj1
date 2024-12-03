@@ -28,7 +28,7 @@
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 10;
+static constexpr __uint32_t RETRIES = 2;
 static constexpr __uint32_t MAX_DEPTH = 100;
 
 void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, __uint64_t movesGenerated) {

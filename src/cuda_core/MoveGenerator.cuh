@@ -97,8 +97,9 @@ public:
 
     FAST_DCALL void GetMovesFast() {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
-        const __uint64_t fullMap = GetFullBitMap();
-        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(fullMap);
+        const __uint64_t enemyMap = GetColBitMap(SwapColor(_boardFetcher.MovingColor()));
+        const __uint64_t allyMap = GetColBitMap(_boardFetcher.MovingColor());
+        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(enemyMap | allyMap);
 
         ASSERT(blockedFigMap != 0, "Blocked fig map must at least contains fields controlled by king!");
         ASSERT(checksCount <= 2,
@@ -109,13 +110,14 @@ public:
             return;
         }
 
-        _upTo1Check(fullMap, blockedFigMap, checksCount == 1 ? ASSUME_CHECK : EMPTY_FLAGS, wasCheckedBySimple);
+        _upTo1Check(allyMap, enemyMap, blockedFigMap, checksCount == 1 ? ASSUME_CHECK : EMPTY_FLAGS, wasCheckedBySimple);
     }
 
     FAST_DCALL void GetMovesSplit(const __uint32_t figIdx) {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
-        const __uint64_t fullMap = GetFullBitMap();
-        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(fullMap);
+        const __uint64_t enemyMap = GetColBitMap(SwapColor(_boardFetcher.MovingColor()));
+        const __uint64_t allyMap = GetColBitMap(_boardFetcher.MovingColor());
+        const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(allyMap | enemyMap);
 
         ASSERT(blockedFigMap != 0, "Blocked fig map must at least contains fields controlled by king!");
         ASSERT(checksCount <= 2,
@@ -128,7 +130,7 @@ public:
             return;
         }
 
-        _upTo1CheckSplit(figIdx, fullMap, blockedFigMap, checksCount == 1 ? ASSUME_CHECK : EMPTY_FLAGS,
+        _upTo1CheckSplit(figIdx, allyMap, enemyMap, blockedFigMap, checksCount == 1 ? ASSUME_CHECK : EMPTY_FLAGS,
                          wasCheckedBySimple);
     }
 
@@ -219,7 +221,7 @@ public:
 
 private:
 
-    FAST_DCALL void _upTo1CheckSplit(const __uint32_t figIdx, __uint64_t fullMap, __uint64_t blockedFigMap,
+    FAST_DCALL void _upTo1CheckSplit(const __uint32_t figIdx, __uint64_t allyMap, __uint64_t enemyMap, __uint64_t blockedFigMap,
                                      __uint32_t flags, bool wasCheckedBySimpleFig = false) {
         ASSERT(fullMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
@@ -227,23 +229,19 @@ private:
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                        _boardFetcher.MovingColor(), fullMap);
+                        _boardFetcher.MovingColor(), allyMap | enemyMap);
             }
 
             if (!wasCheckedBySimpleFig) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WAllowedTiles>(
-                        _boardFetcher.MovingColor(), fullMap);
+                        _boardFetcher.MovingColor(), allyMap | enemyMap);
             }
 
             const auto [rv, _] = GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                    _boardFetcher.MovingColor(), fullMap);
+                    _boardFetcher.MovingColor(), allyMap | enemyMap);
 
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
         }();
-
-        // helping variable preparation
-        const __uint64_t enemyMap = GetColBitMap(SwapColor(_boardFetcher.MovingColor()));
-        const __uint64_t allyMap = GetColBitMap(_boardFetcher.MovingColor());
 
         // Specific figure processing
         switch (figIdx) {
@@ -303,7 +301,7 @@ private:
                 }
 
                 if (!IsFlagOn(flags, ASSUME_CHECK)) {
-                    _processKingCastlings(blockedFigMap, fullMap);
+                    _processKingCastlings(blockedFigMap, allyMap | enemyMap);
                 }
                 break;
             default:
@@ -311,7 +309,7 @@ private:
         }
     }
 
-    FAST_DCALL void _upTo1Check(__uint64_t fullMap, __uint64_t blockedFigMap, __uint32_t flags,
+    FAST_DCALL void _upTo1Check(__uint64_t allyMap, __uint64_t enemyMap, __uint64_t blockedFigMap, __uint32_t flags,
                                 bool wasCheckedBySimpleFig = false) {
         ASSERT(fullMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
@@ -319,23 +317,19 @@ private:
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                        _boardFetcher.MovingColor(), fullMap);
+                        _boardFetcher.MovingColor(), allyMap | enemyMap);
             }
 
             if (!wasCheckedBySimpleFig) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WAllowedTiles>(
-                        _boardFetcher.MovingColor(), fullMap);
+                        _boardFetcher.MovingColor(), allyMap | enemyMap);
             }
 
             const auto [rv, _] = GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                            _boardFetcher.MovingColor(), fullMap);
+                            _boardFetcher.MovingColor(), allyMap | enemyMap);
 
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
         }();
-
-        // helping variable preparation
-        const __uint64_t enemyMap = GetColBitMap(SwapColor(_boardFetcher.MovingColor()));
-        const __uint64_t allyMap = GetColBitMap(_boardFetcher.MovingColor());
 
         // Specific figure processing
         if (!_processFigMoves<KnightMap>(
@@ -388,7 +382,7 @@ private:
         }
 
         if (!IsFlagOn(flags, ASSUME_CHECK)) {
-            _processKingCastlings(blockedFigMap, fullMap);
+            _processKingCastlings(blockedFigMap, allyMap | enemyMap);
         }
     }
 
