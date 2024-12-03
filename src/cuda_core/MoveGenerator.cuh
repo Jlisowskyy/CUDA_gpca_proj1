@@ -156,9 +156,9 @@ public:
 
         VolatileBoardData data(fetcher.Castlings(), fetcher.ElPassantField());
         for (__uint32_t i = 0; i < localStack.Size(); ++i) {
-            cuda_Move::MakeMove<NUM_BOARDS>(stack[i], fetcher);
+            cuda_Move::MakeMove<NUM_BOARDS>(localStack[i], fetcher);
             sum += CountMovesRecursive(fetcher, ptr, curDepth + 1, maxDepth);
-            cuda_Move::UnmakeMove<NUM_BOARDS>(stack[i], fetcher, data);
+            cuda_Move::UnmakeMove<NUM_BOARDS>(localStack[i], fetcher, data);
         }
 
         return sum;
@@ -676,7 +676,7 @@ private:
                                      ~blockedFigMap & ~allyMap;
 
         __uint64_t attackingMoves = kingMoves & enemyMap;
-        [[maybe_unused]] __uint64_t nonAttackingMoves = kingMoves ^ attackingMoves;
+        __uint64_t nonAttackingMoves = kingMoves ^ attackingMoves;
 
         // preparing variables
         auto castlings = _boardFetcher.Castlings();

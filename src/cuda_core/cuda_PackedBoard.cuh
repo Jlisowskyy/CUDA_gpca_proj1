@@ -53,7 +53,6 @@ struct alignas(128) cuda_PackedBoard {
 
         static constexpr __uint64_t MASK_32_BIT = 0xFFFFFFFF;
         FAST_CALL_ALWAYS void constexpr SetElPassantField(__uint64_t field) {
-
             __uint64_t lo = field & MASK_32_BIT;
             __uint64_t hi = (field >> 32) & MASK_32_BIT;
 
