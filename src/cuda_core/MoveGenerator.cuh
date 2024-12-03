@@ -247,7 +247,7 @@ private:
             const auto [rv, _] = GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
                     movingColor, allyMap | enemyMap);
 
-            return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
+            return {rv, GetAllowedTilesWhenCheckedByNonSliding(movingColor)};
         }();
 
         // Specific figure processing
@@ -336,7 +336,7 @@ private:
             const auto [rv, _] = GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
                     movingColor, allyMap | enemyMap);
 
-            return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
+            return {rv, GetAllowedTilesWhenCheckedByNonSliding(movingColor)};
         }();
 
         // Specific figure processing

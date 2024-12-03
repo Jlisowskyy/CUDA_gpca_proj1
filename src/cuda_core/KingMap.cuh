@@ -51,20 +51,20 @@ struct KingMap final {
     // generates tiles on which pawns currently attacks king
     template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
     [[nodiscard]] FAST_DCALL_ALWAYS  static __uint64_t
-    GetSimpleFigCheckPawnAllowedTiles(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher) {
+    GetSimpleFigCheckPawnAllowedTiles(const __uint32_t movingColor, const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher) {
         const __uint64_t detectionFields =
-                fetcher.MovingColor() == WHITE ? _getWhiteKingDetectionTiles<NUM_BOARDS>(fetcher)
+                movingColor == WHITE ? _getWhiteKingDetectionTiles<NUM_BOARDS>(fetcher)
                                                : _getBlackKingDetectionTiles<NUM_BOARDS>(fetcher);
 
-        return detectionFields & fetcher.GetFigBoard(SwapColor(fetcher.MovingColor()), PAWN_INDEX);
+        return detectionFields & fetcher.GetFigBoard(SwapColor(movingColor), PAWN_INDEX);
     }
 
     template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
     [[nodiscard]] FAST_DCALL_ALWAYS static __uint64_t
-    GetSimpleFigCheckKnightsAllowedTiles(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher) {
-        const __uint64_t detectionFields = KnightMap::GetMoves(fetcher.GetKingMsbPos(fetcher.MovingColor()));
+    GetSimpleFigCheckKnightsAllowedTiles(const __uint32_t movingColor, const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher) {
+        const __uint64_t detectionFields = KnightMap::GetMoves(fetcher.GetKingMsbPos(movingColor));
 
-        return detectionFields & fetcher.GetFigBoard(SwapColor(fetcher.MovingColor()), KNIGHT_INDEX);
+        return detectionFields & fetcher.GetFigBoard(SwapColor(movingColor), KNIGHT_INDEX);
     }
 
     // ------------------------------

@@ -313,11 +313,11 @@ struct ChessMechanics {
         return {pinnedByBishops | pinnedByRooks, allowedBishops | allowedRooks};
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetAllowedTilesWhenCheckedByNonSliding() const {
+    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetAllowedTilesWhenCheckedByNonSliding(const __uint32_t movingColor) const {
         __uint64_t allowedTiles{};
 
-        allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles<NUM_BOARDS>(_boardFetcher);
-        allowedTiles |= KingMap::GetSimpleFigCheckPawnAllowedTiles<NUM_BOARDS>(_boardFetcher);
+        allowedTiles |= KingMap::GetSimpleFigCheckKnightsAllowedTiles<NUM_BOARDS>(movingColor, _boardFetcher);
+        allowedTiles |= KingMap::GetSimpleFigCheckPawnAllowedTiles<NUM_BOARDS>(movingColor, _boardFetcher);
 
         return allowedTiles;
     }
