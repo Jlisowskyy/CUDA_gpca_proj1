@@ -78,7 +78,6 @@ private:
     _getWhiteKingDetectionTiles(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher) {
         const __uint64_t kingMap = fetcher.GetFigBoard(WHITE, KING_INDEX);
 
-
         const __uint64_t leftDetectionTile = (kingMap & KingMapConstants::LeftPawnDetectionMask) << 7;
         const __uint64_t rightDetectionTile = (kingMap & KingMapConstants::RightPawnDetectionMask) << 9;
 

@@ -72,72 +72,38 @@ struct ChessMechanics {
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ bool IsCheck() const {
-        const __uint32_t enemyCol = SwapColor(_boardFetcher.MovingColor());
-        const __uint32_t kingsMsb = _boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor());
-        const __uint64_t fullBoard = GetFullBitMap();
-
-        // Checking rook's perspective
-        const __uint64_t enemyRooks = _boardFetcher.GetFigBoard(enemyCol, ROOK_INDEX);
-        const __uint64_t enemyQueens = _boardFetcher.GetFigBoard(enemyCol, QUEEN_INDEX);
-
-        const __uint64_t kingsRookPerspective = RookMap::GetMoves(kingsMsb, fullBoard);
-
-        if ((kingsRookPerspective & (enemyRooks | enemyQueens)) != 0)
-            return true;
-
-        // Checking bishop's perspective
-        const __uint64_t enemyBishops = _boardFetcher.GetFigBoard(enemyCol, BISHOP_INDEX);
-
-        const __uint64_t kingsBishopPerspective = BishopMap::GetMoves(kingsMsb, fullBoard);
-
-        if ((kingsBishopPerspective & (enemyBishops | enemyQueens)) != 0)
-            return true;
-
-        // checking knights attacks
-        const __uint64_t enemyKnights = _boardFetcher.GetFigBoard(enemyCol, KNIGHT_INDEX);
-
-        const __uint64_t knightsPerspective = KnightMap::GetMoves(kingsMsb);
-
-        if ((knightsPerspective & (enemyKnights)) != 0)
-            return true;
-
-        // pawns checks
-        const __uint64_t enemyPawns = _boardFetcher.GetFigBoard(enemyCol, PAWN_INDEX);
-        const __uint64_t pawnAttacks =
-                enemyCol == WHITE ? WhitePawnMap::GetAttackFields(enemyPawns) : BlackPawnMap::GetAttackFields(
-                        enemyPawns);
-
-        if ((pawnAttacks & (cuda_MaxMsbPossible >> kingsMsb)) != 0)
-            return true;
-
-        return false;
-    }
-
-
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
-    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetFullBitMap() const {
+    [[nodiscard]] FAST_DCALL __uint64_t GetFullBitMap() const {
         __uint64_t map = 0;
-        for (__uint32_t i = 0; i < BIT_BOARDS_COUNT; ++i) map |= _boardFetcher.BitBoard(i);
+
+        for (__uint32_t i = 0; i < BIT_BOARDS_COUNT; ++i) {
+            map |= _boardFetcher.BitBoard(i);
+        }
+
         return map;
     }
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not, by desired color figures.
-    [[nodiscard]] FAST_DCALL_ALWAYS __uint64_t GetColBitMap(const __uint32_t col) const {
+    [[nodiscard]] FAST_DCALL __uint64_t GetColBitMap(const __uint32_t col) const {
         ASSERT(col == 1 || col == 0, "col == 1 || col == 0");
-
         __uint64_t map = 0;
-        for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) map |= _boardFetcher.GetFigBoard(col, i);
+
+        for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
+            map |= _boardFetcher.GetFigBoard(col, i);
+        }
+
         return map;
     }
 
     // does not check kings BitBoards!!!
-    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t
+    [[nodiscard]] FAST_DCALL __uint32_t
     GetIndexOfContainingBitBoard(const __uint64_t map, const __uint32_t col) const {
         __uint32_t rv = 0;
+
         for (__uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
             rv += ((_boardFetcher.GetFigBoard(col, i) & map) != 0) * i;
         }
+
         return col * BIT_BOARDS_PER_COLOR + rv;
     }
 
@@ -312,15 +278,16 @@ struct ChessMechanics {
         ASSERT(fullMap != 0, "Full map is empty!");
         ASSERT(CountOnesInBoard(figBoard) == 1, "Only one figure should be pinned!");
 
-        const int msbPos = ExtractMsbPos(figBoard);
+        const __uint32_t msbPos = ExtractMsbPos(figBoard);
         const __uint64_t KingBoard = _boardFetcher.GetFigBoard(_boardFetcher.MovingColor(), KING_INDEX);
 
-        const __uint64_t RookPerspectiveMoves = RookMap::GetMoves(msbPos, fullMap);
-        if ((RookPerspectiveMoves & KingBoard) != 0)
-            return RookPerspectiveMoves & RookMap::GetMoves(ExtractMsbPos(KingBoard), fullMap ^ figBoard);
+        if (const __uint64_t RookPerspectiveMoves = RookMap::GetMoves(msbPos, fullMap);
+                (RookPerspectiveMoves & KingBoard) != 0) {
 
-        const __uint64_t BishopPerspectiveMoves = BishopMap::GetMoves(msbPos, fullMap);
-        return BishopPerspectiveMoves & BishopMap::GetMoves(ExtractMsbPos(KingBoard), fullMap ^ figBoard);
+            return RookPerspectiveMoves & RookMap::GetMoves(ExtractMsbPos(KingBoard), fullMap ^ figBoard);
+        }
+
+        return BishopMap::GetMoves(msbPos, fullMap) & BishopMap::GetMoves(ExtractMsbPos(KingBoard), fullMap ^ figBoard);
     }
 
     // returns [ pinnedFigMap, allowedTilesMap ]
@@ -361,7 +328,6 @@ struct ChessMechanics {
 
 private:
 
-
     /*  Function collects information used inside the SEE algorithm it contains:
      *  - attackersBitBoard - contains every type of figure that in current state of the board could attack given field
      *  - fullMap - contains every figure on the board
@@ -377,7 +343,7 @@ private:
         __uint8_t checks{};
 
         while (rookMap) {
-            const int msbPos = ExtractMsbPos(rookMap);
+            const __uint32_t msbPos = ExtractMsbPos(rookMap);
 
             const __uint64_t moves = RookMap::GetMoves(msbPos, fullMapWoutKing);
             blockedTiles |= moves;
@@ -394,7 +360,7 @@ private:
         __uint64_t blockedMap = 0;
 
         while (board != 0) {
-            const int figPos = ExtractMsbPos(board);
+            const __uint32_t figPos = ExtractMsbPos(board);
             board ^= (cuda_MaxMsbPossible >> figPos);
 
             blockedMap |= mGen(figPos);
@@ -417,14 +383,15 @@ private:
 
         // this functions should be called only in case of single check so the value below can only be either null or the
         // map of checking figure
-        if constexpr (type == PinnedFigGen::WAllowedTiles)
+        if constexpr (type == PinnedFigGen::WAllowedTiles) {
             if (const __uint64_t kingSeenEnemyFigs = kingFigPerspectiveAttackedFigs & possiblePinningFigs;
                     kingSeenEnemyFigs != 0) {
-                const int msbPos = ExtractMsbPos(kingSeenEnemyFigs);
+                const __uint32_t msbPos = ExtractMsbPos(kingSeenEnemyFigs);
                 const __uint64_t moves = MoveMapT::GetMoves(msbPos, fullMap);
 
                 allowedTilesFigMap = (moves & kingFigPerspectiveAttackedFields) | kingSeenEnemyFigs;
             }
+        }
 
         // removing figs seen by king
         const __uint64_t cleanedMap = fullMap ^ kingFigPerspectiveAttackedFigs;
@@ -435,7 +402,7 @@ private:
 
         // generating fields which are both seen by king and pinning figure = field on which pinned figure stays
         while (pinningFigs != 0) {
-            const int msbPos = ExtractMsbPos(pinningFigs);
+            const __uint32_t msbPos = ExtractMsbPos(pinningFigs);
             pinnedFigMap |= MoveMapT::GetMoves(msbPos, fullMap) & kingFigPerspectiveAttackedFigs;
             pinningFigs ^= cuda_MaxMsbPossible >> msbPos;
         }

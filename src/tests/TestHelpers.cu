@@ -15,8 +15,8 @@
 #include <thrust/device_vector.h>
 
 void PolluteCache() {
-    static constexpr __uint32_t POLLUTE_SIZE = 1'000'000;
-    static constexpr __uint32_t ROUNDS = 10;
+    static constexpr __uint32_t POLLUTE_SIZE = 1'000'000'0;
+    static constexpr __uint32_t ROUNDS = 50;
 
     std::cout << "Polluting caches..." << std::endl;
 

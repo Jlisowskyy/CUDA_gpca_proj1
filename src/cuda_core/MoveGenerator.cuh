@@ -213,8 +213,6 @@ public:
         return sum;
     }
 
-    using ChessMechanics<NUM_BOARDS>::IsCheck;
-
     // ------------------------------
     // private methods
     // ------------------------------
@@ -568,7 +566,7 @@ private:
 
             // preparing moves
             const __uint64_t attackMoves = figMoves & enemyMap;
-            [[maybe_unused]] const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
+            const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
             if (!_processNonAttackingMoves(
@@ -589,8 +587,9 @@ private:
         }
 
         // if a check is detected, the pinned figure stays in place
-        if (IsFlagOn(flags, ASSUME_CHECK))
+        if (IsFlagOn(flags, ASSUME_CHECK)) {
             return true;
+        }
 
         // processing pinned moves
         // Note: corner Rook possibly applicable to castling cannot be pinned
@@ -600,15 +599,12 @@ private:
             const __uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
             const __uint64_t allowedTiles = GenerateAllowedTilesForPrecisedPinnedFig(figBoard, fullMap);
             const __uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedTiles;
-            // TODO: check applied here?
-            // TODO: breaking if there?
 
             // preparing moves
             const __uint64_t attackMoves = figMoves & enemyMap;
             const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
-
             if (!_processNonAttackingMoves(
                     nonAttackingMoves, MapT::GetBoardIndex(_boardFetcher.MovingColor()), figBoard,
                     _boardFetcher.Castlings(),
@@ -687,9 +683,8 @@ private:
             // extracting moves
             const __uint32_t movePos = ExtractMsbPos(attackingMoves);
             const __uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
-            const __uint32_t attackedFigBoardIndex = GetIndexOfContainingBitBoard(moveBoard,
-                                                                                  SwapColor(
-                                                                                          _boardFetcher.MovingColor()));
+            const __uint32_t attackedFigBoardIndex =
+                    GetIndexOfContainingBitBoard(moveBoard, SwapColor(_boardFetcher.MovingColor()));
 
             cuda_Move mv{};
 
