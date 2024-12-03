@@ -47,6 +47,9 @@ static constexpr std::array TestFEN{
         "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
+/* This position will always be evaluated as first shot during each test run to simplify position debugging */
+static constexpr const char *MAIN_TEST_FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+
 static constexpr __uint32_t TEST_DEPTH = 2;
 
 #define DUMP_MSG(msg)                     \
@@ -474,12 +477,14 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
     std::cout << "Extending thread stack size to " << EXTENDED_THREAD_STACK_SIZE << "..." << std::endl;
     cudaDeviceSetLimit(cudaLimitStackSize, EXTENDED_THREAD_STACK_SIZE);
 
+    TestSinglePositionOutput(RunBaseKernel, MAIN_TEST_FEN, nullptr, true);
+
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing plain move gen: " << std::endl;
 
-//    RunSinglePosTest(RunBaseKernel);
+    RunSinglePosTest(RunBaseKernel);
     std::cout << std::string(80, '-') << std::endl;
-    RunDepthPosTest(RunBaseKernelMoveCount, RunBaseKernel);
+//    RunDepthPosTest(RunBaseKernelMoveCount, RunBaseKernel);
 
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing split move gen: " << std::endl;
