@@ -83,7 +83,7 @@ void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vec
     std::cout << "Control sum of the results: " << sum << std::endl;
 }
 
-void FancyMagicTest_(int threadsAvailable, const cudaDeviceProp &deviceProps) {
+void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     std::cout << "Fancy Magic Test" << std::endl;
     std::cout << "Received " << threadsAvailable << " available threads..." << std::endl;
 

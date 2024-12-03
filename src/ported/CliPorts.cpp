@@ -58,4 +58,19 @@ namespace cpu {
         board = eBd;
         return true;
     }
+
+    std::string TranslateToFen(const external_board &board) {
+        Board bd{};
+
+        for (size_t i = 0; i < Board::BitBoardsCount; ++i) {
+            bd.BitBoards[i] = board[i];
+        }
+
+        // Copy special fields
+        bd.ElPassantField = board[12];
+        bd.Castlings = std::bitset<Board::CastlingCount + 1>(board[13]);
+        bd.MovingColor = static_cast<int>(board[14]);
+
+        return FenTranslator::Translate(bd);
+    }
 }

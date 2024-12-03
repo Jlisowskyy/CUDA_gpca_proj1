@@ -165,7 +165,21 @@ public:
     // class interaction
     // ------------------------------
 
-    FAST_DCALL_ALWAYS void ChangePlayingColor() { MovingColor ^= 1; }
+    cpu::external_board DumpToExternal() {
+        cpu::external_board rv{};
+
+        for (__uint32_t i = 0; i < 12; ++i) {
+            rv[i] = BitBoards[i];
+        }
+
+        rv[12] = ElPassantField;
+        rv[13] = Castlings;
+        rv[14] = MovingColor;
+
+        return rv;
+    }
+
+    FAST_CALL_ALWAYS void ChangePlayingColor() { MovingColor ^= 1; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetKingMsbPos(const __uint32_t col) const {
         return ExtractMsbPos(BitBoards[col * BIT_BOARDS_PER_COLOR + KING_INDEX]);

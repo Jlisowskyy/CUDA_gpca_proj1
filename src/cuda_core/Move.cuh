@@ -196,6 +196,16 @@ __device__ __constant__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
         CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
 
+//static constexpr __uint32_t move_CastlingIdxArrCPU[5]{
+//        SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
+//};
+//
+//static constexpr __uint64_t move_CastlingNewKingPosCPU[5]{
+//        1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
+//        CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
+//};
+
+
 class cuda_Move final {
 public:
 // ------------------------------
@@ -204,6 +214,9 @@ public:
 
     // This construction does not initialize crucial fields what must be done
     FAST_DCALL_ALWAYS explicit cuda_Move(const cuda_PackedMove mv) : _packedMove(mv) {}
+
+    explicit cuda_Move(cpu::external_move eMove) : _packedMove(eMove[0]), _packedIndexes(eMove[1]),
+                                                   _packedMisc(eMove[2]) {}
 
     cuda_Move() = default;
 
@@ -244,18 +257,19 @@ public:
 
     template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
     FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher) {
+        assert(mv.IsOkayMove() && "Given move is not valid!");
+
         // removing the old piece from the board
-        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetStartBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetStartField()),
-                            mv.GetStartBoardIndex());
+        __uint64_t prevBoard = fetcher.BitBoard(mv.GetStartBoardIndex());
+        fetcher.SetBitBoard(prevBoard ^ (cuda_MaxMsbPossible >> mv.GetStartField()), mv.GetStartBoardIndex());
 
         // placing the figure on new field
-        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetTargetBoardIndex()) | (cuda_MaxMsbPossible >> mv.GetTargetField()),
-                            mv.GetTargetBoardIndex());
+        prevBoard = fetcher.BitBoard(mv.GetTargetBoardIndex());
+        fetcher.SetBitBoard(prevBoard | (cuda_MaxMsbPossible >> mv.GetTargetField()), mv.GetTargetBoardIndex());
 
         // removing the killed figure in case no figure is killed index should be indicating to the sentinel
-        fetcher.SetBitBoard(
-                fetcher.BitBoard(mv.GetKilledBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetKilledFigureField()),
-                mv.GetKilledBoardIndex());
+        prevBoard = fetcher.BitBoard(mv.GetKilledBoardIndex());
+        fetcher.SetBitBoard(prevBoard ^ (cuda_MaxMsbPossible >> mv.GetKilledFigureField()), mv.GetKilledBoardIndex());
 
         // applying new castling rights
         fetcher.Castlings() = mv.GetCastlingRights();
@@ -271,26 +285,52 @@ public:
         fetcher.ChangePlayingColor();
     }
 
+    static void MakeMove(const cuda_Move mv, cuda_Board &bd) {
+
+        // removing the old piece from the board
+        bd.BitBoards[mv.GetStartBoardIndexCPU()] ^= cuda_MaxMsbPossible >> mv.GetStartFieldCPU();
+
+        // placing the figure on new field
+        bd.BitBoards[mv.GetTargetBoardIndexCPU()] |= cuda_MaxMsbPossible >> mv.GetTargetFieldCPU();
+
+        // removing the killed figure in case no figure is killed index should be indicating to the sentinel
+        bd.BitBoards[mv.GetKilledBoardIndexCPU()] ^= cuda_MaxMsbPossible >> mv.GetKilledFigureFieldCPU();
+
+        // applying new castling rights
+        bd.Castlings = mv.GetCastlingRightsCPU();
+
+        // applying new el passant field
+        bd.ElPassantField = cuda_MaxMsbPossible >> mv.GetElPassantFieldCPU();
+
+        // applying additional castling operation
+        const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingTypeCPU()];
+        const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingTypeCPU()];
+        bd.BitBoards[boardIndex] |= newKingPos;
+
+        bd.ChangePlayingColor();
+    }
+
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsAttackingMove() const { return _packedMove.IsCapture(); }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsEmpty() const { return _packedMove.IsEmpty(); }
 
     template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
     FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher, const VolatileBoardData &data) {
+        assert(mv.IsOkayMove() && "Given move is not valid!");
+
         fetcher.ChangePlayingColor();
 
         // placing the piece on old board
-        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetStartBoardIndex()) | (cuda_MaxMsbPossible >> mv.GetStartField()),
-                            mv.GetStartBoardIndex());
+        __uint64_t prevBoard = fetcher.BitBoard(mv.GetStartBoardIndex());
+        fetcher.SetBitBoard(prevBoard | (cuda_MaxMsbPossible >> mv.GetStartField()), mv.GetStartBoardIndex());
 
         // removing the figure from the new field
-        fetcher.SetBitBoard(fetcher.BitBoard(mv.GetTargetBoardIndex()) ^ (cuda_MaxMsbPossible >> mv.GetTargetField()),
-                            mv.GetTargetBoardIndex());
+        prevBoard = fetcher.BitBoard(mv.GetTargetBoardIndex());
+        fetcher.SetBitBoard(prevBoard ^ (cuda_MaxMsbPossible >> mv.GetTargetField()), mv.GetTargetBoardIndex());
 
         // placing the killed figure in good place
-        fetcher.SetBitBoard(
-                fetcher.BitBoard(mv.GetKilledBoardIndex()) | (cuda_MaxMsbPossible >> mv.GetKilledFigureField()),
-                mv.GetKilledBoardIndex());
+        prevBoard = fetcher.BitBoard(mv.GetKilledBoardIndex());
+        fetcher.SetBitBoard(prevBoard | (cuda_MaxMsbPossible >> mv.GetKilledFigureField()), mv.GetKilledBoardIndex());
 
         // recovering old castlings
         fetcher.Castlings() = data.Castlings;
@@ -305,18 +345,53 @@ public:
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) ^ newKingPos, boardIndex);
     }
 
+    static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
+        bd.ChangePlayingColor();
+
+        // placing the piece on old board
+        bd.BitBoards[mv.GetStartBoardIndexCPU()] |= cuda_MaxMsbPossible >> mv.GetStartFieldCPU();
+
+        // removing the figure from the new field
+        bd.BitBoards[mv.GetTargetBoardIndexCPU()] ^= cuda_MaxMsbPossible >> mv.GetTargetFieldCPU();
+
+        // placing the killed figure in good place
+        bd.BitBoards[mv.GetKilledBoardIndexCPU()] |= cuda_MaxMsbPossible >> mv.GetKilledFigureFieldCPU();
+
+        // recovering old castlings
+        bd.Castlings = data.Castlings;
+
+        // recovering old el passant field
+        bd.ElPassantField = data.OldElPassant;
+
+        // reverting castling operation
+        const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingTypeCPU()];
+        const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingTypeCPU()];
+        bd.BitBoards[boardIndex] ^= newKingPos;
+    }
+
     FAST_DCALL_ALWAYS void SetStartField(const __uint16_t startField) { _packedMove.SetStartField(startField); }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetStartField() const { return _packedMove.GetStartField(); }
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetStartFieldCPU() const { return _packedMove.GetStartFieldCPU(); }
+
 
     FAST_DCALL_ALWAYS void SetTargetField(const __uint16_t targetField) { _packedMove.SetTargetField(targetField); }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetTargetField() const { return _packedMove.GetTargetField(); }
 
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetTargetFieldCPU() const { return _packedMove.GetTargetFieldCPU(); }
+
     FAST_DCALL_ALWAYS void SetStartBoardIndex(const __uint16_t startBoard) { _packedIndexes |= startBoard; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetStartBoardIndex() const {
         __constant__ static constexpr __uint16_t StartBoardMask = Bit4;
+
+        return _packedIndexes & StartBoardMask;
+    }
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetStartBoardIndexCPU() const {
+        static constexpr __uint16_t StartBoardMask = Bit4;
 
         return _packedIndexes & StartBoardMask;
     }
@@ -331,6 +406,12 @@ public:
         return (_packedIndexes & TargetBoardIndexMask) >> 4;
     }
 
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetTargetBoardIndexCPU() const {
+        static constexpr __uint16_t TargetBoardIndexMask = Bit4 << 4;
+
+        return (_packedIndexes & TargetBoardIndexMask) >> 4;
+    }
+
     FAST_DCALL_ALWAYS void SetKilledBoardIndex(const __uint16_t killedBoardIndex) {
         _packedIndexes |= killedBoardIndex << 8;
     }
@@ -341,10 +422,23 @@ public:
         return (_packedIndexes & KilledBoardIndexMask) >> 8;
     }
 
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetKilledBoardIndexCPU() const {
+        static constexpr __uint16_t KilledBoardIndexMask = Bit4 << 8;
+
+        return (_packedIndexes & KilledBoardIndexMask) >> 8;
+    }
+
     FAST_DCALL_ALWAYS void SetCastlingType(const __uint16_t castlingType) { _packedIndexes |= castlingType << 12; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetCastlingType() const {
         __constant__ static constexpr __uint16_t CastlingTypeMask = Bit3 << 12;
+
+        return (_packedIndexes & CastlingTypeMask) >> 12;
+    }
+
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetCastlingTypeCPU() const {
+        static constexpr __uint16_t CastlingTypeMask = Bit3 << 12;
 
         return (_packedIndexes & CastlingTypeMask) >> 12;
     }
@@ -369,10 +463,21 @@ public:
         return _packedMisc & KilledFigureFieldMask;
     }
 
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetKilledFigureFieldCPU() const {
+        static constexpr __uint16_t KilledFigureFieldMask = Bit6;
+        return _packedMisc & KilledFigureFieldMask;
+    }
+
     FAST_DCALL_ALWAYS void SetElPassantField(const __uint16_t elPassantField) { _packedMisc |= elPassantField << 6; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint16_t GetElPassantField() const {
         __constant__ static constexpr __uint16_t ElPassantFieldMask = Bit6 << 6;
+
+        return (_packedMisc & ElPassantFieldMask) >> 6;
+    }
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint16_t GetElPassantFieldCPU() const {
+        static constexpr __uint16_t ElPassantFieldMask = Bit6 << 6;
 
         return (_packedMisc & ElPassantFieldMask) >> 6;
     }
@@ -385,6 +490,14 @@ public:
 
     [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t GetCastlingRights() const {
         __constant__ static constexpr __uint32_t CastlingMask = Bit4 << 12;
+
+        const __uint32_t rights = (_packedMisc & CastlingMask) >> 12;
+
+        return rights;
+    }
+
+    [[nodiscard]] FAST_CALL_ALWAYS __uint32_t GetCastlingRightsCPU() const {
+        static constexpr __uint32_t CastlingMask = Bit4 << 12;
 
         const __uint32_t rights = (_packedMisc & CastlingMask) >> 12;
 

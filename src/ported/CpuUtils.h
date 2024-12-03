@@ -13,6 +13,8 @@ namespace cpu {
 
     [[nodiscard]] external_board TranslateFromFen(const std::string &fen);
 
+    [[nodiscard]] std::string TranslateToFen(const external_board& board);
+
     [[nodiscard]] external_board GetDefaultBoard();
 
     [[nodiscard]] bool Translate(const std::string &fen, external_board &board);

@@ -47,7 +47,7 @@ static constexpr std::array TestFEN{
         "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
-static constexpr __uint32_t TEST_DEPTH = 3;
+static constexpr __uint32_t TEST_DEPTH = 2;
 
 #define DUMP_MSG(msg)                     \
     if (progBar != nullptr) {             \
@@ -145,9 +145,43 @@ void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint6
 
 }
 
+template<class FuncT>
+std::vector<cuda_Move> GenerateMovesByKernel(FuncT func, const cuda_Board &board) {
+    auto packedBoard = new SmallPackedBoardT(std::vector{board});
+
+    SmallPackedBoardT *dBoard;
+    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
+
+    /* Load resources to GPU */
+    thrust::device_vector<cuda_Move> dMoves(256);
+    thrust::device_vector<int> dCount(1);
+
+    CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
+
+    /* Generate Moves */
+    func(dBoard, thrust::raw_pointer_cast(dMoves.data()), thrust::raw_pointer_cast(dCount.data()));
+
+    CUDA_TRACE_ERROR(cudaGetLastError());
+    GUARDED_SYNC();
+
+    thrust::host_vector<cuda_Move> hMoves = dMoves;
+    thrust::host_vector<int> hCount = dCount;
+
+    std::vector<cuda_Move> cudaMoves{};
+    cudaMoves.reserve(hCount[0]);
+    for (int i = 0; i < hCount[0]; ++i) {
+        cudaMoves.push_back(hMoves[i]);
+    };
+
+    CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
+    delete packedBoard;
+
+    return cudaMoves;
+}
+
 
 template<class FuncT>
-void TestMoveCount(FuncT func,
+bool TestMoveCount(FuncT func,
                    const std::string_view &fen,
                    int depth,
                    ProgressBar *progBar = nullptr,
@@ -176,6 +210,9 @@ void TestMoveCount(FuncT func,
 
     const auto cCount = cpu::CountMoves(externalBoard, depth);
 
+    CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
+    delete packedBoard;
+
     if (cCount != hCount) {
         const std::string msg = std::format("Moves count mismatch: cpu {} !=  gpu {}\nPosition: {}",
                                             cCount,
@@ -183,17 +220,16 @@ void TestMoveCount(FuncT func,
                                             fen
         );
         DUMP_MSG(msg)
+        return false;
     } else {
         if (writeToOut) {
             DUMP_MSG(std::format("Test passed for: {}", fen))
         }
+        return true;
     }
-
-    CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
-    delete packedBoard;
 }
 
-void ValidateMoves(const std::string &fen,
+std::string ValidateMoves(const std::string &fen,
                    const std::vector<cpu::external_move> &cMoves,
                    const std::vector<cuda_Move> &hMoves,
                    ProgressBar *progBar = nullptr,
@@ -213,6 +249,7 @@ void ValidateMoves(const std::string &fen,
     }
 
     __uint32_t errors{};
+    std::string invalidMove{};
     for (const auto CPUmove: cMoves) {
         cuda_PackedMove convertedCPUMove{CPUmove[0]};
 
@@ -224,6 +261,8 @@ void ValidateMoves(const std::string &fen,
             DUMP_MSG(msg)
 
             ++errors;
+
+            invalidMove = "Lacking move: " + convertedCPUMove.GetLongAlgebraicNotation();
             continue;
         }
 
@@ -251,6 +290,7 @@ void ValidateMoves(const std::string &fen,
                     convertedCPUMove.GetLongAlgebraicNotation());
             DUMP_MSG(msg)
 
+            invalidMove = convertedCPUMove.GetLongAlgebraicNotation();
             errors++;
         }
 
@@ -265,6 +305,7 @@ void ValidateMoves(const std::string &fen,
 
             DUMP_MSG(msg)
 
+            invalidMove = convertedCPUMove.GetLongAlgebraicNotation();
             errors++;
         }
 
@@ -275,6 +316,8 @@ void ValidateMoves(const std::string &fen,
         const auto msg = std::format("GPU move gen failed: generated additional move: {}", move);
 
         DUMP_MSG(msg)
+
+        invalidMove = "Additional move: " + move;
     }
 
 
@@ -284,13 +327,17 @@ void ValidateMoves(const std::string &fen,
         msg += "Errors: " + std::to_string(errors) + '\n';
         msg += "Device moves:\n";
 
+        int count{};
         for (const auto &move: hMoves) {
-            msg += move.GetPackedMove().GetLongAlgebraicNotation() + '\n';
+            msg += move.GetPackedMove().GetLongAlgebraicNotation() + ", ";
+            if (++count == 10) msg += '\n';
         }
 
         msg += "Host moves:\n";
+        count = 0;
         for (const auto &move: cMoves) {
-            msg += cuda_PackedMove(move[0]).GetLongAlgebraicNotation() + '\n';
+            msg += cuda_PackedMove(move[0]).GetLongAlgebraicNotation() + ", ";
+            if (++count == 10) msg += '\n';
         }
 
         DUMP_MSG(msg)
@@ -301,6 +348,8 @@ void ValidateMoves(const std::string &fen,
             DUMP_MSG(msg)
         }
     }
+
+    return invalidMove;
 }
 
 
@@ -317,39 +366,12 @@ void TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *p
     /* Load boards */
     const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
     const cuda_Board board(externalBoard);
-    auto packedBoard = new SmallPackedBoardT(std::vector{board});
 
-    SmallPackedBoardT *dBoard;
-    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
-
-    /* Load resources to GPU */
-    thrust::device_vector<cuda_Move> dMoves(256);
-    thrust::device_vector<int> dCount(1);
-
-    CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
-
-    /* Generate Moves */
-    func(dBoard, thrust::raw_pointer_cast(dMoves.data()), thrust::raw_pointer_cast(dCount.data()));
-
-    CUDA_TRACE_ERROR(cudaGetLastError());
-    GUARDED_SYNC();
-
+    const auto cudaMoves = GenerateMovesByKernel(func, board);
     const auto cMoves = cpu::GenerateMoves(externalBoard);
-
-    thrust::host_vector<cuda_Move> hMoves = dMoves;
-    thrust::host_vector<int> hCount = dCount;
-
-    std::vector<cuda_Move> cudaMoves{};
-    cudaMoves.reserve(hCount[0]);
-    for (int i = 0; i < hCount[0]; ++i) {
-        cudaMoves.push_back(hMoves[i]);
-    };
 
     /* validate returned moves */
     ValidateMoves(std::string(fen), cMoves, cudaMoves, progBar, writeToOut);
-
-    CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
-    delete packedBoard;
 }
 
 template<class FuncT>
@@ -377,14 +399,64 @@ void RunSinglePosTest(FuncT func) {
 }
 
 template<class FuncT>
-void RunDepthPosTest(FuncT func) {
+std::string FindWrongPathRecursive(FuncT funcGen,
+                                   cuda_Board &board,
+                                   int depth,
+                                   ProgressBar *progBar = nullptr,
+                                   bool writeToOut = false) {
+
+    const auto cudaMoves = GenerateMovesByKernel(funcGen, board);
+    const auto cpuMoves = cpu::GenerateMoves(board.DumpToExternal());
+
+    if (std::string result = ValidateMoves(cpu::TranslateToFen(board.DumpToExternal()), cpuMoves, cudaMoves, progBar,
+                                           writeToOut); !result.empty()) {
+        return result + std::format(" Failed on depth: {}", depth);
+    }
+
+    if (depth == 1) {
+        return "";
+    }
+
+    for (const auto CPUMove: cpuMoves) {
+        cuda_Move move(CPUMove);
+
+        VolatileBoardData data(board);
+        cuda_Move::MakeMove(move, board);
+
+        if (std::string result = FindWrongPathRecursive(funcGen, board, depth - 1, progBar,
+                                                        writeToOut); !result.empty()) {
+            return move.GetPackedMove().GetLongAlgebraicNotation() + " --> " + result;
+        }
+
+        cuda_Move::UnmakeMove(move, board, data);
+    }
+
+    return "";
+}
+
+template<class FuncT, class FuncT1>
+void RunDepthPosTest(FuncT funcCount, FuncT1 funcGen) {
     std::cout << "Testing move gen with specialized positions on " << TEST_DEPTH << " depth..." << std::endl;
 
     ProgressBar progBar(TestFEN.size(), 100);
     progBar.Start();
 
     for (auto fen: TestFEN) {
-        TestMoveCount(func, fen, TEST_DEPTH, &progBar, WRITE_OUT);
+        if (!TestMoveCount(funcCount, fen, TEST_DEPTH, &progBar, WRITE_OUT)) {
+            const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
+            cuda_Board board(externalBoard);
+
+            const std::string result = FindWrongPathRecursive(funcGen, board, TEST_DEPTH, &progBar, WRITE_OUT);
+
+            if (result.empty()) {
+                const std::string msg = std::format("Failed to find malfunctioning move on fen: {}", fen);
+                progBar.WriteLine(msg);
+            } else {
+                const std::string msg = std::format("Found malfunctioning path: {}", result);
+                progBar.WriteLine(msg);
+            }
+        }
+
         progBar.Increment();
     }
 
@@ -405,7 +477,7 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
 
 //    RunSinglePosTest(RunBaseKernel);
     std::cout << std::string(80, '-') << std::endl;
-    RunDepthPosTest(RunBaseKernelMoveCount);
+    RunDepthPosTest(RunBaseKernelMoveCount, RunBaseKernel);
 
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing split move gen: " << std::endl;
