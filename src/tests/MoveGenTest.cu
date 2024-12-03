@@ -51,7 +51,7 @@ static constexpr std::array TestFEN{
 /* This position will always be evaluated as first shot during each test run to simplify position debugging */
 static constexpr const char *MAIN_TEST_FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
-static constexpr __uint32_t TEST_DEPTH = 3;
+static constexpr __uint32_t TEST_DEPTH = 4;
 
 #define DUMP_MSG(msg)                     \
     if (progBar != nullptr) {             \
@@ -136,6 +136,31 @@ void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth
     *outCount = moves;
 }
 
+void __global__ GetGPUMoveCountsKernelSplit(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
+    struct stub {
+        char bytes[sizeof(cuda_Move)];
+    };
+
+    __shared__ stub sharedStack[10][DEFAULT_STACK_SIZE];
+    Stack<cuda_Move> stack(sharedStack, false);
+    MoveGenerator<1> gen{(*board)[0], stack};
+
+    /* NOTE: threadIdx < 6 */
+    const __uint32_t figIdx = threadIdx.x;
+
+    if (figIdx == 0) {
+        stack.Clear();
+    }
+
+    __syncthreads();
+    const auto moves = gen.CountMovesSplit(figIdx, depth, sharedStack);
+    __syncthreads();
+
+    if (figIdx == 0) {
+        *outCount = moves;
+    }
+}
+
 void RunBaseKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount, cudaStream_t *stream = nullptr) {
     if (stream) {
         GetGPUMovesKernel<<<1, 1, 0, *stream>>>(dBoard, dMoves, dCount);
@@ -163,7 +188,11 @@ void RunBaseKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64
 
 void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount,
                              cudaStream_t *stream = nullptr) {
-
+    if (stream) {
+        GetGPUMoveCountsKernelSplit<<<1, 6, 0, *stream>>>(boards, depth, outCount);
+    } else {
+        GetGPUMoveCountsKernelSplit<<<1, 1>>>(boards, depth, outCount);
+    }
 }
 
 template<class FuncT>
@@ -534,7 +563,7 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
 
     RunSinglePosTest(RunSplitKernel);
     std::cout << std::string(80, '-') << std::endl;
-//    RunDepthPosTest(RunSplitKernelMoveCount);
+    RunDepthPosTest(RunSplitKernelMoveCount, RunSplitKernel);
 
     std::cout << std::string(80, '=') << std::endl;
 

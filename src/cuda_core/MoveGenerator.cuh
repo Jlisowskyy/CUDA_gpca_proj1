@@ -137,6 +137,11 @@ public:
         return CountMovesRecursive(fetcher, ptr, 0, depth);
     }
 
+    [[nodiscard]] __device__ __uint64_t CountMovesSplit(__uint32_t figIdx, int depth, void *ptr) {
+        _fetcher_t fetcher = _boardFetcher;
+        return CountMovesRecursiveSplit(figIdx, fetcher, ptr, 0, depth);
+    }
+
     [[nodiscard]] __device__ __uint64_t
     CountMovesRecursive(_fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
         if (curDepth == maxDepth) {
@@ -159,6 +164,50 @@ public:
             cuda_Move::MakeMove<NUM_BOARDS>(localStack[i], fetcher);
             sum += CountMovesRecursive(fetcher, ptr, curDepth + 1, maxDepth);
             cuda_Move::UnmakeMove<NUM_BOARDS>(localStack[i], fetcher, data);
+        }
+
+        return sum;
+    }
+
+    [[nodiscard]] __device__ __uint64_t
+    CountMovesRecursiveSplit(__uint32_t figIdx, _fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
+        if (curDepth == maxDepth) {
+            return 1;
+        }
+
+        Stack<cuda_Move> localStack((cuda_Move *) (ptr) + curDepth * DEFAULT_STACK_SIZE, false);
+
+        if (figIdx == 0) {
+            localStack.Clear();
+        }
+
+        __syncthreads();
+
+        MoveGenerator<NUM_BOARDS> mGen{fetcher, localStack};
+        mGen.GetMovesFast();
+
+        __syncthreads();
+
+        if ((maxDepth - curDepth) == 1) {
+            return localStack.Size();
+        }
+
+        __uint64_t sum{};
+
+        VolatileBoardData data(fetcher.Castlings(), fetcher.ElPassantField());
+        for (__uint32_t i = 0; i < localStack.Size(); ++i) {
+            if (figIdx == 0) {
+                cuda_Move::MakeMove<NUM_BOARDS>(localStack[i], fetcher);
+            }
+
+            __syncthreads();
+            sum += CountMovesRecursive(fetcher, ptr, curDepth + 1, maxDepth);
+
+            if (figIdx == 0){
+                cuda_Move::UnmakeMove<NUM_BOARDS>(localStack[i], fetcher, data);
+            }
+
+            __syncthreads();
         }
 
         return sum;
