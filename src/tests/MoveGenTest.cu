@@ -330,15 +330,17 @@ std::string ValidateMoves(const std::string &fen,
         int count{};
         for (const auto &move: hMoves) {
             msg += move.GetPackedMove().GetLongAlgebraicNotation() + ", ";
-            if (++count == 10) msg += '\n';
+            if (++count % 10 == 0) msg += '\n';
         }
+        msg += '\n';
 
         msg += "Host moves:\n";
         count = 0;
         for (const auto &move: cMoves) {
             msg += cuda_PackedMove(move[0]).GetLongAlgebraicNotation() + ", ";
-            if (++count == 10) msg += '\n';
+            if (++count % 10 == 0) msg += '\n';
         }
+        msg += '\n';
 
         DUMP_MSG(msg)
     } else {
