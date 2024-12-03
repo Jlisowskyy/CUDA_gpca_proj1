@@ -250,14 +250,14 @@ private:
             case PAWN_INDEX:
                 if (_boardFetcher.MovingColor() == WHITE) {
                     if (!_processPawnMoves<WhitePawnMap>(
-                            enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+                            enemyMap, allyMap, pinnedFigsMap, flags, allowedTilesMap
                     )) {
                         assert(STACK_SIZE != UINT32_MAX);
                         return;
                     }
                 } else {
                     if (!_processPawnMoves<BlackPawnMap>(
-                            enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+                            enemyMap, allyMap, pinnedFigsMap, flags, allowedTilesMap
                     )) {
                         assert(STACK_SIZE != UINT32_MAX);
                         return;
@@ -266,7 +266,7 @@ private:
                 break;
             case KNIGHT_INDEX:
                 if (!_processFigMoves<KnightMap>(
-                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                        enemyMap, allyMap, pinnedFigsMap, flags, UNUSED, allowedTilesMap
                 )) {
                     assert(STACK_SIZE != UINT32_MAX);
                     return;
@@ -274,7 +274,7 @@ private:
                 break;
             case BISHOP_INDEX:
                 if (!_processFigMoves<BishopMap>(
-                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                        enemyMap, allyMap, pinnedFigsMap, flags, UNUSED, allowedTilesMap
                 )) {
                     assert(STACK_SIZE != UINT32_MAX);
                     return;
@@ -282,9 +282,7 @@ private:
                 break;
             case ROOK_INDEX:
                 if (!_processFigMoves<RookMap>(
-                        enemyMap, allyMap, pinnedFigsMap,
-                        (IsFlagOn(flags, ASSUME_CHECK) ? ASSUME_CHECK : CHECK_CASTLINGS),
-                        UNUSED, allowedTilesMap
+                        enemyMap, allyMap, pinnedFigsMap, flags | CHECK_CASTLINGS, UNUSED, allowedTilesMap
                 )) {
                     assert(STACK_SIZE != UINT32_MAX);
                     return;
@@ -292,7 +290,7 @@ private:
                 break;
             case QUEEN_INDEX:
                 if (!_processFigMoves<QueenMap>(
-                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                        enemyMap, allyMap, pinnedFigsMap, flags, UNUSED, allowedTilesMap
                 )) {
                     assert(STACK_SIZE != UINT32_MAX);
                     return;
@@ -341,30 +339,28 @@ private:
 
         // Specific figure processing
         if (!_processFigMoves<KnightMap>(
-                enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                enemyMap, allyMap, pinnedFigsMap, flags, UNUSED, allowedTilesMap
         )) {
             assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
         if (!_processFigMoves<BishopMap>(
-                enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                enemyMap, allyMap, pinnedFigsMap, flags, UNUSED, allowedTilesMap
         )) {
             assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
         if (!_processFigMoves<RookMap>(
-                enemyMap, allyMap, pinnedFigsMap,
-                (IsFlagOn(flags, ASSUME_CHECK) ? ASSUME_CHECK : CHECK_CASTLINGS),
-                UNUSED, allowedTilesMap
+                enemyMap, allyMap, pinnedFigsMap, flags | CHECK_CASTLINGS, UNUSED, allowedTilesMap
         )) {
             assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
         if (!_processFigMoves<QueenMap>(
-                enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                enemyMap, allyMap, pinnedFigsMap, flags, UNUSED, allowedTilesMap
         )) {
             assert(STACK_SIZE != UINT32_MAX);
             return;
@@ -372,14 +368,14 @@ private:
 
         if (_boardFetcher.MovingColor() == WHITE) {
             if (!_processPawnMoves<WhitePawnMap>(
-                    enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+                    enemyMap, allyMap, pinnedFigsMap, flags, allowedTilesMap
             )) {
                 assert(STACK_SIZE != UINT32_MAX);
                 return;
             }
         } else {
             if (!_processPawnMoves<BlackPawnMap>(
-                    enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
+                    enemyMap, allyMap, pinnedFigsMap, flags, allowedTilesMap
             )) {
                 assert(STACK_SIZE != UINT32_MAX);
                 return;
@@ -413,9 +409,8 @@ private:
         const __uint64_t nonPromotingPawns = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) ^ promotingPawns;
 
         if (!_processFigMoves<MapT>(
-                enemyMap, allyMap, pinnedFigMap,
-                CONSIDER_EL_PASSANT | SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK),
-                nonPromotingPawns, allowedMoveFilter
+                enemyMap, allyMap, pinnedFigMap, CONSIDER_EL_PASSANT | SELECT_FIGURES | flags, nonPromotingPawns,
+                allowedMoveFilter
         )) {
             return false;
         }
@@ -423,7 +418,7 @@ private:
         // During quiesce search we should also check all promotions so GenOnlyTacticalMoves is false
         if (promotingPawns) {
             if (!_processFigMoves<MapT>(
-                    enemyMap, allyMap, pinnedFigMap, SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
+                    enemyMap, allyMap, pinnedFigMap, SELECT_FIGURES | flags | PROMOTE_PAWNS,
                     promotingPawns, allowedMoveFilter
             )) {
                 return false;
@@ -559,7 +554,7 @@ private:
 
             // Performing checks for castlings
             __uint32_t updatedCastlings = _boardFetcher.Castlings();
-            if (IsFlagOn(flags, CHECK_CASTLINGS)) {
+            if (IsFlagOn(flags, CHECK_CASTLINGS) && !IsFlagOn(flags, ASSUME_CHECK)) {
                 SetBitBoardBit(updatedCastlings, RookMap::GetMatchingCastlingIndex<NUM_BOARDS>(_boardFetcher, figBoard),
                                false);
             }
@@ -571,7 +566,7 @@ private:
             // processing move consequences
             if (!_processNonAttackingMoves(
                     nonAttackingMoves, MapT::GetBoardIndex(_boardFetcher.MovingColor()), figBoard,
-                    updatedCastlings, ExtractFlag(flags, CONSIDER_EL_PASSANT) | ExtractFlag(flags, PROMOTE_PAWNS)
+                    updatedCastlings, flags
             )) {
                 return false;
             }
@@ -608,7 +603,7 @@ private:
             if (!_processNonAttackingMoves(
                     nonAttackingMoves, MapT::GetBoardIndex(_boardFetcher.MovingColor()), figBoard,
                     _boardFetcher.Castlings(),
-                    ExtractFlag(flags, CONSIDER_EL_PASSANT) | ExtractFlag(flags, PROMOTE_PAWNS)
+                    flags
             )) {
                 return false;
             }
