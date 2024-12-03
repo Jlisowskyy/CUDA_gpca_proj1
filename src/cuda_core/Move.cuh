@@ -196,14 +196,14 @@ __device__ __constant__ static constexpr __uint64_t move_CastlingNewKingPos[5]{
         CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
 
-//static constexpr __uint32_t move_CastlingIdxArrCPU[5]{
-//        SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
-//};
-//
-//static constexpr __uint64_t move_CastlingNewKingPosCPU[5]{
-//        1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
-//        CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
-//};
+static constexpr __uint32_t move_CastlingIdxArrCPU[5]{
+        SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
+};
+
+static constexpr __uint64_t move_CastlingNewKingPosCPU[5]{
+        1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
+        CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
+};
 
 
 class cuda_Move final {
@@ -303,8 +303,8 @@ public:
         bd.ElPassantField = cuda_MaxMsbPossible >> mv.GetElPassantFieldCPU();
 
         // applying additional castling operation
-        const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingTypeCPU()];
-        const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingTypeCPU()];
+        const __uint32_t boardIndex = move_CastlingIdxArrCPU[mv.GetCastlingTypeCPU()];
+        const __uint64_t newKingPos = move_CastlingNewKingPosCPU[mv.GetCastlingTypeCPU()];
         bd.BitBoards[boardIndex] |= newKingPos;
 
         bd.ChangePlayingColor();
@@ -364,8 +364,8 @@ public:
         bd.ElPassantField = data.OldElPassant;
 
         // reverting castling operation
-        const __uint32_t boardIndex = move_CastlingIdxArr[mv.GetCastlingTypeCPU()];
-        const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingTypeCPU()];
+        const __uint32_t boardIndex = move_CastlingIdxArrCPU[mv.GetCastlingTypeCPU()];
+        const __uint64_t newKingPos = move_CastlingNewKingPosCPU[mv.GetCastlingTypeCPU()];
         bd.BitBoards[boardIndex] ^= newKingPos;
     }
 

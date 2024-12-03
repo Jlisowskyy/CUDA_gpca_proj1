@@ -79,7 +79,8 @@ set_target_properties(src
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set_source_files_properties(
             ${CUDA_SOURCES}
-            PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;"
+            #            PROPERTIES COMPILE_OPTIONS "-Xptxas;-O3;"
+            PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
     )
 else()
     set_source_files_properties(

@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <string>
+#include <mutex>
 
 class ProgressBar {
 public:
@@ -23,6 +24,8 @@ public:
     }
 
     void Increment() {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
         ++m_current;
 
         if (m_current > m_total) {
@@ -39,12 +42,16 @@ public:
     }
 
     void WriteLine(const std::string &line) {
+        std::lock_guard<std::mutex> lock(m_mutex);
+
         _clearLine();
         std::cout << line << std::endl;
         _redrawBar();
     }
 
     void Break() {
+        throw std::runtime_error("NOT IMPLEMENTED!");
+
         _clearLine();
         _drawCancelled();
     }
@@ -92,6 +99,8 @@ protected:
     __uint32_t m_current;
     __uint32_t m_width;
     __uint32_t m_numCharacters;
+
+    std::mutex m_mutex{};
 };
 
 #endif //SRC_PROGRESSBAR_CUH

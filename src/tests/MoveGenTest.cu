@@ -11,6 +11,7 @@
 #include "../cuda_core/ComputeKernels.cuh"
 #include "../cuda_core/cuda_PackedBoard.cuh"
 #include "../cpu_core/ProgressBar.cuh"
+#include "../cpu_core/ThreadPool.cuh"
 
 #include "../ported/CpuTests.h"
 #include "../ported/CpuUtils.h"
@@ -50,7 +51,7 @@ static constexpr std::array TestFEN{
 /* This position will always be evaluated as first shot during each test run to simplify position debugging */
 static constexpr const char *MAIN_TEST_FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
-static constexpr __uint32_t TEST_DEPTH = 2;
+static constexpr __uint32_t TEST_DEPTH = 3;
 
 #define DUMP_MSG(msg)                     \
     if (progBar != nullptr) {             \
@@ -68,6 +69,9 @@ static constexpr bool WRITE_OUT = true;
 static constexpr bool WRITE_OUT = false;
 
 #endif
+
+/* THREAD POOL SIZE FOR TESTS */
+static constexpr __uint32_t NUM_TEST_THREADS = 64;
 
 
 void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves, int *outCount) {
@@ -132,52 +136,74 @@ void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth
     *outCount = moves;
 }
 
-void RunBaseKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount) {
-    GetGPUMovesKernel<<<1, 1>>>(dBoard, dMoves, dCount);
+void RunBaseKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount, cudaStream_t *stream = nullptr) {
+    if (stream) {
+        GetGPUMovesKernel<<<1, 1, 0, *stream>>>(dBoard, dMoves, dCount);
+    } else {
+        GetGPUMovesKernel<<<1, 1>>>(dBoard, dMoves, dCount);
+    }
 };
 
-void RunSplitKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount) {
-    GetGPUMovesKernelSplit<<<1, 6>>>(dBoard, dMoves, dCount);
+void RunSplitKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount, cudaStream_t *stream = nullptr) {
+    if (stream) {
+        GetGPUMovesKernelSplit<<<1, 6, 0, *stream>>>(dBoard, dMoves, dCount);
+    } else {
+        GetGPUMovesKernelSplit<<<1, 6>>>(dBoard, dMoves, dCount);
+    }
 };
 
-void RunBaseKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount) {
-    GetGPUMoveCountsKernel<<<1, 1>>>(boards, depth, outCount);
+void RunBaseKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount,
+                            cudaStream_t *stream = nullptr) {
+    if (stream) {
+        GetGPUMoveCountsKernel<<<1, 1, 0, *stream>>>(boards, depth, outCount);
+    } else {
+        GetGPUMoveCountsKernel<<<1, 1>>>(boards, depth, outCount);
+    }
 }
 
-void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount) {
+void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount,
+                             cudaStream_t *stream = nullptr) {
 
 }
 
 template<class FuncT>
 std::vector<cuda_Move> GenerateMovesByKernel(FuncT func, const cuda_Board &board) {
+    cudaStream_t stream;
+    CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
+
     auto packedBoard = new SmallPackedBoardT(std::vector{board});
+    SmallPackedBoardT *dBoard{};
+    cuda_Move *dMoves{};
+    int *dCount{};
 
-    SmallPackedBoardT *dBoard;
-    CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
+    CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoard, sizeof(SmallPackedBoardT), stream));
+    CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dMoves, sizeof(cuda_Move) * DEFAULT_STACK_SIZE, stream));
+    CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dCount, sizeof(int), stream));
+    CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoard, packedBoard,
+                                        sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice, stream));
+    func(dBoard, dMoves, dCount, &stream);
 
-    /* Load resources to GPU */
-    thrust::device_vector<cuda_Move> dMoves(256);
-    thrust::device_vector<int> dCount(1);
+    std::vector<cuda_Move> cudaMoves(DEFAULT_STACK_SIZE);
+    int hCount{};
 
-    CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
+    CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
 
-    /* Generate Moves */
-    func(dBoard, thrust::raw_pointer_cast(dMoves.data()), thrust::raw_pointer_cast(dCount.data()));
+    CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(cudaMoves.data(), dMoves,
+                                        sizeof(cuda_Move) * DEFAULT_STACK_SIZE, cudaMemcpyDeviceToHost, stream));
+    CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(&hCount, dCount,
+                                        sizeof(int), cudaMemcpyDeviceToHost, stream));
+    CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
 
-    CUDA_TRACE_ERROR(cudaGetLastError());
-    GUARDED_SYNC();
+    CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoard, stream));
+    CUDA_ASSERT_SUCCESS(cudaFreeAsync(dMoves, stream));
+    CUDA_ASSERT_SUCCESS(cudaFreeAsync(dCount, stream));
 
-    thrust::host_vector<cuda_Move> hMoves = dMoves;
-    thrust::host_vector<int> hCount = dCount;
+    cudaMoves.resize(hCount);
 
-    std::vector<cuda_Move> cudaMoves{};
-    cudaMoves.reserve(hCount[0]);
-    for (int i = 0; i < hCount[0]; ++i) {
-        cudaMoves.push_back(hMoves[i]);
-    };
-
-    CUDA_ASSERT_SUCCESS(cudaFree(dBoard));
     delete packedBoard;
+
+    CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
+    CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
 
     return cudaMoves;
 }
@@ -204,7 +230,7 @@ bool TestMoveCount(FuncT func,
     CUDA_ASSERT_SUCCESS(cudaMalloc(&dBoard, sizeof(SmallPackedBoardT)));
     CUDA_ASSERT_SUCCESS(cudaMemcpy(dBoard, packedBoard, sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice));
 
-    func(dBoard, depth, thrust::raw_pointer_cast(dCount.data()));
+    func(dBoard, depth, thrust::raw_pointer_cast(dCount.data()), nullptr);
     CUDA_TRACE_ERROR(cudaGetLastError());
     GUARDED_SYNC();
 
@@ -394,12 +420,20 @@ void RunSinglePosTest(FuncT func) {
         progBar.Increment();
     }
 
-    progBar.WriteLine("Testing move gen with whole fen db...");
-    for (const auto &fen: fens) {
-        TestSinglePositionOutput(func, fen, &progBar, WRITE_OUT);
-        progBar.Increment();
-    }
+    ThreadPool threadPool(NUM_TEST_THREADS);
 
+    progBar.WriteLine("Testing move gen with whole fen db...");
+
+    threadPool.RunThreads(
+            [&](const __uint32_t tid) {
+                for (__uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
+                    TestSinglePositionOutput(func, fens[idx], &progBar, WRITE_OUT);
+                    progBar.Increment();
+                }
+            }
+    );
+
+    threadPool.Wait();
     std::cout << "TEST FINISHED" << std::endl;
 }
 

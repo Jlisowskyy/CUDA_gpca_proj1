@@ -104,7 +104,6 @@ public:
         ASSERT(checksCount <= 2,
                "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!");
 
-        assert(checksCount <= 2 && "Probably some passing galactic electron just hit my CPU");
         if (checksCount == 2) {
             _doubleCheckGen(blockedFigMap);
             return;
@@ -122,7 +121,6 @@ public:
         ASSERT(checksCount <= 2,
                "We consider only 3 states: no-check, single-check, double-check -> invalid result was returned!");
 
-        assert(checksCount <= 2 && "Probably some passing galactic electron just hit my CPU");
         if (checksCount == 2) {
             if (figIdx == 0) {
                 _doubleCheckGen(blockedFigMap);
@@ -174,30 +172,25 @@ public:
 
 private:
 
-    FAST_DCALL void
-    _upTo1CheckSplit(const __uint32_t figIdx, __uint64_t fullMap, __uint64_t blockedFigMap,
-                     __uint32_t flags,
-                     bool wasCheckedBySimpleFig = false) {
+    FAST_DCALL void _upTo1CheckSplit(const __uint32_t figIdx, __uint64_t fullMap, __uint64_t blockedFigMap,
+                                     __uint32_t flags, bool wasCheckedBySimpleFig = false) {
         ASSERT(fullMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
 
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                        _boardFetcher.MovingColor(),
-                                                                                        fullMap);
+                        _boardFetcher.MovingColor(), fullMap);
             }
 
             if (!wasCheckedBySimpleFig) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WAllowedTiles>(
-                        _boardFetcher.MovingColor(),
-                                                                                     fullMap);
+                        _boardFetcher.MovingColor(), fullMap);
             }
 
-            [[maybe_unused]] const auto [rv, _] =
-                    GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                            _boardFetcher.MovingColor(),
-                                                                                     fullMap);
+            const auto [rv, _] = GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
+                    _boardFetcher.MovingColor(), fullMap);
+
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
         }();
 
@@ -209,39 +202,54 @@ private:
         switch (figIdx) {
             case PAWN_INDEX:
                 if (_boardFetcher.MovingColor() == WHITE) {
-                    _processPawnMoves<WhitePawnMap>(
+                    if (!_processPawnMoves<WhitePawnMap>(
                             enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
-                    );
+                    )) {
+                        assert(STACK_SIZE != UINT32_MAX);
+                        return;
+                    }
                 } else {
-                    _processPawnMoves<BlackPawnMap>(
+                    if (!_processPawnMoves<BlackPawnMap>(
                             enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
-                    );
+                    )) {
+                        assert(STACK_SIZE != UINT32_MAX);
+                        return;
+                    }
                 }
                 break;
             case KNIGHT_INDEX:
-                _processFigMoves<KnightMap>(
-                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED,
-                        allowedTilesMap
-                );
+                if (!_processFigMoves<KnightMap>(
+                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                )) {
+                    assert(STACK_SIZE != UINT32_MAX);
+                    return;
+                }
                 break;
             case BISHOP_INDEX:
-                _processFigMoves<BishopMap>(
-                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED,
-                        allowedTilesMap
-                );
+                if (!_processFigMoves<BishopMap>(
+                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                )) {
+                    assert(STACK_SIZE != UINT32_MAX);
+                    return;
+                }
                 break;
             case ROOK_INDEX:
-                _processFigMoves<RookMap>(
+                if (!_processFigMoves<RookMap>(
                         enemyMap, allyMap, pinnedFigsMap,
                         (IsFlagOn(flags, ASSUME_CHECK) ? ASSUME_CHECK : CHECK_CASTLINGS),
                         UNUSED, allowedTilesMap
-                );
+                )) {
+                    assert(STACK_SIZE != UINT32_MAX);
+                    return;
+                }
                 break;
             case QUEEN_INDEX:
-                _processFigMoves<QueenMap>(
-                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED,
-                        allowedTilesMap
-                );
+                if (!_processFigMoves<QueenMap>(
+                        enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
+                )) {
+                    assert(STACK_SIZE != UINT32_MAX);
+                    return;
+                }
                 break;
             case KING_INDEX:
                 if (!_processPlainKingMoves(blockedFigMap, allyMap, enemyMap)) {
@@ -274,8 +282,7 @@ private:
                         _boardFetcher.MovingColor(), fullMap);
             }
 
-            [[maybe_unused]] const auto [rv, _] =
-                    GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
+            const auto [rv, _] = GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
                             _boardFetcher.MovingColor(), fullMap);
 
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
@@ -431,6 +438,7 @@ private:
                     possiblePawnsToMove ^= pawnMap;
                     continue;
                 }
+
                 if ((GenerateAllowedTilesForPrecisedPinnedFig(_boardFetcher.ElPassantField(), fullMap) & moveMap) ==
                     0) {
                     possiblePawnsToMove ^= pawnMap;
@@ -548,7 +556,7 @@ private:
 
             // preparing moves
             const __uint64_t attackMoves = figMoves & enemyMap;
-            [[maybe_unused]] const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
+            const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
 
