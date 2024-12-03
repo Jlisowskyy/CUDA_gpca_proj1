@@ -245,6 +245,7 @@ private:
                 break;
             case KING_INDEX:
                 if (!_processPlainKingMoves(blockedFigMap, allyMap, enemyMap)) {
+                    assert(STACK_SIZE != UINT32_MAX);
                     return;
                 }
 
@@ -265,20 +266,18 @@ private:
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                        _boardFetcher.MovingColor(),
-                                                                                        fullMap);
+                        _boardFetcher.MovingColor(), fullMap);
             }
 
             if (!wasCheckedBySimpleFig) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WAllowedTiles>(
-                        _boardFetcher.MovingColor(),
-                                                                                     fullMap);
+                        _boardFetcher.MovingColor(), fullMap);
             }
 
             [[maybe_unused]] const auto [rv, _] =
                     GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
-                            _boardFetcher.MovingColor(),
-                                                                                     fullMap);
+                            _boardFetcher.MovingColor(), fullMap);
+
             return {rv, GetAllowedTilesWhenCheckedByNonSliding()};
         }();
 
@@ -290,12 +289,14 @@ private:
         if (!_processFigMoves<KnightMap>(
                 enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
         )) {
+            assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
         if (!_processFigMoves<BishopMap>(
                 enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
         )) {
+            assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
@@ -304,12 +305,14 @@ private:
                 (IsFlagOn(flags, ASSUME_CHECK) ? ASSUME_CHECK : CHECK_CASTLINGS),
                 UNUSED, allowedTilesMap
         )) {
+            assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
         if (!_processFigMoves<QueenMap>(
                 enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), UNUSED, allowedTilesMap
         )) {
+            assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
@@ -317,17 +320,20 @@ private:
             if (!_processPawnMoves<WhitePawnMap>(
                     enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
             )) {
+                assert(STACK_SIZE != UINT32_MAX);
                 return;
             }
         } else {
             if (!_processPawnMoves<BlackPawnMap>(
                     enemyMap, allyMap, pinnedFigsMap, ExtractFlag(flags, ASSUME_CHECK), allowedTilesMap
             )) {
+                assert(STACK_SIZE != UINT32_MAX);
                 return;
             }
         }
 
         if (!_processPlainKingMoves(blockedFigMap, allyMap, enemyMap)) {
+            assert(STACK_SIZE != UINT32_MAX);
             return;
         }
 
@@ -363,10 +369,8 @@ private:
         // During quiesce search we should also check all promotions so GenOnlyTacticalMoves is false
         if (promotingPawns) {
             if (!_processFigMoves<MapT>(
-                    enemyMap, allyMap, pinnedFigMap,
-                    SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
-                    promotingPawns,
-                    allowedMoveFilter
+                    enemyMap, allyMap, pinnedFigMap, SELECT_FIGURES | ExtractFlag(flags, ASSUME_CHECK) | PROMOTE_PAWNS,
+                    promotingPawns, allowedMoveFilter
             )) {
                 return false;
             }
@@ -407,10 +411,10 @@ private:
             // checking whether move would affect horizontal line attacks on king
             const __uint64_t processedPawns = pawnMap | _boardFetcher.ElPassantField();
             const __uint64_t cleanedFromPawnsMap = fullMap ^ processedPawns;
+
             if (const __uint64_t kingHorizontalLine =
                         RookMap::GetMoves(_boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor()),
-                                          cleanedFromPawnsMap) &
-                        EnemyElPassantMask;
+                                          cleanedFromPawnsMap) & EnemyElPassantMask;
                     (kingHorizontalLine & enemyRookFigs) != 0) {
                 return true;
             }
@@ -492,13 +496,11 @@ private:
             const __uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
 
             // selecting allowed moves if in check
-            const __uint64_t figMoves = [&]() constexpr {
-                if (!IsFlagOn(flags, ASSUME_CHECK)) {
-                    return MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap;
-                } else {
-                    return MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedMoveSelector;
-                }
-            }();
+            __uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap;
+
+            if (IsFlagOn(flags, ASSUME_CHECK)) {
+                figMoves &= allowedMoveSelector;
+            }
 
             // Performing checks for castlings
             __uint32_t updatedCastlings = _boardFetcher.Castlings();
@@ -717,7 +719,7 @@ private:
             mv.SetCastlingRights(castlings);
             mv.SetMoveType(CaptureFlag);
 
-            if (stack.Push<STACK_SIZE>(mv)) {
+            if (!stack.Push<STACK_SIZE>(mv)) {
                 return false;
             }
 

@@ -359,7 +359,7 @@ std::string ValidateMoves(const std::string &fen,
 
 
 template<class FuncT>
-void TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *progBar = nullptr,
+std::string TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *progBar = nullptr,
                               bool writeToOut = false) {
 
     /* welcome message */
@@ -376,7 +376,7 @@ void TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *p
     const auto cMoves = cpu::GenerateMoves(externalBoard);
 
     /* validate returned moves */
-    ValidateMoves(std::string(fen), cMoves, cudaMoves, progBar, writeToOut);
+    return ValidateMoves(std::string(fen), cMoves, cudaMoves, progBar, writeToOut);
 }
 
 template<class FuncT>
@@ -477,19 +477,24 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
     std::cout << "Extending thread stack size to " << EXTENDED_THREAD_STACK_SIZE << "..." << std::endl;
     cudaDeviceSetLimit(cudaLimitStackSize, EXTENDED_THREAD_STACK_SIZE);
 
-    TestSinglePositionOutput(RunBaseKernel, MAIN_TEST_FEN, nullptr, true);
+    const std::string result = TestSinglePositionOutput(RunBaseKernel, MAIN_TEST_FEN, nullptr, true);
+
+    if (!result.empty()) {
+        std::cout << "[ CRITICAL ERROR ] FIRST POSITION CHECK FAILED: " + result  << std::endl;
+        exit(1);
+    }
 
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing plain move gen: " << std::endl;
 
     RunSinglePosTest(RunBaseKernel);
     std::cout << std::string(80, '-') << std::endl;
-//    RunDepthPosTest(RunBaseKernelMoveCount, RunBaseKernel);
+    RunDepthPosTest(RunBaseKernelMoveCount, RunBaseKernel);
 
     std::cout << std::string(80, '=') << std::endl;
     std::cout << "Testing split move gen: " << std::endl;
 
-//    RunSinglePosTest(RunSplitKernel);
+    RunSinglePosTest(RunSplitKernel);
     std::cout << std::string(80, '-') << std::endl;
 //    RunDepthPosTest(RunSplitKernelMoveCount);
 
@@ -501,8 +506,6 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
 }
 
 void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
-    std::cout << sizeof(DefaultPackedBoardT) << std::endl;
-
     try {
         MoveGenTest_(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {
