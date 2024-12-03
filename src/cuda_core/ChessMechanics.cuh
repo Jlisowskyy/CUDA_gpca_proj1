@@ -117,19 +117,19 @@ struct ChessMechanics {
 
     // [blockedFigMap, checksCount, checkType]
     [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
-    GetBlockedFieldBitMap(__uint64_t fullMap) const {
+    GetBlockedFieldBitMap(__uint32_t movingColor, __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
 
         __uint8_t checksCount{};
         __uint64_t blockedMap{};
         bool wasCheckedBySimple{};
 
-        const __uint32_t enemyFigInd = SwapColor(_boardFetcher.MovingColor()) * BIT_BOARDS_PER_COLOR;
-        const __uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor()));
+        const __uint32_t enemyFigInd = SwapColor(movingColor) * BIT_BOARDS_PER_COLOR;
+        const __uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(movingColor));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
         // King attacks generation.
-        blockedMap |= KingMap::GetMoves(_boardFetcher.GetKingMsbPos(SwapColor(_boardFetcher.MovingColor())));
+        blockedMap |= KingMap::GetMoves(_boardFetcher.GetKingMsbPos(SwapColor(movingColor)));
 
         // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
         const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
@@ -159,7 +159,7 @@ struct ChessMechanics {
         // Pawns attacks generation.
         const __uint64_t pawnsMap = _boardFetcher.BitBoard(enemyFigInd + PAWN_INDEX);
         const __uint64_t pawnBlockedMap =
-                SwapColor(_boardFetcher.MovingColor()) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
+                SwapColor(movingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
                                                        : BlackPawnMap::GetAttackFields(pawnsMap);
 
         const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
