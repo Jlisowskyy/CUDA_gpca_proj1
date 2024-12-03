@@ -64,7 +64,7 @@ struct KingMap final {
     GetSimpleFigCheckKnightsAllowedTiles(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher) {
         const __uint64_t detectionFields = KnightMap::GetMoves(fetcher.GetKingMsbPos(fetcher.MovingColor()));
 
-        return detectionFields & fetcher.GetFigBoard(SwapColor(fetcher.MovingColor()), KING_INDEX);
+        return detectionFields & fetcher.GetFigBoard(SwapColor(fetcher.MovingColor()), KNIGHT_INDEX);
     }
 
     // ------------------------------
