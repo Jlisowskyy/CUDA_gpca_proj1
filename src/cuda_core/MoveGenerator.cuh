@@ -479,12 +479,12 @@ private:
                 // should be unblocked on specific lines
 
                 if ((pawnMap & pinnedFigMap) != 0 &&
-                    (GenerateAllowedTilesForPrecisedPinnedFig(pawnMap, fullMap) & moveMap) == 0) {
+                    (GenerateAllowedTilesForPrecisedPinnedFig(movingColor, pawnMap, fullMap) & moveMap) == 0) {
                     possiblePawnsToMove ^= pawnMap;
                     continue;
                 }
 
-                if ((GenerateAllowedTilesForPrecisedPinnedFig(_boardFetcher.ElPassantField(), fullMap) & moveMap) ==
+                if ((GenerateAllowedTilesForPrecisedPinnedFig(movingColor, _boardFetcher.ElPassantField(), fullMap) & moveMap) ==
                     0) {
                     possiblePawnsToMove ^= pawnMap;
                     continue;
@@ -521,7 +521,6 @@ private:
     }
 
     // TODO: Compare with simple if searching loop
-    // TODO: propagate checkForCastling?
     template<class MapT>
     __device__ bool _processFigMoves(
             __uint32_t movingColor, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
@@ -595,7 +594,7 @@ private:
             // processing moves
             const __uint32_t figPos = ExtractMsbPos(pinnedOnes);
             const __uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
-            const __uint64_t allowedTiles = GenerateAllowedTilesForPrecisedPinnedFig(figBoard, fullMap);
+            const __uint64_t allowedTiles = GenerateAllowedTilesForPrecisedPinnedFig(movingColor, figBoard, fullMap);
             const __uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedTiles;
 
             // preparing moves

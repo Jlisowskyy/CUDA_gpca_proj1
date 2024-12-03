@@ -187,11 +187,11 @@ struct ChessMechanics {
 
     // [blockedFigMap, checksCount, checkType]
     [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
-    GetBlockedFieldBitMapSplit(__uint64_t fullMap, __uint32_t figIdx) const {
+    GetBlockedFieldBitMapSplit(__uint32_t movingColor, __uint64_t fullMap, __uint32_t figIdx) const {
         ASSERT(fullMap != 0, "Full map is empty!");
 
-        const __uint32_t enemyFigInd = SwapColor(_boardFetcher.MovingColor()) * BIT_BOARDS_PER_COLOR;
-        const __uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor()));
+        const __uint32_t enemyFigInd = SwapColor(movingColor) * BIT_BOARDS_PER_COLOR;
+        const __uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(movingColor));
         const __uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
 
         // Specific figure processing
@@ -200,7 +200,7 @@ struct ChessMechanics {
                 // Pawns attacks generation.
                 const __uint64_t pawnsMap = _boardFetcher.BitBoard(enemyFigInd + PAWN_INDEX);
                 const __uint64_t pawnBlockedMap =
-                        SwapColor(_boardFetcher.MovingColor()) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
+                        SwapColor(movingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
                                                                : BlackPawnMap::GetAttackFields(pawnsMap);
 
                 const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
@@ -260,7 +260,7 @@ struct ChessMechanics {
                 break;
             case KING_INDEX: {
                 const __uint64_t kingMap = KingMap::GetMoves(
-                        _boardFetcher.GetKingMsbPos(SwapColor(_boardFetcher.MovingColor())));
+                        _boardFetcher.GetKingMsbPos(SwapColor(movingColor)));
                 atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), kingMap);
             }
                 break;
@@ -274,12 +274,12 @@ struct ChessMechanics {
     }
 
     [[nodiscard]] FAST_DCALL __uint64_t
-    GenerateAllowedTilesForPrecisedPinnedFig(__uint64_t figBoard, __uint64_t fullMap) const {
+    GenerateAllowedTilesForPrecisedPinnedFig(__uint32_t movingColor, __uint64_t figBoard, __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
         ASSERT(CountOnesInBoard(figBoard) == 1, "Only one figure should be pinned!");
 
         const __uint32_t msbPos = ExtractMsbPos(figBoard);
-        const __uint64_t KingBoard = _boardFetcher.GetFigBoard(_boardFetcher.MovingColor(), KING_INDEX);
+        const __uint64_t KingBoard = _boardFetcher.GetFigBoard(movingColor, KING_INDEX);
 
         if (const __uint64_t RookPerspectiveMoves = RookMap::GetMoves(msbPos, fullMap);
                 (RookPerspectiveMoves & KingBoard) != 0) {
@@ -300,12 +300,12 @@ struct ChessMechanics {
         const __uint32_t enemyCord = SwapColor(col) * BIT_BOARDS_PER_COLOR;
 
         const auto [pinnedByRooks, allowedRooks] = _getPinnedFigMaps<RookMap, genType>(
-                fullMap,
+                col, fullMap,
                 _boardFetcher.BitBoard(enemyCord + ROOK_INDEX) | _boardFetcher.BitBoard(enemyCord + QUEEN_INDEX)
         );
 
         const auto [pinnedByBishops, allowedBishops] = _getPinnedFigMaps<BishopMap, genType>(
-                fullMap,
+                col, fullMap,
                 _boardFetcher.BitBoard(enemyCord + BISHOP_INDEX) | _boardFetcher.BitBoard(enemyCord + QUEEN_INDEX)
         );
 
@@ -372,11 +372,11 @@ private:
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<class MoveMapT, PinnedFigGen type>
     [[nodiscard]] FAST_DCALL thrust::pair<__uint64_t, __uint64_t>
-    _getPinnedFigMaps(__uint64_t fullMap, __uint64_t possiblePinningFigs) const {
+    _getPinnedFigMaps(__uint32_t movingColor, __uint64_t fullMap, __uint64_t possiblePinningFigs) const {
         __uint64_t allowedTilesFigMap{};
         [[maybe_unused]] __uint64_t pinnedFigMap{};
 
-        const __uint32_t kingPos = _boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor());
+        const __uint32_t kingPos = _boardFetcher.GetKingMsbPos(movingColor);
         // generating figs seen from king's rook perspective
         const __uint64_t kingFigPerspectiveAttackedFields = MoveMapT::GetMoves(kingPos, fullMap);
         const __uint64_t kingFigPerspectiveAttackedFigs = kingFigPerspectiveAttackedFields & fullMap;

@@ -36,12 +36,15 @@ public:
     template<__uint32_t NUM_BOARDS>
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t
     GetMatchingCastlingIndex(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher, __uint64_t figBoard) {
-        for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i)
-            if (const __uint32_t index = fetcher.MovingColor() * CASTLINGS_PER_COLOR + i;
-                    fetcher.GetCastlingRight(index) && (CASTLING_ROOK_MAPS[index] & figBoard) != 0)
-                return index;
+        __uint32_t rv{};
 
-        return SENTINEL_CASTLING_INDEX;
+        __uint32_t index = fetcher.MovingColor() * CASTLINGS_PER_COLOR;
+        rv += (1 + index) * (fetcher.GetCastlingRight(index) && ((CASTLING_ROOK_MAPS[index] & figBoard) != 0));
+
+        index += 1;
+        rv += (1 + index) * (fetcher.GetCastlingRight(index) && ((CASTLING_ROOK_MAPS[index] & figBoard) != 0));
+
+        return rv == 0 ? SENTINEL_CASTLING_INDEX : rv - 1;
     }
 
 };
