@@ -227,8 +227,9 @@ public:
 
 private:
 
-    FAST_DCALL void _upTo1CheckSplit(__uint32_t movingColor, const __uint32_t figIdx, __uint64_t allyMap, __uint64_t enemyMap, __uint64_t blockedFigMap,
-                                     __uint32_t flags, bool wasCheckedBySimpleFig = false) {
+    FAST_DCALL void _upTo1CheckSplit(const __uint32_t movingColor, const __uint32_t figIdx, const __uint64_t allyMap,
+                                     const __uint64_t enemyMap, const __uint64_t blockedFigMap,
+                                     const __uint32_t flags, bool wasCheckedBySimpleFig = false) {
         ASSERT(fullMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
 
@@ -316,8 +317,8 @@ private:
     }
 
     FAST_DCALL void
-    _upTo1Check(__uint32_t movingColor, __uint64_t allyMap, __uint64_t enemyMap, __uint64_t blockedFigMap,
-                __uint32_t flags, bool wasCheckedBySimpleFig = false) {
+    _upTo1Check(const __uint32_t movingColor, const __uint64_t allyMap, const __uint64_t enemyMap, const __uint64_t blockedFigMap,
+                const __uint32_t flags, const bool wasCheckedBySimpleFig = false) {
         ASSERT(fullMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
 
@@ -393,7 +394,7 @@ private:
         }
     }
 
-    FAST_DCALL void _doubleCheckGen(__uint32_t movingColor, __uint64_t blockedFigMap) {
+    FAST_DCALL void _doubleCheckGen(const __uint32_t movingColor, const __uint64_t blockedFigMap) {
         const __uint64_t allyMap = GetColBitMap(movingColor);
         const __uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
         _processPlainKingMoves(movingColor, blockedFigMap, allyMap, enemyMap);
@@ -401,8 +402,9 @@ private:
 
     template<class MapT>
     FAST_DCALL bool _processPawnMoves(
-            __uint32_t movingColor, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
-            __uint64_t allowedMoveFilter = 0
+            const __uint32_t movingColor, const __uint64_t enemyMap, const __uint64_t allyMap,
+            const __uint64_t pinnedFigMap, const __uint32_t flags,
+            const __uint64_t allowedMoveFilter = 0
     ) {
         GET_PAWN_FIELD(PromotingMask);
 
@@ -439,8 +441,8 @@ private:
     // TODO: Consider different solution?
     template<class MapT>
     FAST_DCALL bool _processElPassantMoves(
-            __uint32_t movingColor, __uint64_t fullMap, __uint64_t pinnedFigMap, bool isCheck,
-            __uint64_t allowedMoveFilter = 0
+            const __uint32_t movingColor, const __uint64_t fullMap, const __uint64_t pinnedFigMap, const bool isCheck,
+            const __uint64_t allowedMoveFilter = 0
     ) {
         ASSERT(fullMap != 0, "Full map is empty!");
 
@@ -523,8 +525,9 @@ private:
     // TODO: Compare with simple if searching loop
     template<class MapT>
     __device__ bool _processFigMoves(
-            __uint32_t movingColor, __uint64_t enemyMap, __uint64_t allyMap, __uint64_t pinnedFigMap, __uint32_t flags,
-            __uint64_t figureSelector = 0, __uint64_t allowedMoveSelector = 0
+            const __uint32_t movingColor, const __uint64_t enemyMap, const __uint64_t allyMap,
+            const __uint64_t pinnedFigMap, const __uint32_t flags,
+            const __uint64_t figureSelector = 0, const __uint64_t allowedMoveSelector = 0
     ) {
         ASSERT(enemyMap != 0, "Enemy map is empty!");
         ASSERT(allyMap != 0, "Ally map is empty!");
@@ -626,8 +629,8 @@ private:
     }
 
     __device__ bool _processNonAttackingMoves(
-            __uint32_t movingColor, __uint64_t nonAttackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
-            __uint32_t castlings, __uint32_t flags
+            const __uint32_t movingColor, __uint64_t nonAttackingMoves, const __uint32_t figBoardIndex, const __uint64_t startField,
+            const __uint32_t castlings, const __uint32_t flags
     ) {
         ASSERT(figBoardIndex < BIT_BOARDS_COUNT, "Invalid figure cuda_Board index!");
 
@@ -671,8 +674,8 @@ private:
     }
 
     FAST_DCALL bool _processAttackingMoves(
-            __uint32_t movingColor, __uint64_t attackingMoves, __uint32_t figBoardIndex, __uint64_t startField,
-            __uint32_t castlings, bool promotePawns
+            const __uint32_t movingColor, __uint64_t attackingMoves, const __uint32_t figBoardIndex, const __uint64_t startField,
+            const __uint32_t castlings, const bool promotePawns
     ) {
         ASSERT(figBoardIndex < BIT_BOARDS_COUNT, "Invalid figure cuda_Board index!");
 
@@ -708,7 +711,8 @@ private:
     }
 
     __device__ bool
-    _processPlainKingMoves(__uint32_t movingColor, __uint64_t blockedFigMap, __uint64_t allyMap, __uint64_t enemyMap) {
+    _processPlainKingMoves(const __uint32_t movingColor, const __uint64_t blockedFigMap, const __uint64_t allyMap,
+                           const __uint64_t enemyMap) {
         ASSERT(allyMap != 0, "Ally map is empty!");
         ASSERT(enemyMap != 0, "Enemy map is empty!");
 
@@ -780,7 +784,7 @@ private:
 
     // TODO: simplify ifs??
     // TODO: cleanup left castling available when rook is dead then propagate no castling checking?
-    FAST_DCALL bool _processKingCastlings(__uint32_t movingColor, __uint64_t blockedFigMap, __uint64_t fullMap) {
+    FAST_DCALL bool _processKingCastlings(const __uint32_t movingColor, const __uint64_t blockedFigMap, const __uint64_t fullMap) {
         ASSERT(fullMap != 0, "Full map is empty!");
 
         for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i) {

@@ -117,7 +117,7 @@ struct ChessMechanics {
 
     // [blockedFigMap, checksCount, checkType]
     [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
-    GetBlockedFieldBitMap(__uint32_t movingColor, __uint64_t fullMap) const {
+    GetBlockedFieldBitMap(const __uint32_t movingColor, const __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
 
         __uint8_t checksCount{};
@@ -187,7 +187,7 @@ struct ChessMechanics {
 
     // [blockedFigMap, checksCount, checkType]
     [[nodiscard]] __device__ thrust::tuple<__uint64_t, __uint8_t, bool>
-    GetBlockedFieldBitMapSplit(__uint32_t movingColor, __uint64_t fullMap, __uint32_t figIdx) const {
+    GetBlockedFieldBitMapSplit(const __uint32_t movingColor, const __uint64_t fullMap, const __uint32_t figIdx) const {
         ASSERT(fullMap != 0, "Full map is empty!");
 
         const __uint32_t enemyFigInd = SwapColor(movingColor) * BIT_BOARDS_PER_COLOR;
@@ -274,7 +274,8 @@ struct ChessMechanics {
     }
 
     [[nodiscard]] FAST_DCALL __uint64_t
-    GenerateAllowedTilesForPrecisedPinnedFig(__uint32_t movingColor, __uint64_t figBoard, __uint64_t fullMap) const {
+    GenerateAllowedTilesForPrecisedPinnedFig(const __uint32_t movingColor, const __uint64_t figBoard,
+                                             const __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
         ASSERT(CountOnesInBoard(figBoard) == 1, "Only one figure should be pinned!");
 
@@ -293,7 +294,7 @@ struct ChessMechanics {
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<PinnedFigGen genType>
     [[nodiscard]] FAST_CALL thrust::pair<__uint64_t, __uint64_t>
-    GetPinnedFigsMap(__uint32_t col, __uint64_t fullMap) const {
+    GetPinnedFigsMap(const __uint32_t col, const __uint64_t fullMap) const {
         ASSERT(fullMap != 0, "Full map is empty!");
         ASSERT(col == 1 || col == 0, "Invalid color!");
 
@@ -336,7 +337,7 @@ private:
      * */
 
     FAST_DCALL thrust::pair<__uint64_t, __uint8_t>
-    _getRookBlockedMap(__uint64_t rookMap, __uint64_t fullMapWoutKing, __uint64_t kingMap) const {
+    _getRookBlockedMap(__uint64_t rookMap, const __uint64_t fullMapWoutKing, const __uint64_t kingMap) const {
         ASSERT(kingMap != 0, "King map is empty!");
 
         __uint64_t blockedTiles{};
@@ -372,7 +373,7 @@ private:
     // returns [ pinnedFigMap, allowedTilesMap ]
     template<class MoveMapT, PinnedFigGen type>
     [[nodiscard]] FAST_DCALL thrust::pair<__uint64_t, __uint64_t>
-    _getPinnedFigMaps(__uint32_t movingColor, __uint64_t fullMap, __uint64_t possiblePinningFigs) const {
+    _getPinnedFigMaps(const __uint32_t movingColor, const __uint64_t fullMap, const __uint64_t possiblePinningFigs) const {
         __uint64_t allowedTilesFigMap{};
         [[maybe_unused]] __uint64_t pinnedFigMap{};
 
