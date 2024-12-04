@@ -6,28 +6,25 @@
 #define CUDA_BOARD_CUH
 
 #include <cassert>
+#include <bit>
 
 #include "cuda_BitOperations.cuh"
 #include "Helpers.cuh"
 
 #include "../ported/CpuDefines.h"
 
-/*
- * Given enum defines values and order of both colors. All indexing schemes used across the projects follows given
- * order. It is important to keep it consistent across the project. It is also very useful when performing some indexing
- * and color switching operations.
- * */
-
-enum Color : int {
+enum Color : __uint32_t {
     WHITE,
     BLACK,
 };
 
-/*
- * Given enum defines indexing order of all BitBoards inside the board.
- * It is important to keep this order consistent across the project.
- * Again very useful when performing some indexing and color switching operations.
- * */
+enum EVAL_RESULTS : __uint32_t {
+    WHITE_WIN = WHITE,
+    BLACK_WIN = BLACK,
+    DRAW = 2,
+};
+
+static_assert(DRAW != WHITE && DRAW != BLACK);
 
 enum ColorlessDescriptors : __uint32_t {
     PAWN_INDEX,
@@ -37,12 +34,6 @@ enum ColorlessDescriptors : __uint32_t {
     QUEEN_INDEX,
     KING_INDEX,
 };
-
-/*
- * Given enum defines indexing order of all (color, piece) BitBoards inside the board.
- * It is important to keep it consistent across the project.
- * Used rather less frequently than previous ones but still defines order of all bitboards.
- * */
 
 enum Descriptors : __uint32_t {
     W_PAWN_INDEX,
@@ -59,18 +50,10 @@ enum Descriptors : __uint32_t {
     B_KING_INDEX,
 };
 
-/*
- * Defines the order of castling indexes for given color.
- * */
-
 enum CastlingIndexes : __uint32_t {
     KING_CASTLING_INDEX,
     QUEEN_CASTLING_INDEX,
 };
-
-/*
- * Defines indexes of all castling possibilities.
- * */
 
 enum CastlingPossibilities : __uint32_t {
     W_KING_CASTLING_INDEX,
@@ -78,21 +61,6 @@ enum CastlingPossibilities : __uint32_t {
     B_KING_CASTLING_INDEX,
     B_QUEEN_CASTLING_INDEX,
 };
-
-/*
- *  The most important class used around the project.
- *  It defines representation of the board state.
- *  Currently, it consists of:
- *      - BitBoards: 12 bitboards representing all pieces of both colors with one additional sentinel board at the end.
- *        Such representation allows to easily iterate over all pieces of given color and perform operation with very
- * fast bit operations. Additionally, sentinel allows to unconditionally treats all move types without any additional
- * checks.
- *      - Single ElPassantField: 64-bit integer representing field where en passant is possible.
- *      - Single MovingColor: integer representing color of the player who is currently moving.
- *      - Castlings: bitset representing all castling possibilities for both colors with one additional sentinel field
- * at the end.
- *
- * */
 
 __device__ __constant__ static constexpr __uint32_t BIT_BOARDS_COUNT = 12;
 __device__ __constant__ static constexpr __uint32_t BIT_BOARDS_GUARDED_COUNT = BIT_BOARDS_COUNT + 1;
@@ -133,6 +101,15 @@ __device__ __constant__ static constexpr __uint64_t CASTLING_TOUCHED_FIELDS[CAST
         cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62,
         cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
 };
+
+__device__ __constant__ static constexpr __int32_t FIG_VALUES[BIT_BOARDS_GUARDED_COUNT]{
+        100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+};
+
+static constexpr __int32_t FIG_VALUES_CPU[BIT_BOARDS_GUARDED_COUNT]{
+        100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+};
+
 
 class cuda_Board final {
 public:
@@ -197,13 +174,23 @@ public:
         return Castlings & (cuda_MinMsbPossible << castlingIndex);
     }
 
+    [[nodiscard]] __int32_t EvaluateMaterial() const {
+        __int32_t eval{};
+
+        for (__uint32_t bIdx = 0; bIdx < BIT_BOARDS_GUARDED_COUNT; ++bIdx) {
+            eval += std::popcount(BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
+        }
+
+        return eval;
+    }
+
     // --------------------------------
     // Main processing components
     // --------------------------------
 
     __uint64_t BitBoards[BIT_BOARDS_GUARDED_COUNT]; // additional sentinel board
     __uint64_t ElPassantField;
-    __uint32_t Castlings; // additional sentinel field
+    __uint32_t Castlings;
     __uint32_t MovingColor;
 };
 

@@ -95,6 +95,9 @@ public:
     // Class interaction
     // ------------------------------
 
+    using ChessMechanics<NUM_BOARDS>::EvalBoardsNoMoves;
+
+
     FAST_DCALL void GetMovesFast() {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
         const __uint32_t movingColor = _boardFetcher.MovingColor();
@@ -230,7 +233,7 @@ private:
     FAST_DCALL void _upTo1CheckSplit(const __uint32_t movingColor, const __uint32_t figIdx, const __uint64_t allyMap,
                                      const __uint64_t enemyMap, const __uint64_t blockedFigMap,
                                      const __uint32_t flags, bool wasCheckedBySimpleFig = false) {
-        ASSERT(fullMap != 0, "Full map is empty!");
+        ASSERT(allyMap != 0 && enemyMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
 
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
@@ -319,7 +322,7 @@ private:
     FAST_DCALL void
     _upTo1Check(const __uint32_t movingColor, const __uint64_t allyMap, const __uint64_t enemyMap, const __uint64_t blockedFigMap,
                 const __uint32_t flags, const bool wasCheckedBySimpleFig = false) {
-        ASSERT(fullMap != 0, "Full map is empty!");
+        ASSERT(allyMap != 0 && enemyMap != 0, "Full map is empty!");
         static constexpr __uint64_t UNUSED = 0;
 
         const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {

@@ -44,6 +44,14 @@ struct alignas(128) cuda_PackedBoard {
             return _packedBoard->Castlings[_idx];
         }
 
+        [[nodiscard]] FAST_CALL_ALWAYS constexpr __int32_t &MaterialEval() {
+            return _packedBoard->MaterialEval[_idx];
+        }
+
+        [[nodiscard]] FAST_CALL_ALWAYS constexpr const __int32_t &MaterialEval() const {
+            return _packedBoard->MaterialEval[_idx];
+        }
+
         [[nodiscard]] FAST_CALL_ALWAYS constexpr __uint64_t ElPassantField() const {
             __uint64_t lo = _packedBoard->ElPassantField[_idx];
             __uint64_t hi = _packedBoard->ElPassantField[NUM_BOARDS + _idx];
@@ -133,6 +141,8 @@ struct alignas(128) cuda_PackedBoard {
             for (__uint32_t boardIdx = 0; boardIdx < BIT_BOARDS_COUNT; ++boardIdx) {
                 fetcher.SetBitBoard(boards[idx].BitBoards[boardIdx], boardIdx);
             }
+
+            fetcher.MaterialEval() = boards[idx].EvaluateMaterial();
         }
     }
 
@@ -156,9 +166,12 @@ struct alignas(128) cuda_PackedBoard {
     alignas(32) cuda_Array<__uint32_t, NUM_BOARDS * 2> ElPassantField;
     alignas(32) cuda_Array<__uint32_t, NUM_BOARDS> Castlings;
     alignas(32) cuda_Array<__uint32_t, NUM_BOARDS> MovingColor;
+    alignas(32) cuda_Array<__int32_t, NUM_BOARDS> MaterialEval;
 };
 
 using DefaultPackedBoardT = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>;
 using SmallPackedBoardT = cuda_PackedBoard<1>;
+
+using BYTE = __uint8_t;
 
 #endif //SRC_CUDA_PACKEDBOARD_H

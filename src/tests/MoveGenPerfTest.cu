@@ -134,7 +134,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
 
         for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
             for (__uint32_t j = 0; j < 4 && bIdx < bIdxRange; ++j, ++bIdx) {
-                func<<<SINGLE_RUN_BLOCK_SIZE, SPLIT_BATCH_THREADS>>>(
+                func<<<SINGLE_RUN_BLOCK_SIZE, SPLIT_BATCH_NUM_THREADS>>>(
                         d_boards,
                         thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
                         thrust::raw_pointer_cast(dResults.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE, MAX_DEPTH);

@@ -27,9 +27,9 @@
 #include <cinttypes>
 
 struct MoveGenDataMem {
-    __uint32_t checksCount{};
-    __uint32_t wasCheckedBySimple{};
-    __uint64_t blockedMap{};
+    __uint32_t checksCount;
+    __uint32_t wasCheckedBySimple;
+    __uint64_t blockedMap;
 };
 
 //#define ASSERT(cond, msg) ASSERT_DISPLAY(&_board, cond, msg)
@@ -71,6 +71,55 @@ struct ChessMechanics {
     // ------------------------------
     // Class interaction
     // ------------------------------
+
+    [[nodiscard]] __device__ bool IsCheck() const {
+        const __uint32_t enemyCol = SwapColor(_boardFetcher.MovingColor());
+        const __uint32_t kingsMsb = _boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor());
+        const __uint64_t fullBoard = GetFullBitMap();
+
+        // Checking rook's perspective
+        const __uint64_t enemyRooks = _boardFetcher.GetFigBoard(enemyCol, ROOK_INDEX);
+        const __uint64_t enemyQueens = _boardFetcher.GetFigBoard(enemyCol, QUEEN_INDEX);
+        const __uint64_t kingsRookPerspective = RookMap::GetMoves(kingsMsb, fullBoard);
+
+        if ((kingsRookPerspective & (enemyRooks | enemyQueens)) != 0) {
+            return true;
+        }
+
+        // Checking bishop's perspective
+        const __uint64_t enemyBishops = _boardFetcher.GetFigBoard(enemyCol, BISHOP_INDEX);
+        const __uint64_t kingsBishopPerspective = BishopMap::GetMoves(kingsMsb, fullBoard);
+
+        if ((kingsBishopPerspective & (enemyBishops | enemyQueens)) != 0) {
+            return true;
+        }
+
+        // checking knights attacks
+        const __uint64_t enemyKnights = _boardFetcher.GetFigBoard(enemyCol, KNIGHT_INDEX);
+        const __uint64_t knightsPerspective = KnightMap::GetMoves(kingsMsb);
+
+        if ((knightsPerspective & (enemyKnights)) != 0) {
+            return true;
+        }
+
+        // pawns checks
+        const __uint64_t enemyPawns = _boardFetcher.GetFigBoard(enemyCol, PAWN_INDEX);
+        const __uint64_t pawnAttacks =
+                enemyCol == WHITE ? WhitePawnMap::GetAttackFields(enemyPawns) : BlackPawnMap::GetAttackFields(
+                        enemyPawns);
+
+        if ((pawnAttacks & (cuda_MaxMsbPossible >> kingsMsb)) != 0) {
+            return true;
+        }
+
+        return false;
+    }
+
+    [[nodiscard]] __uint32_t EvalBoardsNoMoves() const {
+        const bool isCheck = IsCheck();
+
+        return isCheck ? SwapColor(_boardFetcher.MovingColor()) : DRAW;
+    }
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.
     [[nodiscard]] FAST_DCALL __uint64_t GetFullBitMap() const {
@@ -205,9 +254,9 @@ struct ChessMechanics {
 
                 const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
 
-                atomicAdd((unsigned int *) &(_moveGenData->checksCount), wasCheckedByPawnFlag);
-                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), pawnBlockedMap);
-                atomicAdd((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByPawnFlag);
+                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), wasCheckedByPawnFlag);
+                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), pawnBlockedMap);
+                atomicAdd_block((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByPawnFlag);
             }
                 break;
             case KNIGHT_INDEX: {
@@ -221,9 +270,9 @@ struct ChessMechanics {
 
                 const bool wasCheckedByKnightFlag = knightBlockedMap & allyKingMap;
 
-                atomicAdd((unsigned int *) &(_moveGenData->checksCount), wasCheckedByKnightFlag);
-                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), knightBlockedMap);
-                atomicAdd((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByKnightFlag);
+                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), wasCheckedByKnightFlag);
+                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), knightBlockedMap);
+                atomicAdd_block((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByKnightFlag);
             }
                 break;
             case BISHOP_INDEX: {
@@ -239,8 +288,8 @@ struct ChessMechanics {
                 // = 1 or 0 depending on whether hits or not
                 const __uint8_t wasCheckedByBishopFlag = (bishopBlockedMap & allyKingMap) >> allyKingShift;
 
-                atomicAdd((unsigned int *) &(_moveGenData->checksCount), wasCheckedByBishopFlag);
-                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), bishopBlockedMap);
+                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), wasCheckedByBishopFlag);
+                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), bishopBlockedMap);
             }
                 break;
             case ROOK_INDEX: {
@@ -252,8 +301,8 @@ struct ChessMechanics {
                         allyKingMap
                 );
 
-                atomicAdd((unsigned int *) &(_moveGenData->checksCount), checkCountRook);
-                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), rookBlockedMap);
+                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), checkCountRook);
+                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), rookBlockedMap);
             }
                 break;
             case QUEEN_INDEX:
@@ -261,7 +310,7 @@ struct ChessMechanics {
             case KING_INDEX: {
                 const __uint64_t kingMap = KingMap::GetMoves(
                         _boardFetcher.GetKingMsbPos(SwapColor(movingColor)));
-                atomicOr((unsigned long long int *) &(_moveGenData->blockedMap), kingMap);
+                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), kingMap);
             }
                 break;
             default:

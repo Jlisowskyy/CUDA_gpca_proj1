@@ -282,6 +282,9 @@ public:
         const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) | newKingPos, boardIndex);
 
+        /* Update material value */
+        fetcher.MaterialEval() += FIG_VALUES[mv.GetKilledBoardIndex()];
+
         fetcher.ChangePlayingColor();
     }
 
@@ -343,6 +346,9 @@ public:
         const __uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
 
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) ^ newKingPos, boardIndex);
+
+        /* Update material value */
+        fetcher.MaterialEval() -= FIG_VALUES[mv.GetKilledBoardIndex()];
     }
 
     static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
