@@ -21,11 +21,6 @@ SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint
 
 static constexpr __uint32_t SINGLE_THREAD_SINGLE_GAME_SHARED_BATCH_SIZE = 384;
 
-
-void __global__
-SimulateGamesKernelShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
-                          int maxDepth);
-
 static constexpr __uint32_t WARP_SIZE = 32;
 static constexpr __uint32_t MINIMAL_BATCH_SIZE = WARP_SIZE * BIT_BOARDS_PER_COLOR;
 static constexpr __uint32_t SINGLE_BATCH_NUM_MINIMAL_BATCHES = 2;
@@ -37,10 +32,6 @@ static constexpr __uint32_t SPLIT_MAX_STACK_MOVES = 116;
 
 void __global__
 SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, int maxDepth);
-
-void __global__
-SimulateGamesKernelSplitMovesShared(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint64_t *results, cuda_Move *moves,
-                                    int maxDepth);
 
 __global__ void PolluteCache(__uint32_t *data, const __uint32_t *seeds, __uint32_t *output, __uint32_t rounds);
 

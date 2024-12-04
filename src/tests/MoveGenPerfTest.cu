@@ -169,14 +169,6 @@ void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::st
     SplitTester(SimulateGamesKernelSplitMoves, totalBoardsToProcess, fenDb, seeds);
 }
 
-void MoveGenPerfGPUV4(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
-                      const std::vector<__uint32_t> &seeds) {
-
-    std::cout << "Running MoveGen V4 Performance Test on GPU" << std::endl;
-//    SplitTester(SimulateGamesKernelSplitMovesShared, totalBoardsToProcess, fenDb, seeds);
-}
-
-
 void TestSplitIndexes() {
     static constexpr __uint32_t BLOCKS = 2;
     static constexpr __uint32_t BLOCK_SIZE = 384;
@@ -191,16 +183,6 @@ void TestSplitIndexes() {
             ) << std::endl;
         }
     }
-}
-
-void
-MoveGenPerfGPUV3(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
-                 const std::vector<__uint32_t> &seeds) {
-
-    std::cout << "Running MoveGen V3 Performance Test on GPU" << std::endl;
-    SimpleTester<decltype(SimulateGamesKernelShared), SINGLE_THREAD_SINGLE_GAME_SHARED_BATCH_SIZE>(
-            SimulateGamesKernelShared, threadsAvailable,
-            deviceProps, fenDb, seeds);
 }
 
 void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
@@ -220,12 +202,6 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     MoveGenPerfGPUV2(threadsAvailable, fenDb, seeds);
-    PolluteCache();
-    std::cout << std::string(80, '-') << std::endl;
-    MoveGenPerfGPUV3(threadsAvailable, deviceProps, fenDb, seeds);
-    PolluteCache();
-    std::cout << std::string(80, '-') << std::endl;
-    MoveGenPerfGPUV4(threadsAvailable, fenDb, seeds);
     PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     const auto [seconds, boardResults, moveResults] = cpu::TestMoveGenPerfCPU(fenDb, MAX_DEPTH, threadsAvailable,
