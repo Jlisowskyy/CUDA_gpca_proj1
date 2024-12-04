@@ -311,6 +311,8 @@ public:
         bd.BitBoards[boardIndex] |= newKingPos;
 
         bd.ChangePlayingColor();
+
+        bd.MaterialEval -= FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsAttackingMove() const { return _packedMove.IsCapture(); }
@@ -373,6 +375,8 @@ public:
         const __uint32_t boardIndex = move_CastlingIdxArrCPU[mv.GetCastlingTypeCPU()];
         const __uint64_t newKingPos = move_CastlingNewKingPosCPU[mv.GetCastlingTypeCPU()];
         bd.BitBoards[boardIndex] ^= newKingPos;
+
+        bd.MaterialEval += FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
     }
 
     FAST_DCALL_ALWAYS void SetStartField(const __uint16_t startField) { _packedMove.SetStartField(startField); }

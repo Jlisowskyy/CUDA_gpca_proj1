@@ -23,6 +23,7 @@ enum EVAL_RESULTS : __uint32_t {
     BLACK_WIN = BLACK,
     DRAW = 2,
 };
+static constexpr __uint32_t NUM_EVAL_RESULTS = 3;
 
 static_assert((__uint32_t) DRAW != (__uint32_t) WHITE && (__uint32_t) DRAW != (__uint32_t) BLACK);
 
@@ -133,6 +134,7 @@ public:
         ElPassantField = board[12];
         Castlings = board[13];
         MovingColor = board[14];
+        MaterialEval = EvaluateMaterial();
 
         assert(MovingColor == WHITE || MovingColor == BLACK);
         assert(Castlings <= (1 << (CASTLING_COUNT + 1)));
@@ -192,6 +194,7 @@ public:
     __uint64_t ElPassantField;
     __uint32_t Castlings;
     __uint32_t MovingColor;
+    __int32_t MaterialEval;
 };
 
 #endif // CUDA_BOARD_CUH

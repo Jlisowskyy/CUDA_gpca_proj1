@@ -7,6 +7,8 @@
 #include "../cuda_core/Helpers.cuh"
 #include "../cuda_core/RookMap.cuh"
 
+#include "MctsEngine.cuh"
+
 #include <cuda_runtime.h>
 
 #include <iostream>
