@@ -61,6 +61,7 @@ private:
 
     [[nodiscard]] static __uint32_t _readSecondsPerMove();
 
+    [[nodiscard]] static __uint32_t _readPlayingColor();
 
     // ------------------------------
     // Class fields

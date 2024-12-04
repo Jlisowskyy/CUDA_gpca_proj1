@@ -5,6 +5,7 @@
 #include "CpuUtils.h"
 
 #include "../../engine/include/Interface/FenTranslator.h"
+#include "../../engine/include/ParseTools.h"
 
 namespace cpu {
     external_board TranslateFromFen(const std::string &fen) {
@@ -72,5 +73,9 @@ namespace cpu {
         bd.MovingColor = static_cast<int>(board[14]);
 
         return FenTranslator::Translate(bd);
+    }
+
+    void Trim(std::string &str) {
+        str = ParseTools::GetTrimmed(str);
     }
 }

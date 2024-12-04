@@ -33,7 +33,7 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
 
 }
 
-void CpuCore::runPVC(const __uint32_t moveTime) {
+void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
 
 }
 

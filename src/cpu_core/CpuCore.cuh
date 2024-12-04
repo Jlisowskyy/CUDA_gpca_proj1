@@ -28,7 +28,7 @@ public:
 
     void runCVC(__uint32_t moveTime);
 
-    void runPVC(__uint32_t moveTime);
+    void runPVC(__uint32_t moveTime, __uint32_t playerColor);
 
     void init();
 

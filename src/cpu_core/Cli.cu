@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <cassert>
+#include <unordered_map>
 
 #include "../cpu_core/CpuCore.cuh"
 #include "../cpu_core/TestRunner.cuh"
@@ -97,7 +98,7 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
             m_core->runCVC(_readSecondsPerMove());
             break;
         case RC_GameTypeLod::PLAYER_VS_COMPUTER:
-            m_core->runPVC(_readSecondsPerMove());
+            m_core->runPVC(_readSecondsPerMove(), _readPlayingColor());
             break;
         case RC_GameTypeLod::TEST:
             TestRunner(m_core).runTests();
@@ -147,21 +148,46 @@ Please provide input:)";
 }
 
 __uint32_t Cli::_readSecondsPerMove() {
-    std::cout << "Provide time for the engine too analyze single move (MILLISECONDS):" << std::endl;
+    static constexpr std::string_view msg = "Provide time for the engine too analyze single move (MILLISECONDS):";
 
     std::string input{};
-
     __uint32_t result{};
+
     do {
+        std::cout << msg << std::endl;
         std::getline(std::cin, input);
 
         try {
             result = std::stoul(input);
         } catch (...) {
             result = 0;
-            std::cout << "Provide time for the engine too analyze single move (MILLISECONDS):" << std::endl;
         }
     } while (result == 0);
 
     return result;
+}
+
+__uint32_t Cli::_readPlayingColor() {
+    static constexpr std::string_view msg = "Pick your color to play: (white, black, b, w)";
+    static std::unordered_map<std::string, __uint32_t> inputMap{
+            {"white", WHITE},
+            {"w",     WHITE},
+            {"black", BLACK},
+            {"b",     BLACK},
+    };
+
+    std::string input{};
+    do {
+        std::cout << msg << std::endl;
+
+        std::getline(std::cin, input);
+        cpu::Trim(input);
+
+        for (char &c: input) {
+            c = std::tolower(c);
+        }
+
+    } while (inputMap.find(input) == inputMap.end());
+
+    return inputMap[input];
 }
