@@ -44,8 +44,12 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
+        cpu::DisplayBoard(board.DumpToExternal());
 
         auto &engine = *engines[engineIdx];
+
+        std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
+
         const auto pickedMove = engine.MoveSearch(moveTime);
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
@@ -86,14 +90,24 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
     while (!moves.empty()) {
         cuda_Move pickedMove{};
 
+        cpu::DisplayBoard(board.DumpToExternal());
+
+        /* pick next move */
         if (board.MovingColor == playerColor) {
             pickedMove = _readPlayerMove(moves);
         } else {
+            std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
+
+            /* Engine move processing */
             pickedMove = engine.MoveSearch(moveTime);
+
+            std::cout << "Engine picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
+                      << std::endl;
         }
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
 
+        /* apply move */
         cuda_Move::MakeMove(pickedMove, board);
         engine.ApplyMove(pickedMove);
 

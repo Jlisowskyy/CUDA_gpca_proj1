@@ -21,7 +21,7 @@ namespace cpu {
 
     MapPerformanceRecordsPack ReadMagicPerformanceTestFile(const std::string &filename);
 
-    void DisplayBoardCPU(uint64_t board);
+    void DisplayBitBoardCPU(uint64_t board);
 
     uint64_t CountMoves(const external_board &board, int depth);
 

@@ -20,6 +20,8 @@ namespace cpu {
     [[nodiscard]] external_board GetDefaultBoard();
 
     [[nodiscard]] bool Translate(const std::string &fen, external_board &board);
+
+    void DisplayBoard(const external_board& board);
 }
 
 #endif //SRC_CPUUTILS_H

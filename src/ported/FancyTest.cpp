@@ -78,7 +78,7 @@ namespace cpu {
         return MapPerformanceTester::readTestFile(filename);
     }
 
-    void DisplayBoardCPU(uint64_t board) {
+    void DisplayBitBoardCPU(uint64_t board) {
         DisplayMask(board);
     }
 

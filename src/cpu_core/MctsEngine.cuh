@@ -12,6 +12,7 @@
 #include "cpu_MoveGen.cuh"
 
 #include <random>
+#include <thread>
 
 static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = 64;
 
@@ -31,6 +32,8 @@ public:
     [[nodiscard]] cuda_Move MoveSearch(const __uint32_t moveTime) {
         auto moves = ported_translation::GenMoves(m_board);
         std::shuffle(moves.begin(), moves.end(), std::mt19937_64(std::random_device()()));
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(moveTime));
 
         return moves[0];
     }

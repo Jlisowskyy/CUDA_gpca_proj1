@@ -69,4 +69,9 @@ namespace cpu {
     void Trim(std::string &str) {
         str = ParseTools::GetTrimmed(str);
     }
+
+    void DisplayBoard(const external_board &board) {
+        Board bd = TranslateToInternalBoard(board);
+        DisplayBoard(bd);
+    }
 }

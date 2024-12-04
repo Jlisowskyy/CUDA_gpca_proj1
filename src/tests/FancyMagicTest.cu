@@ -197,10 +197,10 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
             displays++;
 
             std::cout << "Correct CPU map: " << std::endl;
-            cpu::DisplayBoardCPU(cpuResults[i]);
+            cpu::DisplayBitBoardCPU(cpuResults[i]);
 
             std::cout << "Calculated GPU map: " << std::endl;
-            cpu::DisplayBoardCPU(hResults[i]);
+            cpu::DisplayBitBoardCPU(hResults[i]);
         }
 
         errors += cpuResults[i] != hResults[i];

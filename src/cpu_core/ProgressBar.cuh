@@ -132,7 +132,7 @@ protected:
         DWORD written;
         COORD cursorPosition = csbi.dwCursorPosition;
         cursorPosition.X = 0;
-        
+
         FillConsoleOutputCharacter(m_consoleHandle, ' ', csbi.dwSize.X, cursorPosition, &written);
         SetConsoleCursorPosition(m_consoleHandle, cursorPosition);
     }
