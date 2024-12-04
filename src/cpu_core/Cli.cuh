@@ -59,6 +59,9 @@ private:
 
     void _runGame(Cli::RC_GameTypeLod gameType);
 
+    [[nodiscard]] static __uint32_t _readSecondsPerMove();
+
+
     // ------------------------------
     // Class fields
     // ------------------------------

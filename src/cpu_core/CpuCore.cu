@@ -27,12 +27,12 @@ CpuCore::~CpuCore() {
     delete m_deviceProps;
 }
 
-void CpuCore::runCVC() {
-    _runSimpleMoveGen();
+void CpuCore::runCVC(const __uint32_t moveTime) {
+
 }
 
-void CpuCore::runPVC() {
-    _runSimpleMoveGen();
+void CpuCore::runPVC(const __uint32_t moveTime) {
+
 }
 
 void CpuCore::init() {
@@ -142,12 +142,9 @@ void CpuCore::_dumpGPUInfo(const int idx, const cudaDeviceProp &prop) {
     ) << std::endl;
 }
 
-void CpuCore::_runSimpleMoveGen() {
-    assert(m_deviceThreads > 0 && "No device threads available");
-}
-
 void CpuCore::setBoard(cuda_Board *board) {
     assert(board != nullptr && "cpu_Board cannot be nullptr");
     m_board = board;
 }
+
 

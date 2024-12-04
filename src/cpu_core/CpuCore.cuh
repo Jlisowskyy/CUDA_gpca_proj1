@@ -26,9 +26,9 @@ public:
 
     void setBoard(cuda_Board *board);
 
-    void runCVC();
+    void runCVC(__uint32_t moveTime);
 
-    void runPVC();
+    void runPVC(__uint32_t moveTime);
 
     void init();
 
@@ -45,11 +45,9 @@ public:
     // ------------------------------
 private:
 
-    std::tuple<int, int, cudaDeviceProp *> _pickGpu();
+    [[nodiscard]]  std::tuple<int, int, cudaDeviceProp *> _pickGpu();
 
     void _dumpGPUInfo(int idx, const cudaDeviceProp &props);
-
-    void _runSimpleMoveGen();
 
     // ------------------------------
     // Class fields

@@ -94,10 +94,10 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
 
     switch (gameType) {
         case RC_GameTypeLod::COMPUTER_VS_COMPUTER:
-            m_core->runCVC();
+            m_core->runCVC(_readSecondsPerMove());
             break;
         case RC_GameTypeLod::PLAYER_VS_COMPUTER:
-            m_core->runPVC();
+            m_core->runPVC(_readSecondsPerMove());
             break;
         case RC_GameTypeLod::TEST:
             TestRunner(m_core).runTests();
@@ -144,4 +144,24 @@ Choose game type:
 Please provide input:)";
 
     std::cout << gameTypeMsg << std::endl;
+}
+
+__uint32_t Cli::_readSecondsPerMove() {
+    std::cout << "Provide time for the engine too analyze single move (MILLISECONDS):" << std::endl;
+
+    std::string input{};
+
+    __uint32_t result{};
+    do {
+        std::getline(std::cin, input);
+
+        try {
+            result = std::stoul(input);
+        } catch (...) {
+            result = 0;
+            std::cout << "Provide time for the engine too analyze single move (MILLISECONDS):" << std::endl;
+        }
+    } while (result == 0);
+
+    return result;
 }
