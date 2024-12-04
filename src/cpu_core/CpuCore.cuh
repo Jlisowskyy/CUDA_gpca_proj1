@@ -9,6 +9,7 @@ struct cudaDeviceProp;
 struct cuda_Board;
 
 #include <tuple>
+#include "../cuda_core/Move.cuh"
 
 class CpuCore final {
     // ------------------------------
@@ -45,9 +46,13 @@ public:
     // ------------------------------
 private:
 
-    [[nodiscard]]  std::tuple<int, int, cudaDeviceProp *> _pickGpu();
+    [[nodiscard]] std::tuple<int, int, cudaDeviceProp *> _pickGpu();
 
     void _dumpGPUInfo(int idx, const cudaDeviceProp &props);
+
+    [[nodiscard]] static cuda_Move _readPlayerMove(const std::vector<cuda_Move>& correctMoves);
+
+    [[nodiscard]] static bool _validateMove(const std::vector<cuda_Move>& validMoves, const cuda_Move move);
 
     // ------------------------------
     // Class fields

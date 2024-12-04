@@ -11,6 +11,7 @@
 #include <tuple>
 
 #include "CpuDefines.h"
+#include "CpuMoveGen.h"
 
 namespace cpu {
 
@@ -20,15 +21,7 @@ namespace cpu {
 
     MapPerformanceRecordsPack ReadMagicPerformanceTestFile(const std::string &filename);
 
-    uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap);
-
-    uint64_t AccessCpuBishopMap(int msbInd, uint64_t fullMap);
-
-    int ExtractMsbPosCPU(uint64_t map);
-
     void DisplayBoardCPU(uint64_t board);
-
-    std::vector<external_move> GenerateMoves(const external_board &board);
 
     uint64_t CountMoves(const external_board &board, int depth);
 

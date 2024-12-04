@@ -6,16 +6,13 @@
 
 #include <iostream>
 #include <random>
-#include <chrono>
 #include <thread>
 #include <format>
 
-#include "../../../engine/include/MoveGeneration/BishopMap.h"
-#include "../../../engine/include/MoveGeneration/RookMap.h"
-#include "../../../engine/include/TestsAndDebugging/MapCorrectnessTest.h"
-#include "../../../engine/include/TestsAndDebugging/MapPerformanceTest.h"
-#include "../../../engine/include/BitOperations.h"
-#include "../../../engine/include/EngineUtils.h"
+#include "../../engine/include/MoveGeneration/BishopMap.h"
+#include "../../engine/include/MoveGeneration/RookMap.h"
+#include "../../engine/include/TestsAndDebugging/MapCorrectnessTest.h"
+#include "../../engine/include/TestsAndDebugging/MapPerformanceTest.h"
 
 static constexpr unsigned TEST_SIZE = 1'000'000;
 
@@ -79,18 +76,6 @@ namespace cpu {
 
     MapPerformanceRecordsPack ReadMagicPerformanceTestFile(const std::string &filename) {
         return MapPerformanceTester::readTestFile(filename);
-    }
-
-    uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap) {
-        return RookMap::GetMoves(msbInd, fullMap);
-    }
-
-    uint64_t AccessCpuBishopMap(int msbInd, uint64_t fullMap) {
-        return BishopMap::GetMoves(msbInd, fullMap);
-    }
-
-    int ExtractMsbPosCPU(uint64_t map) {
-        return ExtractMsbPos(map);
     }
 
     void DisplayBoardCPU(uint64_t board) {

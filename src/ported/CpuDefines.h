@@ -19,7 +19,6 @@ namespace cpu {
 
     using external_move = std::array<uint16_t, 3>;
     using external_board = std::array<uint64_t, 15>;
-
 }
 
 #endif //SRC_CPUDEFINES_H

@@ -131,7 +131,7 @@ struct cuda_PackedMove final {
         return (_packedMove & TargetFieldMask) >> 6;
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS bool IsEmpty() const { return _packedMove == 0; }
+    [[nodiscard]] FAST_CALL_ALWAYS bool IsEmpty() const { return _packedMove == 0; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS  bool IsQuiet() const { return (_packedMove & MoveTypeBits) == 0; }
 
@@ -150,6 +150,10 @@ struct cuda_PackedMove final {
     // debugging tool
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkayMove() const {
         return !IsEmpty() && GetTargetField() != GetStartField();
+    }
+
+    [[nodiscard]] bool IsOkayMoveCPU() const {
+        return !IsEmpty() && GetTargetFieldCPU() != GetStartFieldCPU();
     }
 
     [[nodiscard]] __uint16_t Dump() const { return _packedMove; }
@@ -254,6 +258,8 @@ public:
 
     // debugging tool
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsOkayMove() const { return _packedMove.IsOkayMove(); }
+
+    [[nodiscard]] bool IsOkayMoveCPU() const { return _packedMove.IsOkayMoveCPU(); }
 
     template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
     FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher) {

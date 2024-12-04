@@ -9,9 +9,15 @@
 #include "../cuda_core/Move.cuh"
 
 #include "MctsTree.cuh"
+#include "cpu_MoveGen.cuh"
+
+#include <random>
+
+static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = 64;
 
 template<__uint32_t BATCH_SIZE>
 class MctsEngine {
+public:
     // ------------------------------
     // Class creation
     // ------------------------------
@@ -23,11 +29,19 @@ class MctsEngine {
     // ------------------------------
 
     [[nodiscard]] cuda_Move MoveSearch(const __uint32_t moveTime) {
+        auto moves = ported_translation::GenMoves(m_board);
+        std::shuffle(moves.begin(), moves.end(), std::mt19937_64(std::random_device()()));
 
+        return moves[0];
     }
 
     void ApplyMove(const cuda_Move move) {
+        assert(move.IsOkayMoveCPU() && "ENGINE RECEIVED MALFUNCTIONING MOVE!");
 
+
+        cuda_Move::MakeMove(move, m_board);
+
+        /* adapt subtree */
     }
 
     // ------------------------------

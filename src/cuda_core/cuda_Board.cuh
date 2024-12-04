@@ -144,7 +144,7 @@ public:
     // class interaction
     // ------------------------------
 
-    cpu::external_board DumpToExternal() {
+    [[nodiscard]] cpu::external_board DumpToExternal() const {
         cpu::external_board rv{};
 
         for (__uint32_t i = 0; i < 12; ++i) {

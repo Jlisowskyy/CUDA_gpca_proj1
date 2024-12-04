@@ -32,7 +32,7 @@ public:
 
     explicit MctsNode(MctsNode *parent, const cuda_Move move) : m_parent(parent), m_move(move) {
         assert(parent && "MCTS NODE RECEIVED NULL PARENT");
-        assert(move.IsOkayMove() && "MCTS NODE RECEIVED MALFUNCTIONED MOVE");
+        assert(move.IsOkayMoveCPU() && "MCTS NODE RECEIVED MALFUNCTIONED MOVE");
 
         m_board = parent->m_board;
 
@@ -48,7 +48,7 @@ public:
     // ------------------------------
 
     void AddChildren(const cuda_Move move) {
-        assert(move.IsOkayMove() && "MCTS NODE RECEIVED MALFUNCTIONED MOVE!");
+        assert(move.IsOkayMoveCPU() && "MCTS NODE RECEIVED MALFUNCTIONED MOVE!");
         assert(std::all_of(m_children.begin(), m_children.end(),
                            [&move](const auto &child) {
                                return child->m_move.GetPackedMove() != move.GetPackedMove();

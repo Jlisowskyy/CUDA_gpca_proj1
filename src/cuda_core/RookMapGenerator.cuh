@@ -35,7 +35,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] HYBRID constexpr static MasksT InitMasks(int bInd) {
+    [[nodiscard]] HYBRID constexpr static MasksT InitMasks(__uint32_t bInd) {
         constexpr int SouthBarrier = 7;
         constexpr int NorthBarrier = 56;
 
@@ -60,7 +60,7 @@ public:
         return ret;
     }
 
-    [[nodiscard]] HYBRID constexpr static __uint64_t GenMoves(__uint64_t neighborsWoutOverlap, int bInd) {
+    [[nodiscard]] HYBRID constexpr static __uint64_t GenMoves(__uint64_t neighborsWoutOverlap, __uint32_t bInd) {
         constexpr int northBarrier = 64;
         constexpr int southBarrier = -1;
         const int westBarrier = (bInd / 8) * 8 - 1;

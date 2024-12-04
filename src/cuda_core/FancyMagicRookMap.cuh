@@ -154,7 +154,7 @@ public:
     /* WORKAROUND: needed temp constructor for deviceMap initialization */
     HYBRID constexpr explicit FancyMagicRookMap(bool) {
         for (int i = 0; i < static_cast<int>(BIT_BOARD_FIELDS); ++i) {
-            const int boardIndex = ConvertToReversedPos(i);
+            const __uint32_t boardIndex = ConvertToReversedPos(i);
             const __uint64_t magic = MAGICS_ROOK_PARAMS[i];
             const __uint64_t shift = OFFSETS_ROOK_PARAMS[i];
 

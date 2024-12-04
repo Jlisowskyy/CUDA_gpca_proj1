@@ -8,6 +8,8 @@
 #include "../cuda_core/RookMap.cuh"
 
 #include "MctsEngine.cuh"
+#include "cpu_MoveGen.cuh"
+#include "CpuUtils.h"
 
 #include <cuda_runtime.h>
 
@@ -30,11 +32,117 @@ CpuCore::~CpuCore() {
 }
 
 void CpuCore::runCVC(const __uint32_t moveTime) {
+    /* prepare components */
+    cuda_Board board = *m_board;
 
+    std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine0{board};
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine1{board};
+
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> *engines[]{&engine0, &engine1};
+    __uint32_t engineIdx = 0;
+
+    /* Run in loop until moves are exhausted */
+    while (!moves.empty()) {
+
+        auto &engine = *engines[engineIdx];
+        const auto pickedMove = engine.MoveSearch(moveTime);
+
+        assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
+
+        cuda_Move::MakeMove(pickedMove, board);
+        engine0.ApplyMove(pickedMove);
+        engine1.ApplyMove(pickedMove);
+
+        /* TODO: fallback when move gen failed? */
+        moves = ported_translation::GenMoves(board);
+
+        engineIdx ^= 1;
+    }
+
+    /* Decide who won the game */
+    if (ported_translation::IsCheck(board)) {
+        const __uint32_t winningColor = SwapColor(board.MovingColor);
+        const std::string winningColorStr = winningColor == WHITE ? "WHITE" : "BLACK";
+
+        std::cout << std::string(80, '-') << std::endl << std::endl;
+        std::cout << std::string(25, ' ') << "GAME WON BY " << winningColorStr << std::endl;
+        std::cout << std::endl << std::string(80, '-') << std::endl;
+    } else {
+        std::cout << std::string(80, '-') << std::endl << std::endl;
+        std::cout << std::string(35, ' ') << "DRAW" << std::endl;
+        std::cout << std::endl << std::string(80, '-') << std::endl;
+    }
 }
 
 void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
+    /* prepare components */
+    cuda_Board board = *m_board;
 
+    std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board};
+
+    /* Run in loop until moves are exhausted */
+    while (!moves.empty()) {
+        cuda_Move pickedMove{};
+
+        if (board.MovingColor == playerColor) {
+            pickedMove = _readPlayerMove(moves);
+        } else {
+            pickedMove = engine.MoveSearch(moveTime);
+        }
+
+        assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
+
+        cuda_Move::MakeMove(pickedMove, board);
+        engine.ApplyMove(pickedMove);
+
+        moves = ported_translation::GenMoves(board);
+    }
+
+    /* Decide who won the game */
+    if (ported_translation::IsCheck(board)) {
+        const __uint32_t winningColor = SwapColor(board.MovingColor);
+        const std::string winningColorStr = winningColor == WHITE ? "WHITE" : "BLACK";
+
+        std::cout << std::string(80, '-') << std::endl << std::endl;
+        std::cout << std::string(25, ' ') << "GAME WON BY " << winningColorStr << std::endl;
+        std::cout << std::endl << std::string(80, '-') << std::endl;
+    } else {
+        std::cout << std::string(80, '-') << std::endl << std::endl;
+        std::cout << std::string(35, ' ') << "DRAW" << std::endl;
+        std::cout << std::endl << std::string(80, '-') << std::endl;
+    }
+}
+
+cuda_Move CpuCore::_readPlayerMove(const std::vector<cuda_Move> &correctMoves) {
+    static constexpr std::string_view msg = "Please provide move in Long Algebraic Notation (e.g. A1A2):";
+
+    std::string input{};
+    cuda_Move outMove{};
+    bool isValid = false;
+
+    do {
+        std::cout << msg << std::endl;
+
+        std::getline(std::cin, input);
+        cpu::Trim(input);
+
+        for (char &c: input) {
+            c = std::toupper(c);
+        }
+
+        for (const auto &move: correctMoves) {
+            if (move.GetPackedMove().GetLongAlgebraicNotation() == input) {
+                outMove = move;
+                isValid = true;
+                break;
+            }
+        }
+
+    } while (!isValid);
+
+    return outMove;
 }
 
 void CpuCore::init() {
@@ -149,4 +257,9 @@ void CpuCore::setBoard(cuda_Board *board) {
     m_board = board;
 }
 
-
+bool CpuCore::_validateMove(const std::vector<cuda_Move> &validMoves, const cuda_Move move) {
+    return std::any_of(validMoves.begin(), validMoves.end(),
+                       [&](const cuda_Move &m) {
+                           return m.GetPackedMove() == move.GetPackedMove();
+                       });
+}

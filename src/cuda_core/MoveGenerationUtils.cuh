@@ -53,7 +53,7 @@ CalculateTotalOfPossibleHashMapElements(NeighborCountingFuncT func) {
 
 template<class ComparisonMethodT>
 HYBRID [[nodiscard]] constexpr __uint64_t
-GenMask(const int barrier, int boardIndex, const int offset, ComparisonMethodT comp) {
+GenMask(const __uint32_t barrier, __uint32_t boardIndex, const __uint32_t offset, ComparisonMethodT comp) {
     __uint64_t mask = 0;
 
     while (comp(boardIndex += offset, barrier)) mask |= (1LLU << boardIndex);
@@ -62,15 +62,13 @@ GenMask(const int barrier, int boardIndex, const int offset, ComparisonMethodT c
 }
 
 HYBRID [[nodiscard]] constexpr __uint64_t
-GenMask(const int startInd, const int boarderIndex, const int offset) {
+GenMask(const __uint32_t startInd, const __uint32_t boarderIndex, const __uint32_t offset) {
     __uint64_t ret = 0;
-    for (int i = startInd; i < boarderIndex; i += offset) ret |= (1LLU << i);
+    for (__uint32_t i = startInd; i < boarderIndex; i += offset) ret |= (1LLU << i);
     return ret;
 }
 
-HYBRID [[nodiscard]] constexpr __uint32_t
-
-MyCeil(const double x) {
+HYBRID [[nodiscard]] constexpr __uint32_t MyCeil(const double x) {
     return (static_cast<double>(static_cast<__uint32_t>(x)) == x) ? static_cast<__uint32_t>(x)
                                                                   : static_cast<__uint32_t>(x) + ((x > 0) ? 1 : 0);
 }
