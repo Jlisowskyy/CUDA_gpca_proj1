@@ -12,7 +12,7 @@
 #include "cuda_Array.cuh"
 
 HYBRID [[nodiscard]] constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS>
-GenStaticMoves(const __uint32_t maxMovesCount, const int *movesCords, const int *rowCords) {
+GenStaticMoves(const int maxMovesCount, const int *movesCords, const int *rowCords) {
     cuda_Array<__uint64_t, BIT_BOARD_FIELDS> movesRet{};
 
     for (int x = 0; x < 8; ++x) {
@@ -21,7 +21,7 @@ GenStaticMoves(const __uint32_t maxMovesCount, const int *movesCords, const int 
             const int msbInd = ConvertToReversedPos(bInd);
 
             __uint64_t packedMoves = 0;
-            for (__uint32_t i = 0; i < maxMovesCount; ++i) {
+            for (int i = 0; i < maxMovesCount; ++i) {
                 const int moveYCord = (bInd + movesCords[i]) / 8;
                 const int knightYCord = bInd / 8;
 
@@ -53,7 +53,7 @@ CalculateTotalOfPossibleHashMapElements(NeighborCountingFuncT func) {
 
 template<class ComparisonMethodT>
 HYBRID [[nodiscard]] constexpr __uint64_t
-GenMask(const __uint32_t barrier, __uint32_t boardIndex, const __uint32_t offset, ComparisonMethodT comp) {
+GenMask(const int barrier, int boardIndex, const int offset, ComparisonMethodT comp) {
     __uint64_t mask = 0;
 
     while (comp(boardIndex += offset, barrier)) mask |= (1LLU << boardIndex);
@@ -62,7 +62,7 @@ GenMask(const __uint32_t barrier, __uint32_t boardIndex, const __uint32_t offset
 }
 
 HYBRID [[nodiscard]] constexpr __uint64_t
-GenMask(const __uint32_t startInd, const __uint32_t boarderIndex, const __uint32_t offset) {
+GenMask(const int startInd, const int boarderIndex, const int offset) {
     __uint64_t ret = 0;
     for (__uint32_t i = startInd; i < boarderIndex; i += offset) ret |= (1LLU << i);
     return ret;

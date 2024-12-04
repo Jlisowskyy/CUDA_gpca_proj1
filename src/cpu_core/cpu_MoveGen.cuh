@@ -14,7 +14,7 @@
 
 namespace ported_translation {
 
-    [[nodiscard]] std::vector<cuda_Move> GenMoves(const cuda_Board &board) {
+    [[nodiscard]] inline std::vector<cuda_Move> GenMoves(const cuda_Board &board) {
         const auto moves = cpu::GenerateMoves(board.DumpToExternal());
 
         std::vector<cuda_Move> rv{};
@@ -27,7 +27,7 @@ namespace ported_translation {
         return rv;
     }
 
-    [[nodiscard]] bool IsCheck(const cuda_Board &board) {
+    [[nodiscard]] inline bool IsCheck(const cuda_Board &board) {
         return cpu::IsCheck(board.DumpToExternal());
     }
 

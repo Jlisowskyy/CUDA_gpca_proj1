@@ -6,9 +6,10 @@
 #define SRC_CPUMOVEGEN_H
 
 #include "CpuDefines.h"
-#include "../../engine/include/Board.h"
 
 #include <vector>
+
+class Board;
 
 namespace cpu {
 

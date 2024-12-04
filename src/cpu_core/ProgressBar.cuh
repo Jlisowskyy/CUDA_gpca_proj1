@@ -5,6 +5,10 @@
 #include <string>
 #include <mutex>
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 class ProgressBar {
 public:
     // ------------------------------
@@ -12,7 +16,11 @@ public:
     // ------------------------------
 
     ProgressBar(__uint32_t total, __uint32_t width) : m_total(total), m_current(0), m_width(width),
-                                                      m_numCharacters(0) {}
+                                                      m_numCharacters(0) {
+#ifdef _WIN32
+        _initializeConsole();
+#endif
+    }
 
     // ------------------------------
     // Class interaction
@@ -62,7 +70,11 @@ public:
 protected:
 
     static void _clearLine() {
+#ifdef _WIN32
+        _clearConsoleLine();
+#else
         std::cout << "\033[K\r";
+#endif
     }
 
     void _redrawBar() const {
@@ -90,6 +102,41 @@ protected:
         _clearLine();
         std::cout << "[Cancelled]" << std::endl;
     }
+
+    // ------------------------------
+    // Windows specifics
+    // ------------------------------
+
+#ifdef _WIN32
+    HANDLE m_consoleHandle;
+
+    void _initializeConsole() {
+        m_consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        if (m_consoleHandle == INVALID_HANDLE_VALUE) {
+            throw std::runtime_error("Unable to get console handle!");
+        }
+
+        DWORD consoleMode;
+        if (GetConsoleMode(m_consoleHandle, &consoleMode)) {
+            consoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            SetConsoleMode(m_consoleHandle, consoleMode);
+        }
+    }
+
+    void _clearConsoleLine() const {
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        if (!GetConsoleScreenBufferInfo(m_consoleHandle, &csbi)) {
+            throw std::runtime_error("Unable to get console buffer info!");
+        }
+
+        DWORD written;
+        COORD cursorPosition = csbi.dwCursorPosition;
+        cursorPosition.X = 0;
+        
+        FillConsoleOutputCharacter(m_consoleHandle, ' ', csbi.dwSize.X, cursorPosition, &written);
+        SetConsoleCursorPosition(m_consoleHandle, cursorPosition);
+    }
+#endif
 
     // ------------------------------
     // Class fields
