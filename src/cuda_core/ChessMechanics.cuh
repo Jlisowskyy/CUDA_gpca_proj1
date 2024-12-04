@@ -72,9 +72,9 @@ struct ChessMechanics {
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ bool IsCheck() const {
-        const __uint32_t enemyCol = SwapColor(_boardFetcher.MovingColor());
-        const __uint32_t kingsMsb = _boardFetcher.GetKingMsbPos(_boardFetcher.MovingColor());
+    [[nodiscard]] __device__ bool IsCheck(const __uint32_t movingColor) const {
+        const __uint32_t enemyCol = SwapColor(movingColor);
+        const __uint32_t kingsMsb = _boardFetcher.GetKingMsbPos(movingColor);
         const __uint64_t fullBoard = GetFullBitMap();
 
         // Checking rook's perspective
@@ -115,10 +115,9 @@ struct ChessMechanics {
         return false;
     }
 
-    [[nodiscard]] __uint32_t EvalBoardsNoMoves() const {
-        const bool isCheck = IsCheck();
-
-        return isCheck ? SwapColor(_boardFetcher.MovingColor()) : DRAW;
+    [[nodiscard]] __uint32_t EvalBoardsNoMoves(__uint32_t movingColor) const {
+        const bool isCheck = IsCheck(movingColor);
+        return isCheck ? SwapColor(movingColor) : DRAW;
     }
 
     // Gets occupancy maps, which simply indicates whether some field is occupied or not. Does not distinguish colors.

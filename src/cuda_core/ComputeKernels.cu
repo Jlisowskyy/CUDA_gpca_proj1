@@ -12,7 +12,7 @@ SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint
     __shared__ __uint32_t counters[SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE];
     int depth{};
     while (depth < maxDepth) {
-        Stack<cuda_Move> stack(moves + idx * 256, counters + threadIdx.x);
+        Stack<cuda_Move> stack(moves + idx * DEFAULT_STACK_SIZE, counters + threadIdx.x);
 
         MoveGenerator mGen{(*boards)[idx], stack};
         mGen.GetMovesFast();

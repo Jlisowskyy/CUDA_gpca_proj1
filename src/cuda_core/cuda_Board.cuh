@@ -24,7 +24,7 @@ enum EVAL_RESULTS : __uint32_t {
     DRAW = 2,
 };
 
-static_assert(DRAW != WHITE && DRAW != BLACK);
+static_assert((__uint32_t) DRAW != (__uint32_t) WHITE && (__uint32_t) DRAW != (__uint32_t) BLACK);
 
 enum ColorlessDescriptors : __uint32_t {
     PAWN_INDEX,
