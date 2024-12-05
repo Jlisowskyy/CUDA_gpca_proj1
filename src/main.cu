@@ -13,7 +13,7 @@
 
 int main() {
 
-    initializeConsole();
+    InitializeConsole();
     CpuCore core{};
     core.init();
 

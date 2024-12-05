@@ -12,8 +12,24 @@
 
 #include <vector>
 
+/**
+ * @namespace ported_translation
+ * @brief Provides translation layer between Checkmate-Chariot library and this engine
+ *
+ * Translates move generation and check detection methods from
+ * CPU-based implementations to representations used within this project
+ */
+
 namespace ported_translation {
 
+    /**
+     * @brief Generates legal moves for a given board state
+     *
+     * Converts CPU-generated moves to CUDA move representation
+     *
+     * @param board Current chess board state
+     * @return std::vector<cuda_Move> List of legal moves
+     */
     [[nodiscard]] inline std::vector<cuda_Move> GenMoves(const cuda_Board &board) {
         const auto moves = cpu::GenerateMoves(board.DumpToExternal());
 
@@ -27,6 +43,12 @@ namespace ported_translation {
         return rv;
     }
 
+    /**
+     * @brief Determines if the current board is in check
+     *
+     * @param board Current chess board state
+     * @return bool True if the current side is in check, false otherwise
+     */
     [[nodiscard]] inline bool IsCheck(const cuda_Board &board) {
         return cpu::IsCheck(board.DumpToExternal());
     }

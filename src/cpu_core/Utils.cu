@@ -41,7 +41,7 @@ void ClearLines(__uint32_t numLines) {
 #endif
 }
 
-void initializeConsole() {
+void InitializeConsole() {
 #ifdef _WIN32
     m_consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
         if (m_consoleHandle == INVALID_HANDLE_VALUE) {

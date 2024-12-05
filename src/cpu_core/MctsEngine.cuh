@@ -25,6 +25,16 @@ enum class EngineType {
     GPU,
 };
 
+
+/**
+ * @brief Monte Carlo Tree Search (MCTS) Engine template class for game AI
+ *
+ * This class implements a flexible Monte Carlo Tree Search algorithm that can
+ * operate on both CPU and GPU, supporting configurable batch sizes and worker threads.
+ *
+ * @tparam BATCH_SIZE Number of simulations to play in single batch
+ * @tparam ENGINE_TYPE Specifies whether to use CPU or GPU expansion strategy
+ */
 template<__uint32_t BATCH_SIZE, EngineType ENGINE_TYPE = EngineType::GPU>
 class MctsEngine {
 public:
@@ -38,6 +48,12 @@ public:
 
     MctsEngine(MctsEngine &&) = delete;
 
+    /**
+     * @brief Construct a new MctsEngine with a given board state
+     *
+     * @param board Initial game board state
+     * @param numWorkers Number of worker threads for tree expansion (default: 1)
+     */
     explicit MctsEngine(const cuda_Board &board, const __uint32_t numWorkers = 1) : m_board(board),
                                                                                     m_numWorkers(numWorkers),
                                                                                     m_pool(numWorkers) {}
@@ -50,6 +66,12 @@ public:
     // Class interaction
     // ------------------------------
 
+    /**
+     * @brief Initiates the move search process
+     *
+     * Initializes the search tree, starts worker threads for tree expansion,
+     * and begins the Monte Carlo Tree Search algorithm
+     */
     void MoveSearchStart() {
         _initTree();
 
@@ -58,6 +80,11 @@ public:
         m_pool.RunThreads(_worker, this);
     }
 
+    /**
+     * @brief Waits for move search to complete and selects the best move
+     *
+     * @return cuda_Move The best move found during the search
+     */
     [[nodiscard]] cuda_Move MoveSearchWait() {
         m_shouldWork = false;
         m_pool.Wait();
@@ -65,6 +92,14 @@ public:
         return _pickMove();
     }
 
+    /**
+     * @brief Applies a move to the current board state and adapts the search tree
+     *
+     * Updates the root of the search tree to reflect the new board state
+     * after a move has been made
+     *
+     * @param move The move to apply
+     */
     void ApplyMove(const cuda_Move move) {
         assert(move.IsOkayMoveCPU() && "ENGINE RECEIVED MALFUNCTIONING MOVE!");
 
@@ -77,7 +112,15 @@ public:
     // ------------------------------
 protected:
 
-    /* Performs MCT expansion */
+    /**
+     * @brief Worker thread function for tree expansion
+     *
+     * Expands the search tree using either GPU or CPU methods
+     * based on the ENGINE_TYPE template parameter
+     *
+     * @param idx Worker thread index
+     * @param workspace Pointer to the MctsEngine instance
+     */
     static void _worker(__uint32_t idx, MctsEngine *workspace) {
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
@@ -87,11 +130,18 @@ protected:
                 mcts::ExpandTreeCPU(workspace->m_root);
             }
         }
+
 #ifdef WRITE_OUT
         std::cout << "worker with id " << idx << " died..." << std::endl;
 #endif
     }
 
+    /**
+     * @brief Initializes the search tree with possible moves
+     *
+     * Generates all possible moves and adds them as child nodes
+     * to the root of the search tree
+     */
     void _initTree() {
         /* Prepare root if necessary */
         if (!m_root) {
@@ -119,6 +169,14 @@ protected:
         }
     }
 
+    /**
+     * @brief Adapts the search tree after a move is applied
+     *
+     * Updates the root of the search tree to the corresponding
+     * child node matching the applied move
+     *
+     * @param move The move that was applied
+     */
     void _adaptTree(const cuda_Move move) {
         if (!m_root) {
             return;
@@ -135,6 +193,13 @@ protected:
         m_root = newParent;
     }
 
+    /**
+     * @brief Selects the best move based on calculated win rates
+     *
+     * Iterates through child nodes to find the move with the highest win rate
+     *
+     * @return cuda_Move The move with the highest calculated win rate
+     */
     [[nodiscard]] cuda_Move _pickMove() {
         assert(m_root != nullptr && "ENGINE: CALLED PICK MOVE ON EMPTY TREE!");
 

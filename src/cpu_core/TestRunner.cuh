@@ -9,6 +9,7 @@
 
 class CpuCore;
 
+
 class TestRunner {
     enum class TestParseResult {
         SUCCESS,
@@ -21,6 +22,11 @@ class TestRunner {
     // ------------------------------
 public:
 
+    /**
+     * @brief Constructs TestRunner with a CPU core context
+     *
+     * @param cpuCore Pointer to CpuCore for device-specific test execution
+     */
     explicit TestRunner(CpuCore *cpuCore);
 
     ~TestRunner();
@@ -29,6 +35,12 @@ public:
     // Class interaction
     // ------------------------------
 
+    /**
+     * @brief Runs interactive test selection and execution loop
+     *
+     * Displays available tests, prompts for test selection,
+     * and executes chosen tests until user exits
+     */
     void runTests();
 
     // ------------------------------
@@ -36,8 +48,19 @@ public:
     // ------------------------------
 private:
 
+    /**
+     * @brief Displays welcome message and list of available tests
+     *
+     * Shows test codes, names, and descriptions to guide user selection
+     */
     static void _displayWelcomeMessage();
 
+    /**
+     * @brief Parses user input and selects corresponding test function
+     *
+     * @param out_testFunc Reference to store selected test function
+     * @return TestParseResult Indicates input validation status
+     */
     static TestParseResult _parseTestInput(TestFunc &out_testFunc);
 
     // ------------------------------

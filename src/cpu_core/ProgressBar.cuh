@@ -7,12 +7,23 @@
 
 #include "Utils.cuh"
 
+/**
+ * @brief Provides a thread-safe console progress bar for tracking task completion
+ *
+ * Displays progress visually with percentage and dynamic bar length
+ */
 class ProgressBar {
 public:
     // ------------------------------
     // Class creation
     // ------------------------------
 
+    /**
+     * @brief Construct a progress bar with total steps and display width
+     *
+     * @param total Total number of steps in the task
+     * @param width Width of the progress bar in console characters
+     */
     ProgressBar(__uint32_t total, __uint32_t width) : m_total(total), m_current(0), m_width(width),
                                                       m_numCharacters(0) {}
 
@@ -20,11 +31,21 @@ public:
     // Class interaction
     // ------------------------------
 
+    /**
+     * @brief Initiate progress bar display
+     *
+     * @note from this moment all writes to stdout should be done through progress bar
+     */
     void Start() {
         _clearLine();
         _redrawBar();
     }
 
+    /**
+     * @brief Increment progress, updating display if needed
+     *
+     * @param increment Number of steps to advance (default 1)
+     */
     void Increment(__uint32_t increment = 1) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -43,6 +64,11 @@ public:
         }
     }
 
+    /**
+     * @brief Write a line of text while preserving progress bar
+     *
+     * @param line Text to display
+     */
     void WriteLine(const std::string &line) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -51,6 +77,9 @@ public:
         _redrawBar();
     }
 
+    /**
+     * @brief Attempt to cancel progress bar (currently not implemented)
+     */
     void Break() {
         throw std::runtime_error("NOT IMPLEMENTED!");
 
@@ -84,7 +113,7 @@ protected:
         std::cout << std::endl;
     }
 
-    void _drawCancelled() const {
+    static void _drawCancelled() {
         _clearLine();
         std::cout << "[Cancelled]" << std::endl;
     }

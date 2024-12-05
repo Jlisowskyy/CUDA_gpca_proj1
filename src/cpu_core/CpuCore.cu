@@ -23,7 +23,7 @@
 
 static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
 
-void initializeRookMap() {
+void InitializeRookMap() {
     FancyMagicRookMap hostMap{
             false}; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
     CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
@@ -201,7 +201,7 @@ void CpuCore::init() {
     m_deviceThreads = deviceHardwareThreads;
     m_deviceProps = deviceProps;
 
-    initializeRookMap();
+    InitializeRookMap();
 }
 
 std::tuple<int, int, cudaDeviceProp *> CpuCore::_pickGpu() {

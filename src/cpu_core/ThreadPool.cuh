@@ -8,18 +8,33 @@
 #include <thread>
 #include <vector>
 
+/**
+ * @brief Manages a dynamic pool of worker threads
+ *
+ * Provides thread creation, execution, and synchronization utilities
+ *
+ * @note Not thread safe itself should be run only within single thread
+ */
 class ThreadPool {
 public:
     // ------------------------------
     // Internal types
     // ------------------------------
 
+    /**
+     * @brief Constant indicating invalid thread number
+     */
     static constexpr __uint32_t INVALID_THREAD_NUM = 0;
 
     // ------------------------------
     // Class creation
     // ------------------------------
 
+    /**
+     * @brief Construct a thread pool with specified number of threads
+     *
+     * @param numThreads Number of threads to manage
+     */
     explicit ThreadPool(const __uint32_t numThreads) : m_numThreadsToSpawn(numThreads) {
         assert(m_numThreadsToSpawn != INVALID_THREAD_NUM && "ThreadPool: numThreads cannot be 0");
     }
@@ -36,6 +51,16 @@ public:
     // Class interaction
     // ------------------------------
 
+    /**
+    * @brief Run threads with a given function and arguments
+    *
+    * @tparam FuncT Function type
+    * @tparam Args Argument types
+    * @param func Function to execute
+    * @param args Function arguments
+    *
+    * @note it can be run only once after creation or reset, its safety measure
+    */
     template<class FuncT, class... Args>
     void RunThreads(FuncT&& func, Args&&... args) {
         assert(m_numThreadsToSpawn != INVALID_THREAD_NUM && "Detected second run usage on the thread pool");
@@ -48,6 +73,9 @@ public:
         m_numThreadsToSpawn = INVALID_THREAD_NUM;
     }
 
+    /**
+     * @brief Wait for all threads to complete
+     */
     void Wait() {
         assert(m_numThreadsToSpawn == INVALID_THREAD_NUM && "Detected early wait on thread pool");
 
@@ -60,7 +88,14 @@ public:
         }
     }
 
+    /**
+     * @brief Reset thread pool with new thread count,
+     *
+     * @param numThreads New number of threads
+     */
     void Reset(const __uint32_t numThreads) {
+        assert(m_threads.empty() && "Detected early reset on thread pool");
+
         m_numThreadsToSpawn = numThreads;
     }
 
