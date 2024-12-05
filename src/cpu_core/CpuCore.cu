@@ -6,6 +6,7 @@
 
 #include "../cuda_core/Helpers.cuh"
 #include "../cuda_core/RookMap.cuh"
+#include "Utils.cuh"
 
 #include "MctsEngine.cuh"
 #include "cpu_MoveGen.cuh"
@@ -44,6 +45,7 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
+        std::cout << '\n';
         cpu::DisplayBoard(board.DumpToExternal());
 
         auto &engine = *engines[engineIdx];
@@ -51,6 +53,11 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
         std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
         const auto pickedMove = engine.MoveSearch(moveTime);
+        ClearLines(28);
+
+        std::cout << "Engine " << engineIdx << " picked next move: "
+                  << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
+                  << std::endl;
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
 

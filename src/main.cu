@@ -4,6 +4,7 @@
 
 #include "cpu_core/Cli.cuh"
 #include "cpu_core/CpuCore.cuh"
+#include "cpu_core/Utils.cuh"
 
 #include "tests/CudaTests.cuh"
 
@@ -11,6 +12,8 @@
 #include <iostream>
 
 int main() {
+
+    initializeConsole();
     CpuCore core{};
     core.init();
 
