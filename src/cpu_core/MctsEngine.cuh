@@ -18,7 +18,6 @@
 #include <iostream>
 
 static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = 64;
-static constexpr __uint32_t MIN_SAMPLES_TO_EXPAND = 512;
 
 enum class EngineType {
     CPU,

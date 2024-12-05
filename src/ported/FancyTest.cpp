@@ -16,6 +16,13 @@
 
 static constexpr unsigned TEST_SIZE = 1'000'000;
 
+/**
+ * @brief Simple pseudo-random number generator with XOR-shift algorithm.
+ *
+ * Modifies the input state using bitwise XOR operations to generate the next random value.
+ *
+ * @param state Reference to the random state, which is modified in-place
+ */
 uint64_t simpleRand(uint64_t &state) {
     state ^= state << 13;
     state ^= state >> 7;
@@ -23,6 +30,17 @@ uint64_t simpleRand(uint64_t &state) {
     return state;
 }
 
+
+/**
+ * @brief Perform a performance test on magic bitboard move generation.
+ *
+ * Runs a high-performance test generating moves for a specific piece type map
+ * (BishopMap or RookMap) using a random seed and multiple iterations.
+ *
+ * @tparam MapT Type of map to test (BishopMap or RookMap)
+ * @param title Descriptive name of the test for logging
+ * @param seed Initial random seed for move generation
+ */
 template<class MapT>
 void runTest_(const char *title, const uint64_t seed) {
     const uint64_t idx = 0;

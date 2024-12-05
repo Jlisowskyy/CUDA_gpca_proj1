@@ -13,6 +13,13 @@
 #include <tuple>
 #include <mutex>
 
+/**
+ * @brief Simple pseudo-random number generator with XOR-shift algorithm.
+ *
+ * Modifies the input state using bitwise XOR operations to generate the next random value.
+ *
+ * @param state Reference to the random state, which is modified in-place
+ */
 void simpleRand(uint32_t &state) {
     state ^= state << 13;
     state ^= state >> 7;

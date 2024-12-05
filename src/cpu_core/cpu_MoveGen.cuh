@@ -19,7 +19,6 @@
  * Translates move generation and check detection methods from
  * CPU-based implementations to representations used within this project
  */
-
 namespace ported_translation {
 
     /**

@@ -132,23 +132,27 @@ struct alignas(128) cuda_PackedBoard {
         assert(boards.size() <= NUM_BOARDS);
 
         for (__uint32_t idx = 0; idx < boards.size(); ++idx) {
-            BoardFetcher fetcher(idx, this);
-
-            fetcher.MovingColor() = boards[idx].MovingColor;
-            fetcher.Castlings() = boards[idx].Castlings;
-            fetcher.SetElPassantField(boards[idx].ElPassantField);
-
-            for (__uint32_t boardIdx = 0; boardIdx < BIT_BOARDS_COUNT; ++boardIdx) {
-                fetcher.SetBitBoard(boards[idx].BitBoards[boardIdx], boardIdx);
-            }
-
-            fetcher.MaterialEval() = boards[idx].EvaluateMaterial();
+            saveBoard(idx, boards[idx]);
         }
     }
 
     // ------------------------------
     // class interaction
     // ------------------------------
+
+    INLINE void saveBoard(const __uint32_t idx, const cuda_Board &board) {
+        BoardFetcher fetcher(idx, this);
+
+        fetcher.MovingColor() = board.MovingColor;
+        fetcher.Castlings() = board.Castlings;
+        fetcher.SetElPassantField(board.ElPassantField);
+
+        for (__uint32_t boardIdx = 0; boardIdx < BIT_BOARDS_COUNT; ++boardIdx) {
+            fetcher.SetBitBoard(board.BitBoards[boardIdx], boardIdx);
+        }
+
+        fetcher.MaterialEval() = board.EvaluateMaterial();
+    }
 
     [[nodiscard]] FAST_CALL_ALWAYS constexpr BoardFetcher operator[](__uint32_t boardIdx) {
         return BoardFetcher(boardIdx, this);
