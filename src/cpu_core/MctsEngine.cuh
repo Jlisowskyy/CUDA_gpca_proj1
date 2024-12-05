@@ -147,25 +147,25 @@ protected:
             m_root = new MctsNode(m_board);
         }
 
+        /* leave if children are already added */
+        if (m_root->HasChildrenAssigned()) {
+            return;
+        }
+
         /* generate all possible children */
         const auto moves = ported_translation::GenMoves(m_board);
 
-        /* Add missing child nodes */
+        /* Alloc the bector */
+        const auto pChildren = new std::vector<MctsNode *>();
+        pChildren->reserve(moves.size());
+
+        /* Add child nodes */
         for (const auto move: moves) {
-            bool isAlreadyAdded{};
-
-            /* verify if the child is missing */
-            for (const auto child: m_root->m_children) {
-                if (child->m_move.GetPackedMove() == move.GetPackedMove()) {
-                    isAlreadyAdded = true;
-                    break;
-                }
-            }
-
-            if (!isAlreadyAdded) {
-                m_root->AddChildren(move);
-            }
+            pChildren->emplace_back(new MctsNode(m_root, move));
         }
+
+        const bool result = m_root->SetChildren(pChildren);
+        assert(result && "FAILED TO ADD CHILDREN AS INIT!");
     }
 
     /**
@@ -182,7 +182,7 @@ protected:
         }
 
         MctsNode *newParent{};
-        for (const auto child: m_root->m_children) {
+        for (const auto child: m_root->GetChildren()) {
             if (child->m_move.GetPackedMove() == move.GetPackedMove()) {
                 newParent = child;
                 break;
@@ -190,6 +190,10 @@ protected:
         }
 
         m_root = newParent;
+
+        if (m_root) {
+            m_root->m_parent = nullptr;
+        }
     }
 
     /**
@@ -205,7 +209,7 @@ protected:
         cuda_Move bestMove{};
         double bestWinRate = std::numeric_limits<double>::min();
 
-        for (const auto child: m_root->m_children) {
+        for (const auto child: m_root->GetChildren()) {
             if (const double winRate = child->CalculateWinRate(); winRate > bestWinRate) {
                 bestWinRate = winRate;
                 bestMove = child->m_move;

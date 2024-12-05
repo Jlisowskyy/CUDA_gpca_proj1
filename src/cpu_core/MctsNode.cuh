@@ -41,8 +41,6 @@ public:
      */
     explicit MctsNode(const cuda_Board &board) : m_board(board) {
         static constexpr __uint32_t INIT_SIZE = 32;
-
-        m_children.reserve(INIT_SIZE);
     }
 
     /**
@@ -69,21 +67,6 @@ public:
     // ------------------------------
 
     /**
-     * @brief Add a new child node representing a possible move
-     *
-     * @param move Move to create a child node for
-     */
-    void AddChildren(const cuda_Move move) {
-        assert(move.IsOkayMoveCPU() && "MCTS NODE RECEIVED MALFUNCTIONED MOVE!");
-        assert(std::all_of(m_children.begin(), m_children.end(),
-                           [&move](const auto &child) {
-                               return child->m_move.GetPackedMove() != move.GetPackedMove();
-                           }) && "MCTS NODE RECEIVED REPEATED MOVE");
-
-        m_children.push_back(new MctsNode(this, move));
-    }
-
-    /**
      * @brief return number of samples done / being operated on atomically
      *
      * @return number of samples simulated or being worked on
@@ -97,6 +80,22 @@ public:
      */
     void IncNumSamples() {
         m_numSamples.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    [[nodiscard("DATA LEAK POSSIBLE")]] bool SetChildren(std::vector<MctsNode *> *children) {
+        assert(children != nullptr && "MCTS NODE: DETECTEC NULLPTR CHILDREN");
+
+        std::vector<MctsNode *> *expected = nullptr;
+        return m_children.compare_exchange_strong(expected, children);
+    }
+
+    [[nodiscard]] bool HasChildrenAssigned() const {
+        return m_children.load() != nullptr;
+    }
+
+    [[nodiscard]] const std::vector<MctsNode *> &GetChildren() const {
+        assert(m_children.load() != nullptr && "MCTS NODE: DETECTED READ OF CHILDREN WITHOUT ASSIGNMENT!");
+        return *m_children.load();
     }
 
     /**
@@ -118,12 +117,19 @@ public:
      * @brief Clean up all child nodes
      */
     void Cleanup() {
-        while (!m_children.empty()) {
-            const auto &child = m_children.back();
-            m_children.pop_back();
+        if (!m_children) {
+            return;
+        }
+
+        while (!(m_children.load()->empty())) {
+            const auto &child = m_children.load()->back();
+            m_children.load()->pop_back();
 
             delete child;
         }
+
+        delete m_children;
+        m_children = nullptr;
     }
 
     /**
@@ -150,7 +156,7 @@ public:
      * @return double Estimated win probability for this node
      */
     [[nodiscard]] double CalculateWinRate() {
-        const __uint64_t score = m_scores[m_board.MovingColor] + (m_scores[DRAW] + 1) / 2;
+        const __uint64_t score = GetScore(m_board.MovingColor) + (GetScore(DRAW) + 1) / 2;
         return double(score) / double(m_numSamples);
     }
 
@@ -167,12 +173,12 @@ private:
 public:
 
     MctsNode *m_parent{};
-    std::vector<MctsNode *> m_children{};
 
     cuda_Move m_move{};
     cuda_Board m_board{};
 
 private:
+    std::atomic<std::vector<MctsNode *> *> m_children{};
     std::atomic<__uint32_t> m_scores[NUM_EVAL_RESULTS]{};
     std::atomic<__uint32_t> m_numSamples{};
 };
