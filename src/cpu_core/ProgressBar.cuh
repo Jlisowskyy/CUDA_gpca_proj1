@@ -25,10 +25,10 @@ public:
         _redrawBar();
     }
 
-    void Increment() {
+    void Increment(__uint32_t increment = 1) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
-        ++m_current;
+        m_current += increment;
 
         if (m_current > m_total) {
             throw std::runtime_error("Extended progress bar points!");

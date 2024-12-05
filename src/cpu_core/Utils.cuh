@@ -6,7 +6,7 @@
 #define SRC_UTILS_CUH
 
 void initializeConsole();
-void ClearLines(int numLines);
+void ClearLines(__uint32_t numLines);
 void CleanCurrentLine();
 
 #endif //SRC_UTILS_CUH

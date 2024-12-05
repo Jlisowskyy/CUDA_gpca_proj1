@@ -10,7 +10,7 @@
 #include <windows.h>
 #endif
 
-void ClearLines(int numLines) {
+void ClearLines(__uint32_t numLines) {
 #ifdef _WIN32
     HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     if (hConsole == INVALID_HANDLE_VALUE) return;
@@ -21,7 +21,7 @@ void ClearLines(int numLines) {
     COORD cursorPosition = csbi.dwCursorPosition;
     DWORD charsWritten;
 
-    for (int i = 0; i < numLines; ++i) {
+    for (__uint32_t i = 0; i < numLines; ++i) {
         if (cursorPosition.Y > 0) {
             cursorPosition.Y -= 1;
 
@@ -33,7 +33,7 @@ void ClearLines(int numLines) {
         }
     }
 #else
-    for (int i = 0; i < numLines; ++i) {
+    for (__uint32_t i = 0; i < numLines; ++i) {
         std::cout << "\033[A";
         std::cout << "\033[K";
     }

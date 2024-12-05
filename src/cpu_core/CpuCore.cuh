@@ -54,6 +54,8 @@ private:
 
     [[nodiscard]] static bool _validateMove(const std::vector<cuda_Move>& validMoves, const cuda_Move move);
 
+    static void _runProcessingAnim(__uint32_t moveTime);
+
     // ------------------------------
     // Class fields
     // ------------------------------

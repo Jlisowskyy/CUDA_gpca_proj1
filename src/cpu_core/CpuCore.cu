@@ -6,11 +6,12 @@
 
 #include "../cuda_core/Helpers.cuh"
 #include "../cuda_core/RookMap.cuh"
-#include "Utils.cuh"
 
+#include "Utils.cuh"
 #include "MctsEngine.cuh"
 #include "cpu_MoveGen.cuh"
 #include "CpuUtils.h"
+#include "ProgressBar.cuh"
 
 #include <cuda_runtime.h>
 
@@ -19,6 +20,8 @@
 #include <string_view>
 #include <string>
 #include <cassert>
+
+static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
 
 void initializeRookMap() {
     FancyMagicRookMap hostMap{
@@ -52,7 +55,10 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
 
         std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
-        const auto pickedMove = engine.MoveSearch(moveTime);
+        engine.MoveSearchStart(moveTime);
+        _runProcessingAnim(moveTime);
+        const auto pickedMove = engine.MoveSearchWait();
+
         ClearLines(28);
 
         std::cout << "Engine " << engineIdx << " picked next move: "
@@ -97,16 +103,26 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
     while (!moves.empty()) {
         cuda_Move pickedMove{};
 
+        std::cout << '\n';
         cpu::DisplayBoard(board.DumpToExternal());
 
         /* pick next move */
         if (board.MovingColor == playerColor) {
             pickedMove = _readPlayerMove(moves);
+
+            ClearLines(26);
+
+            std::cout << "Player picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
+                      << std::endl;
         } else {
             std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
             /* Engine move processing */
-            pickedMove = engine.MoveSearch(moveTime);
+            engine.MoveSearchStart(moveTime);
+            _runProcessingAnim(moveTime);
+            pickedMove = engine.MoveSearchWait();
+
+            ClearLines(28);
 
             std::cout << "Engine picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
                       << std::endl;
@@ -142,17 +158,21 @@ cuda_Move CpuCore::_readPlayerMove(const std::vector<cuda_Move> &correctMoves) {
     std::string input{};
     cuda_Move outMove{};
     bool isValid = false;
+    __uint32_t retries{};
 
     do {
         std::cout << msg << std::endl;
 
+        /* preprocess input */
         std::getline(std::cin, input);
         cpu::Trim(input);
-
         for (char &c: input) {
-            c = std::toupper(c);
+            c = std::tolower(c);
         }
 
+        ++retries;
+
+        /* Check if this is a legal move */
         for (const auto &move: correctMoves) {
             if (move.GetPackedMove().GetLongAlgebraicNotation() == input) {
                 outMove = move;
@@ -163,6 +183,8 @@ cuda_Move CpuCore::_readPlayerMove(const std::vector<cuda_Move> &correctMoves) {
 
     } while (!isValid);
 
+    /* clean our mess from the console */
+    ClearLines(retries * 2);
     return outMove;
 }
 
@@ -283,4 +305,18 @@ bool CpuCore::_validateMove(const std::vector<cuda_Move> &validMoves, const cuda
                        [&](const cuda_Move &m) {
                            return m.GetPackedMove() == move.GetPackedMove();
                        });
+}
+
+void CpuCore::_runProcessingAnim(__uint32_t moveTime) {
+    __uint32_t timeLeft = moveTime;
+
+    ProgressBar bar(moveTime, 50);
+    while (timeLeft) {
+        const __uint32_t curStep = std::min(PROG_BAR_STEP_MS, timeLeft);
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(curStep));
+
+        bar.Increment(curStep);
+        timeLeft -= curStep;
+    }
 }
