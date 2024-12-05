@@ -24,6 +24,16 @@
 
 __device__ static constexpr __uint32_t TEST_SIZE = 1'000'000;
 
+/**
+ * @brief CUDA kernel for testing Fancy Magic mapping performance.
+ *
+ * Executes a large number of move generation tests for a given mapping type,
+ * using randomly generated seeds and board positions.
+ *
+ * @tparam MapT Move generation mapping type to test (e.g., RookMap, BishopMap)
+ * @param seeds Array of random 64-bit seed values for board generation
+ * @param results Array to store the sum of generate bitboards
+ */
 template<typename MapT>
 __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -45,6 +55,21 @@ __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
     results[idx] = sum;
 }
 
+/**
+ * @brief Performs performance testing for a specific move generation map type.
+ *
+ * Launches a CUDA kernel to measure access times and performance characteristics
+ * of a given move generation mapping strategy.
+ *
+ * @tparam MapT Move generation mapping type to test
+ * @param blocks Number of CUDA thread blocks to launch
+ * @param threads Number of threads per block
+ * @param dSeeds Device vector of random seed values
+ * @param dResults Device vector to store test results
+ * @param title Optional descriptive title for the test
+ *
+ * @throws std::runtime_error if kernel execution fails
+ */
 template<typename MapT>
 void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vector<__uint64_t> &dSeeds,
                        thrust::device_vector<__uint64_t> &dResults, std::string_view title = "") {
@@ -83,6 +108,15 @@ void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vec
     std::cout << "Control sum of the results: " << sum << std::endl;
 }
 
+/**
+ * @brief Internal implementation of Fancy Magic performance test.
+ *
+ * Prepares test data, launches performance tests for different mapping types,
+ * and manages cache pollution between tests.
+ *
+ * @param threadsAvailable Number of CUDA threads available
+ * @param deviceProps CUDA device properties for kernel configuration
+ */
 void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     std::cout << "Fancy Magic Test" << std::endl;
     std::cout << "Received " << threadsAvailable << " available threads..." << std::endl;
@@ -118,6 +152,18 @@ void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &devicePr
     std::cout << "Fancy Magic Test finished!" << std::endl;
 }
 
+/**
+ * @brief CUDA kernel for accessing and testing move generation mappings.
+ *
+ * Generates moves for figure positions across multiple board states,
+ * storing the results for comparison with CPU implementation.
+ *
+ * @tparam MapT Move generation mapping type to test
+ * @param results Array to store generated moves
+ * @param count Number of board states to test
+ * @param fullMaps Full board state for each test case
+ * @param figureMaps Figure (piece) positions for each test case
+ */
 template<class MapT>
 __global__ void
 AccessMapping(__uint64_t *results, const __uint64_t count, const __uint64_t *fullMaps, const __uint64_t *figureMaps) {
@@ -138,6 +184,18 @@ AccessMapping(__uint64_t *results, const __uint64_t count, const __uint64_t *ful
     }
 }
 
+/**
+ * @brief CPU reference implementation for move mapping access.
+ *
+ * Generates moves using a CPU-based mapping function for comparison
+ * with GPU implementation.
+ *
+ * @param func CPU move generation function
+ * @param count Number of board states to test
+ * @param fullMaps Full board states
+ * @param figureMaps Figure (piece) positions
+ * @return std::vector of generated moves
+ */
 std::vector<__uint64_t>
 AccessMappingCPU(__uint64_t (*func)(int, __uint64_t), const __uint64_t count, const std::vector<__uint64_t> &fullMaps,
                  const std::vector<__uint64_t> &figureMaps) {
@@ -160,6 +218,18 @@ AccessMappingCPU(__uint64_t (*func)(int, __uint64_t), const __uint64_t count, co
     return results;
 }
 
+
+/**
+ * @brief Runs correctness test for a specific move generation mapping.
+ *
+ * Compares GPU move generation results with a CPU reference implementation
+ * to verify correctness of the mapping strategy.
+ *
+ * @tparam MapT Move generation mapping type to test
+ * @param func CPU reference move generation function
+ * @param records Test case data containing board states
+ * @param title Descriptive name of the mapping being tested
+ */
 template<typename MapT>
 void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::MapCorrecntessRecordsPack &records,
                              const std::string &title) {
@@ -215,6 +285,17 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
                              errors, size, mCount) << std::endl;
 }
 
+/**
+ * @brief Attempts to read a file path for correctness test data, with user interaction fallback.
+ *
+ * Tries to read a default file path, and if unsuccessful, prompts the user to
+ * provide an alternative file path for the test data.
+ *
+ * @param defaultPath Initial file path to attempt reading
+ * @param prompt Descriptive prompt to display if user input is required
+ * @return cpu::MapCorrecntessRecordsPack containing the test data
+ * @throws std::runtime_error if no valid file path is provided
+ */
 cpu::MapCorrecntessRecordsPack TryReadingFilePath(const std::string &defaultPath, const std::string &prompt) {
     try {
         return cpu::ReadMagicCorrectnessTestFile(defaultPath);
@@ -232,6 +313,12 @@ cpu::MapCorrecntessRecordsPack TryReadingFilePath(const std::string &defaultPath
     return cpu::ReadMagicCorrectnessTestFile(line);
 }
 
+/**
+ * @brief Internal function for running Fancy Magic correctness tests.
+ *
+ * Executes correctness tests for different move generation mapping types
+ * using predefined test data files.
+ */
 void FancyMagicTestCorrectness_() {
     static constexpr std::string_view BISHOP_PATH = "./test_data/corr2";
     static constexpr std::string_view ROOK_PATH = "./test_data/corr4";
