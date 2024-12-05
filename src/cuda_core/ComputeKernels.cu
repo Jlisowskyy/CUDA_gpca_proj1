@@ -16,7 +16,7 @@ SimulateGamesKernel(DefaultPackedBoardT *boards, const __uint32_t *seeds, __uint
 
         MoveGenerator mGen{(*boards)[idx], stack};
         mGen.GetMovesFast();
-        __syncthreads();
+        __syncwarp();
 
         auto result = (__uint32_t *) (results + idx);
         ++result[0];
@@ -165,6 +165,10 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
         }
 
         simpleRand(seed);
+    }
+
+    if (figIdx == 0) {
+        results[boardIdx] = DRAW;
     }
 }
 

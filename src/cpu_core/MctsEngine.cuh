@@ -76,6 +76,10 @@ public:
     void MoveSearchStart() {
         _initTree();
 
+        /* Reset performance counters */
+        mcts::g_ExpandRacesCounter.store(0);
+        mcts::g_SimulationCounter.store(0);
+
         m_shouldWork = true;
         m_pool.Reset(m_numWorkers);
         m_pool.RunThreads(_worker, this);
@@ -110,6 +114,14 @@ public:
 
     [[nodiscard]] cuda_Move GetCurrentBestMove() const {
         return _pickMove();
+    }
+
+    void DisplayResults() {
+        const auto pickedMove = GetCurrentBestMove();
+
+        std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation() << " with total: "
+                  << mcts::g_SimulationCounter.load() << " simulations made and total expansion races: " <<
+                  mcts::g_ExpandRacesCounter.load() << std::endl;
     }
 
     // ------------------------------

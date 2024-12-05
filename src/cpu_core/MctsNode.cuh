@@ -106,6 +106,7 @@ public:
      * @note index can be read from EVAL_RESULTS enum
      */
     void ScoreNode(const __uint32_t resultIdx) {
+        assert(resultIdx < 3 && "DETECTED WRONG RESULT IDX");
         m_scores[resultIdx].fetch_add(1, std::memory_order_relaxed);
     }
 

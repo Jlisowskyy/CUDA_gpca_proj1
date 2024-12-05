@@ -22,6 +22,7 @@
 #include <cassert>
 
 static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
+static constexpr __uint32_t NUM_CPU_WORKERS = 128;
 
 void InitializeRookMap() {
     FancyMagicRookMap hostMap{
@@ -40,8 +41,8 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine0{board};
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine1{board};
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine0{board, NUM_CPU_WORKERS};
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine1{board, NUM_CPU_WORKERS};
 
     MctsEngine<DEFAULT_MCTS_BATCH_SIZE> *engines[]{&engine0, &engine1};
     __uint32_t engineIdx = 0;
@@ -61,9 +62,8 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
 
         ClearLines(28);
 
-        std::cout << "Engine " << engineIdx << " picked next move: "
-                  << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
-                  << std::endl;
+        std::cout << "[ ENGINE " << engineIdx << " ] ";
+        engine.DisplayResults();
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
 
@@ -97,7 +97,7 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board};
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board, NUM_CPU_WORKERS};
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
@@ -123,9 +123,7 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
             pickedMove = engine.MoveSearchWait();
 
             ClearLines(28);
-
-            std::cout << "Engine picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
-                      << std::endl;
+            engine.DisplayResults();
         }
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
@@ -323,7 +321,7 @@ void CpuCore::_runProcessingAnim(__uint32_t moveTime) {
 
 void CpuCore::runInfinite() {
     cuda_Board board = *m_board;
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board};
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board, NUM_CPU_WORKERS};
 
     auto t1 = std::chrono::steady_clock::now();
     engine.MoveSearchStart();

@@ -26,8 +26,8 @@ namespace mcts {
     template<__uint32_t BATCH_SIZE>
     using sim_t = results_t<BATCH_SIZE> (*)(const cuda_PackedBoard<BATCH_SIZE> &, cudaStream_t &);
 
-    extern std::atomic<__uint32_t> ExpandRacesCounter;
-    extern std::atomic<__uint64_t> SimulationCounter;
+    extern std::atomic<__uint32_t> g_ExpandRacesCounter;
+    extern std::atomic<__uint64_t> g_SimulationCounter;
 
     void ExpandTreeCPU(MctsNode *root);
 
@@ -56,7 +56,8 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
                                             cudaMemcpyHostToDevice, stream));
 
-        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
+        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
+                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
                 dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
         );
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
@@ -97,6 +98,8 @@ namespace mcts {
         for (__uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
             PropagateResult(selectedNodes[idx], results[idx]);
         }
+
+        g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
     }
 
 

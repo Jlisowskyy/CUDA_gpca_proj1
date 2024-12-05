@@ -9,8 +9,8 @@
 #include <numeric>
 
 namespace mcts {
-    std::atomic<__uint32_t> ExpandRacesCounter{};
-    std::atomic<__uint64_t> SimulationCounter{};
+    std::atomic<__uint32_t> g_ExpandRacesCounter{};
+    std::atomic<__uint64_t> g_SimulationCounter{};
 
     void ExpandTreeCPU(MctsNode *root) {
         throw std::runtime_error("NOT IMPLEMENTED");
@@ -57,7 +57,7 @@ namespace mcts {
         const bool result = root->SetChildren(pChildren);
 
         if (!result) {
-            ExpandRacesCounter.fetch_add(1, std::memory_order_relaxed);
+            g_ExpandRacesCounter.fetch_add(1, std::memory_order_relaxed);
 
             for (const auto &child: *pChildren) {
                 delete child;
