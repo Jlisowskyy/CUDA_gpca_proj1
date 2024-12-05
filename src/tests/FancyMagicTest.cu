@@ -101,14 +101,19 @@ void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &devicePr
     thrust::device_vector<__uint64_t> dSeeds(vSeeds);
     thrust::device_vector<__uint64_t> dResults(sizeThreads, 0);
 
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     PerformTestOnMap_<RookMap>(blocks, threads, dSeeds, dResults, "RookMap");
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     PerformTestOnMap_<BishopMap>(blocks, threads, dSeeds, dResults, "BishopMap");
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     PerformTestOnMap_<RookMapRuntime>(blocks, threads, dSeeds, dResults, "RookMapRuntime");
+    PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
     PerformTestOnMap_<BishopMapRuntime>(blocks, threads, dSeeds, dResults, "BishopMapRuntime");
+    PolluteCache();
 
     std::cout << "Fancy Magic Test finished!" << std::endl;
 }
@@ -228,8 +233,8 @@ cpu::MapCorrecntessRecordsPack TryReadingFilePath(const std::string &defaultPath
 }
 
 void FancyMagicTestCorrectness_() {
-    static constexpr std::string_view BISHOP_PATH = "./tests/test_data/corr2";
-    static constexpr std::string_view ROOK_PATH = "./tests/test_data/corr4";
+    static constexpr std::string_view BISHOP_PATH = "./test_data/corr2";
+    static constexpr std::string_view ROOK_PATH = "./test_data/corr4";
 
     try {
         const auto records = TryReadingFilePath(std::string(BISHOP_PATH), " for the BishopMap");
