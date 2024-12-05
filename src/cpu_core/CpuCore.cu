@@ -55,7 +55,7 @@ void CpuCore::runCVC(const __uint32_t moveTime) {
 
         std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
-        engine.MoveSearchStart(moveTime);
+        engine.MoveSearchStart();
         _runProcessingAnim(moveTime);
         const auto pickedMove = engine.MoveSearchWait();
 
@@ -118,7 +118,7 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
             std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
             /* Engine move processing */
-            engine.MoveSearchStart(moveTime);
+            engine.MoveSearchStart();
             _runProcessingAnim(moveTime);
             pickedMove = engine.MoveSearchWait();
 
@@ -319,4 +319,32 @@ void CpuCore::_runProcessingAnim(__uint32_t moveTime) {
         bar.Increment(curStep);
         timeLeft -= curStep;
     }
+}
+
+void CpuCore::runInfinite() {
+    cuda_Board board = *m_board;
+    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board};
+
+    auto t1 = std::chrono::steady_clock::now();
+    engine.MoveSearchStart();
+
+    _waitForInfiniteStop();
+
+    const auto proposedMove = engine.MoveSearchWait();
+    auto t2 = std::chrono::steady_clock::now();
+
+    std::cout << "Engine deduced move: " << proposedMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
+    std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
+}
+
+void CpuCore::_waitForInfiniteStop() {
+    std::string input{};
+
+    do {
+        std::getline(std::cin, input);
+        cpu::Trim(input);
+        for (char &c: input) {
+            c = std::tolower(c);
+        }
+    } while (input != "stop");
 }

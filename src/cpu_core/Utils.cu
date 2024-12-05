@@ -59,3 +59,15 @@ void initializeConsole() {
 void CleanCurrentLine() {
     std::cout << "\033[K\r";
 }
+
+void StrToUpper(std::string &str) {
+    for (char &c: str) {
+        c = std::toupper(c);
+    }
+}
+
+void StrToLower(std::string &str) {
+    for (char &c: str) {
+        c = std::tolower(c);
+    }
+}

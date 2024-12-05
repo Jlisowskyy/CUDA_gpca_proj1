@@ -29,7 +29,7 @@ public:
     // Class interaction
     // ------------------------------
 
-    void MoveSearchStart(const __uint32_t moveTime) {
+    void MoveSearchStart() {
 
     }
 

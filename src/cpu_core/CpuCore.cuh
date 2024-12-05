@@ -31,6 +31,8 @@ public:
 
     void runPVC(__uint32_t moveTime, __uint32_t playerColor);
 
+    void runInfinite();
+
     void init();
 
     [[nodiscard]] int getDeviceThreads() const {
@@ -52,9 +54,11 @@ private:
 
     [[nodiscard]] static cuda_Move _readPlayerMove(const std::vector<cuda_Move>& correctMoves);
 
-    [[nodiscard]] static bool _validateMove(const std::vector<cuda_Move>& validMoves, const cuda_Move move);
+    [[nodiscard]] static bool _validateMove(const std::vector<cuda_Move>& validMoves, cuda_Move move);
 
     static void _runProcessingAnim(__uint32_t moveTime);
+
+    static void _waitForInfiniteStop();
 
     // ------------------------------
     // Class fields

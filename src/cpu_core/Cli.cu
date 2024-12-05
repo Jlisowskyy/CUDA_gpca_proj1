@@ -16,6 +16,8 @@
 
 #include "../ported/CpuUtils.h"
 
+#include "Utils.cuh"
+
 Cli::~Cli() {
     delete m_board;
 }
@@ -103,37 +105,44 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
         case RC_GameTypeLod::TEST:
             TestRunner(m_core).runTests();
             break;
+        case RC_GameTypeLod::INFINITE:
+            m_core->runInfinite();
+            break;
         default:
             assert(false && "Invalid game type provided!");
     }
 }
 
 Cli::RC_GameTypeLod Cli::_loadGameType() const {
+    static std::unordered_map<std::string, RC_GameTypeLod> inputMap{
+            {"exit",     RC_GameTypeLod::EXIT},
+            {"cvc",      RC_GameTypeLod::COMPUTER_VS_COMPUTER},
+            {"pvc",      RC_GameTypeLod::PLAYER_VS_COMPUTER},
+            {"test",     RC_GameTypeLod::TEST},
+            {"infinite", RC_GameTypeLod::INFINITE},
+    };
+
+    static std::unordered_map<RC_GameTypeLod, std::string_view> messages{
+            {RC_GameTypeLod::EXIT,                 "Exiting game!"},
+            {RC_GameTypeLod::COMPUTER_VS_COMPUTER, "Computer vs Computer game started!"},
+            {RC_GameTypeLod::PLAYER_VS_COMPUTER,   "Player vs Computer game started!"},
+            {RC_GameTypeLod::TEST,                 "Entering dev tes mode!"},
+            {RC_GameTypeLod::INFINITE,             "Starting infinite search. Type \"stop\" to end the program"},
+    };
+
     std::string input;
     std::getline(std::cin, input);
+    cpu::Trim(input);
+    StrToLower(input);
 
-    if (input == "exit") {
-        std::cout << "Exiting game!" << std::endl;
-        return RC_GameTypeLod::EXIT;
+    if (inputMap.find(input) == inputMap.end()) {
+        std::cout << "Invalid game type provided!" << std::endl;
+        return Cli::RC_GameTypeLod::FAILURE;
     }
 
-    if (input == "cvc") {
-        std::cout << "Computer vs Computer game started!" << std::endl;
-        return RC_GameTypeLod::COMPUTER_VS_COMPUTER;
-    }
-
-    if (input == "pvc") {
-        std::cout << "Player vs Computer game started!" << std::endl;
-        return RC_GameTypeLod::PLAYER_VS_COMPUTER;
-    }
-
-    if (input == "test") {
-        std::cout << "Entering dev tes mode!" << std::endl;
-        return RC_GameTypeLod::TEST;
-    }
-
-    std::cout << "Invalid game type provided!" << std::endl;
-    return Cli::RC_GameTypeLod::FAILURE;
+    RC_GameTypeLod type = inputMap[input];
+    std::cout << messages[type] << std::endl;
+    return type;
 }
 
 void Cli::_displayGameTypeMessage() {
@@ -141,6 +150,8 @@ void Cli::_displayGameTypeMessage() {
 Choose game type:
 - 'cvc' for Computer vs Computer
 - 'pvc' for Player vs Computer
+- 'infinite' for infinite search on given position
+- 'test' to enter test suite
 
 Please provide input:)";
 
@@ -182,10 +193,7 @@ __uint32_t Cli::_readPlayingColor() {
 
         std::getline(std::cin, input);
         cpu::Trim(input);
-
-        for (char &c: input) {
-            c = std::tolower(c);
-        }
+        StrToLower(input);
 
     } while (inputMap.find(input) == inputMap.end());
 

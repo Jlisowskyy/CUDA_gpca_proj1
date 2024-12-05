@@ -11,6 +11,7 @@ class CpuCore;
 struct cuda_Board;
 
 class Cli final {
+public:
     // ------------------------------
     // internal types
     // ------------------------------
@@ -18,7 +19,7 @@ class Cli final {
     enum class RC_BoardLoad {
         SUCCESS,
         FAILURE,
-        EXIT
+        EXIT,
     };
 
     enum class RC_GameTypeLod {
@@ -26,13 +27,13 @@ class Cli final {
         PLAYER_VS_COMPUTER,
         FAILURE,
         TEST,
-        EXIT
+        EXIT,
+        INFINITE,
     };
 
     // ------------------------------
     // Class creation
     // ------------------------------
-public:
 
     explicit Cli(CpuCore *core);
 
