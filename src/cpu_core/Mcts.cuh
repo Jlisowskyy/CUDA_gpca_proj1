@@ -52,14 +52,20 @@ namespace mcts {
                                             cudaMemcpyHostToDevice, stream));
 
         const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
+        assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
                                             cudaMemcpyHostToDevice, stream));
 
-        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
-                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
+//        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
+//                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
+//                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
+//        );
+
+        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
                 dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
         );
+
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,

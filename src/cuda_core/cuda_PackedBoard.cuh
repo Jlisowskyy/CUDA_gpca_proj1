@@ -141,6 +141,7 @@ struct alignas(128) cuda_PackedBoard {
     // ------------------------------
 
     INLINE void saveBoard(const __uint32_t idx, const cuda_Board &board) {
+        assert(idx < NUM_BOARDS && "DETECTED OVERFLOW");
         BoardFetcher fetcher(idx, this);
 
         fetcher.MovingColor() = board.MovingColor;
@@ -155,10 +156,14 @@ struct alignas(128) cuda_PackedBoard {
     }
 
     [[nodiscard]] FAST_CALL_ALWAYS constexpr BoardFetcher operator[](__uint32_t boardIdx) {
+        assert(boardIdx < NUM_BOARDS && "DETECTED OVERFLOW");
+
         return BoardFetcher(boardIdx, this);
     }
 
     [[nodiscard]] FAST_CALL_ALWAYS constexpr const BoardFetcher &operator[](__uint32_t boardIdx) const {
+        assert(boardIdx < NUM_BOARDS && "DETECTED OVERFLOW");
+
         return BoardFetcher(boardIdx, this);
     }
 

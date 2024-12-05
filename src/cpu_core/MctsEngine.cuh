@@ -183,7 +183,7 @@ protected:
         /* generate all possible children */
         const auto moves = ported_translation::GenMoves(m_board);
 
-        /* Alloc the bector */
+        /* Alloc the vector */
         const auto pChildren = new std::vector<MctsNode *>();
         pChildren->reserve(moves.size());
 
@@ -217,11 +217,15 @@ protected:
             }
         }
 
-        m_root = newParent;
+        if (newParent) {
+            newParent->m_parent = nullptr;
 
-        if (m_root) {
-            m_root->m_parent = nullptr;
+            assert(std::remove(m_root->GetChildren().begin(), m_root->GetChildren().end(), newParent) !=
+                   m_root->GetChildren().end() && "FAILED TO REMOVE NEW PARENT FROM OLD ONE");
         }
+
+        delete m_root;
+        m_root = newParent;
     }
 
     /**
@@ -238,6 +242,10 @@ protected:
         double bestWinRate = std::numeric_limits<double>::min();
 
         for (const auto child: m_root->GetChildren()) {
+            if (child->GetNumSamples() == 0) {
+                continue;
+            }
+
             if (const double winRate = child->CalculateWinRate(); winRate > bestWinRate) {
                 bestWinRate = winRate;
                 bestMove = child->m_move;

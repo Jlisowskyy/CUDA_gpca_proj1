@@ -93,7 +93,7 @@ public:
         return m_children.load() != nullptr;
     }
 
-    [[nodiscard]] const std::vector<MctsNode *> &GetChildren() const {
+    [[nodiscard]] std::vector<MctsNode *> &GetChildren() const {
         assert(m_children.load() != nullptr && "MCTS NODE: DETECTED READ OF CHILDREN WITHOUT ASSIGNMENT!");
         return *m_children.load();
     }
@@ -111,6 +111,8 @@ public:
     }
 
     [[nodiscard]] __uint32_t GetScore(const __uint32_t idx) const {
+        assert(idx < 3 && "DETECTED WRONG RESULT IDX");
+
         return m_scores[idx].load();
     }
 
@@ -122,15 +124,13 @@ public:
             return;
         }
 
-        while (!(m_children.load()->empty())) {
-            const auto &child = m_children.load()->back();
-            m_children.load()->pop_back();
-
+        for (auto &child: *m_children.load()) {
             delete child;
+            child = nullptr;
         }
 
         delete m_children;
-        m_children = nullptr;
+        m_children.store(nullptr);
     }
 
     /**
@@ -156,9 +156,11 @@ public:
      *
      * @return double Estimated win probability for this node
      */
-    [[nodiscard]] double CalculateWinRate() {
+    [[nodiscard]] double CalculateWinRate() const {
+        assert(GetNumSamples() != 0 && "CALLED CALC WIN RATE WITHOUT ANY SAMPLES!");
+
         const __uint64_t score = GetScore(m_board.MovingColor) + (GetScore(DRAW) + 1) / 2;
-        return double(score) / double(m_numSamples);
+        return double(score) / double(GetNumSamples());
     }
 
     // ------------------------------

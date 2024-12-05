@@ -295,6 +295,7 @@ public:
     }
 
     static void MakeMove(const cuda_Move mv, cuda_Board &bd) {
+        assert(mv.IsOkayMoveCPU() && "Given move is not valid!");
 
         // removing the old piece from the board
         bd.BitBoards[mv.GetStartBoardIndexCPU()] ^= cuda_MaxMsbPossible >> mv.GetStartFieldCPU();
@@ -360,6 +361,8 @@ public:
     }
 
     static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
+        assert(mv.IsOkayMoveCPU() && "Given move is not valid!");
+
         bd.ChangePlayingColor();
 
         // placing the piece on old board
