@@ -2,8 +2,8 @@
 // Created by Jlisowskyy on 04/12/24.
 //
 
-#ifndef SRC_MCTSTREE_CUH
-#define SRC_MCTSTREE_CUH
+#ifndef SRC_MCTSNODE_CUH
+#define SRC_MCTSNODE_CUH
 
 #include "../cuda_core/cuda_Board.cuh"
 #include "../cuda_core/Move.cuh"
@@ -11,6 +11,9 @@
 #include <vector>
 #include <algorithm>
 #include <atomic>
+#include <numeric>
+
+static constexpr double UCB_COEF = 2.0;
 
 class MctsNode {
 public:
@@ -58,7 +61,11 @@ public:
     }
 
     [[nodiscard]] __uint32_t GetNumSamples() const {
-        return m_scores[0].load() + m_scores[1].load() + m_scores[2].load();
+        return m_numSamples;
+    }
+
+    void IncNumSamples() {
+        m_numSamples.fetch_add(1, std::memory_order_relaxed);
     }
 
     void ScoreNode(const __uint32_t score) {
@@ -78,6 +85,23 @@ public:
         }
     }
 
+    [[nodiscard]] double CalculateUCB() {
+        assert(m_parent != nullptr && "MCTS NODE UCB: FAILED NO PARENT");
+
+        if (m_numSamples == 0) {
+            return std::numeric_limits<double>::max();
+        }
+
+        const double averageScore = CalculateWinRate();
+        const __uint64_t parentNumSamples = m_parent->GetNumSamples();
+
+        return averageScore + UCB_COEF * std::sqrt(std::log(parentNumSamples) / m_numSamples);
+    }
+
+    [[nodiscard]] double CalculateWinRate() {
+        const __uint64_t score = m_scores[m_board.MovingColor] + (m_scores[DRAW] + 1) / 2;
+        return double(score) / double(m_numSamples);
+    }
 
     // ------------------------------
     // Class implementation
@@ -99,6 +123,7 @@ public:
 
 private:
     std::atomic<__uint32_t> m_scores[NUM_EVAL_RESULTS]{};
+    std::atomic<__uint32_t> m_numSamples{};
 };
 
-#endif //SRC_MCTSTREE_CUH
+#endif //SRC_MCTSNODE_CUH
