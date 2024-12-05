@@ -24,7 +24,7 @@ namespace mcts {
             return root;
         }
 
-        double bestScore = std::numeric_limits<double>::max();
+        double bestScore = std::numeric_limits<double>::min();
         MctsNode *node{};
 
         for (const auto child: root->GetChildren()) {

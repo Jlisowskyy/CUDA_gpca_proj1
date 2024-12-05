@@ -31,6 +31,13 @@
 static constexpr __uint32_t RETRIES = 2;
 static constexpr __uint32_t MAX_DEPTH = 100;
 
+/**
+ * @brief Displays performance results of move generation tests.
+ *
+ * @param seconds Total test execution time in seconds
+ * @param boardEvaluated Total number of chess boards processed
+ * @param movesGenerated Total number of moves generated
+ */
 void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, __uint64_t movesGenerated) {
     const double milliseconds = seconds * 1000.0;
     const double boardsEvaluatedPerMs = static_cast<double>(boardEvaluated) / milliseconds;
@@ -47,6 +54,15 @@ void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, _
                              movesGeneratedPerS, boardEvaluated, movesGenerated) << std::endl;
 }
 
+/**
+ * @brief Overloaded performance results display for vector-based results.
+ *
+ * Aggregates performance metrics from a vector of 64-bit result entries,
+ * where each entry contains board and move generation statistics.
+ *
+ * @param seconds Total test execution time in seconds
+ * @param results Vector of performance result entries
+ */
 void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64_t> &results) {
     __uint64_t boardEvaluated{};
     __uint64_t movesGenerated{};
@@ -62,6 +78,24 @@ void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64
     DisplayPerfResults(seconds, boardEvaluated, movesGenerated);
 }
 
+/**
+ * @brief Performs a templated performance test for simple move generation scenarios (1 thread 1 board)
+ *
+ * Conducts a standardized performance test with configurable batch size and
+ * move generation kernel. Handles board setup, device memory allocation,
+ * and performance measurement.
+ *
+ * @tparam FuncT Type of the move generation kernel function
+ * @tparam BATCH_SIZE Number of threads processed in a single batch
+ *
+ * @param func Move generation kernel to be tested
+ * @param threadsAvailable Total number of CUDA threads for testing
+ * @param deviceProps CUDA device properties
+ * @param fenDb Database of chess positions in FEN notation
+ * @param seeds Random seeds for test reproducibility
+ *
+ * @note Performs multiple test retries to ensure consistent results
+ */
 template<class FuncT, __uint32_t BATCH_SIZE>
 void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
                   const std::vector<std::string> &fenDb,
@@ -110,6 +144,21 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
     delete packedBoard;
 }
 
+/**
+ * @brief Conducts a performance test with split move generation approach.
+ *
+ * Tests move generation using a more complex kernel that processes boards
+ * in smaller, split batches to potentially improve GPU utilization.
+ *
+ * @tparam FuncT Type of the split move generation kernel function
+ *
+ * @param func Split move generation kernel to be tested
+ * @param totalBoardsToProcess Total number of chess boards to process
+ * @param fenDb Database of chess positions in FEN notation
+ * @param seeds Random seeds for test reproducibility
+ *
+ * @note Designed to handle larger numbers of boards with more granular processing
+ */
 template<class FuncT>
 void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
                  const std::vector<__uint32_t> &seeds) {
@@ -153,6 +202,17 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
     delete packedBoard;
 }
 
+/**
+ * @brief Performs move generation performance test using Version 1 approach.
+ *
+ * Executes a GPU-based move generation performance test with single-thread,
+ * single-game batch processing strategy.
+ *
+ * @param threadsAvailable Total number of CUDA threads for testing
+ * @param deviceProps CUDA device properties
+ * @param fenDb Database of chess positions in FEN notation
+ * @param seeds Random seeds for test reproducibility
+ */
 void
 MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
                  const std::vector<__uint32_t> &seeds) {
@@ -163,12 +223,31 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
                                                                                       fenDb, seeds);
 }
 
+/**
+ * @brief Performs move generation performance test using Version 2 approach.
+ *
+ * Executes a GPU-based move generation performance test with split moves
+ * processing strategy, potentially improving GPU resource utilization.
+ *
+ * @param totalBoardsToProcess Total number of chess boards to process
+ * @param fenDb Database of chess positions in FEN notation
+ * @param seeds Random seeds for test reproducibility
+ */
 void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
                       const std::vector<__uint32_t> &seeds) {
     std::cout << "Running MoveGen V2 Performance Test on GPU" << std::endl;
     SplitTester(SimulateGamesKernelSplitMoves, totalBoardsToProcess, fenDb, seeds);
 }
 
+/**
+ * @brief Diagnostic function to test and display split index calculations.
+ *
+ * Generates and prints split index information for a predefined number of
+ * blocks and threads, helping to verify the indexing strategy for split
+ * move generation.
+ *
+ * @note Uses static constexpr values for blocks and block size
+ */
 void TestSplitIndexes() {
     static constexpr __uint32_t BLOCKS = 2;
     static constexpr __uint32_t BLOCK_SIZE = 384;
@@ -185,6 +264,21 @@ void TestSplitIndexes() {
     }
 }
 
+/**
+ * @brief Internal implementation of move generation performance testing.
+ *
+ * Comprehensive performance test that includes:
+ * 1. Loading chess position database
+ * 2. Generating random seeds
+ * 3. Executing GPU Version 1 performance test
+ * 4. Executing GPU Version 2 performance test
+ * 5. Running CPU reference performance test
+ *
+ * @param threadsAvailable Total number of CUDA threads for testing
+ * @param deviceProps CUDA device properties
+ *
+ * @throws std::runtime_error If insufficient chess positions are available
+ */
 void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     const auto fenDb = LoadFenDb();
     const auto seeds = GenSeeds(threadsAvailable);
@@ -210,6 +304,15 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
     DisplayPerfResults(seconds, boardResults, moveResults);
 }
 
+/**
+ * @brief Wrapper for move generation performance testing with error handling.
+ *
+ * Calls the internal performance test implementation and catches any
+ * exceptions that might occur during testing, ensuring robust error reporting.
+ *
+ * @param threadsAvailable Total number of CUDA threads for testing
+ * @param deviceProps CUDA device properties
+ */
 void MoveGenPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         MoveGenPerfTest_(threadsAvailable, deviceProps);

@@ -59,7 +59,7 @@ namespace mcts {
         EvaluateBoardsSplitKernel<BATCH_SIZE><<<1, BATCH_SIZE * BIT_BOARDS_PER_COLOR>>>(
                 dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
         );
-        CUDA_TRACE_ERROR(cudaGetLastError());
+        CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
                                             sizeof(__uint32_t) * BATCH_SIZE, cudaMemcpyDeviceToHost, stream));

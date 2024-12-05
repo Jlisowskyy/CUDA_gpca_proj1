@@ -51,8 +51,26 @@ static constexpr std::array TestFEN{
 /* This position will always be evaluated as first shot during each test run to simplify position debugging */
 static constexpr const char *MAIN_TEST_FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
 
+/**
+ * @brief Defines the recursion depth for move generation testing
+ *
+ * Controls how long move sequences will be explored during
+ * comprehensive move generation validation.
+ */
 static constexpr __uint32_t TEST_DEPTH = 4;
 
+/**
+ * @brief Macro for flexible message logging during testing
+ *
+ * Provides a unified logging mechanism that can output messages:
+ * - To a progress bar if available
+ * - Directly to standard output if no progress bar exists
+ *
+ * Enables consistent, conditional logging across different
+ * testing scenarios and environments.
+ *
+ * @param msg The message to be logged
+ */
 #define DUMP_MSG(msg)                     \
     if (progBar != nullptr) {             \
         progBar->WriteLine(msg);          \
@@ -60,6 +78,17 @@ static constexpr __uint32_t TEST_DEPTH = 4;
         std::cout << msg << std::endl;    \
     }                                     \
 
+
+/**
+ * @brief Compile-time flag to control verbose output during testing
+ *
+ * When set to true, enables detailed logging and output
+ * for move generation tests. Controlled via compile-time
+ * definition to allow for zero-overhead logging control.
+ *
+ * - If defined with WRITE_OUT: Verbose logging is enabled
+ * - If not defined: Minimal logging is used
+ */
 #ifdef WRITE_OUT
 
 static constexpr bool WRITE_OUT = true;
@@ -73,7 +102,18 @@ static constexpr bool WRITE_OUT = false;
 /* THREAD POOL SIZE FOR TESTS */
 static constexpr __uint32_t NUM_TEST_THREADS = 64;
 
+// ------------------------------
+// Test kernels
+// ------------------------------
 
+
+/**
+ * @brief CUDA kernel function to generate moves for a chess board on the GPU using a standard move generation approach
+ *
+ * @param board Pointer to a packed representation of the chess board
+ * @param outMoves Output array to store generated moves
+ * @param outCount Pointer to store the total number of moves generated
+ */
 void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves, int *outCount) {
     struct stub {
         char bytes[sizeof(cuda_Move)];
@@ -93,6 +133,16 @@ void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves,
     }
 }
 
+/**
+ * @brief CUDA kernel function to generate moves using a split move generation strategy
+ *
+ * @param board Pointer to a packed representation of the chess board
+ * @param outMoves Output array to store generated moves
+ * @param outCount Pointer to store the total number of moves generated
+ *
+ * @note This kernel generates moves by distributing the work across multiple threads,
+ * with each thread responsible for generating moves for a specific piece type.
+ */
 void __global__ GetGPUMovesKernelSplit(SmallPackedBoardT *board, cuda_Move *outMoves, int *outCount) {
     struct stub {
         char bytes[sizeof(cuda_Move)];
@@ -123,6 +173,16 @@ void __global__ GetGPUMovesKernelSplit(SmallPackedBoardT *board, cuda_Move *outM
     }
 }
 
+/**
+ * @brief CUDA kernel to recursively count the total number of possible moves at a given depth
+ *
+ * @param board Pointer to a packed representation of the chess board
+ * @param depth Maximum depth of move tree to explore
+ * @param outCount Pointer to store the total number of moves counted
+ *
+ * @note Generates a complete move count by exploring all possible move sequences
+ * up to the specified depth on the GPU. Utilizes basic simple algorithm.
+ */
 void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
     struct stub {
         char bytes[sizeof(cuda_Move)];
@@ -136,6 +196,16 @@ void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth
     *outCount = moves;
 }
 
+/**
+ * @brief CUDA kernel to count moves using a split move generation strategy
+ *
+ * @param board Pointer to a packed representation of the chess board
+ * @param depth Maximum depth of move tree to explore
+ * @param outCount Pointer to store the total number of moves counted
+ *
+ * @note Similar to GetGPUMoveCountsKernel, but distributes move counting across
+ * multiple threads, with each thread handling moves for a specific piece type.
+ */
 void __global__ GetGPUMoveCountsKernelSplit(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
     struct stub {
         char bytes[sizeof(cuda_Move)];
@@ -160,6 +230,10 @@ void __global__ GetGPUMoveCountsKernelSplit(SmallPackedBoardT *board, const int 
         *outCount = moves;
     }
 }
+
+// ------------------------------
+// Stream wrappers
+// ------------------------------
 
 void RunBaseKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount, cudaStream_t *stream = nullptr) {
     if (stream) {
@@ -195,6 +269,22 @@ void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint6
     }
 }
 
+// ------------------------------
+// Utilities
+// ------------------------------
+
+/**
+ * @brief Template function to generate chess moves using a specified CUDA kernel
+ *
+ * @tparam FuncT Type of the CUDA kernel function
+ * @param func The CUDA kernel function to use for move generation
+ * @param board The chess board to generate moves for
+ * @return std::vector<cuda_Move> Vector of generated moves
+ *
+ * @note Manages CUDA memory allocation, kernel execution, and move transfer
+ * between device and host memory. Provides a high-level interface
+ * for GPU-based move generation. Designed to be used together with many CPU threads.
+ */
 template<class FuncT>
 std::vector<cuda_Move> GenerateMovesByKernel(FuncT func, const cuda_Board &board) {
     cudaStream_t stream;
@@ -237,7 +327,20 @@ std::vector<cuda_Move> GenerateMovesByKernel(FuncT func, const cuda_Board &board
     return cudaMoves;
 }
 
-
+/**
+ * @brief Compares move counts between CPU and GPU implementations
+ *
+ * @tparam FuncT Type of the CUDA move counting kernel
+ * @param func The move counting kernel function
+ * @param fen FEN string representing the chess board position
+ * @param depth Depth of move tree to explore
+ * @param progBar Optional progress bar for testing
+ * @param writeToOut Flag to enable verbose output
+ * @return bool Indicates whether CPU and GPU move counts match
+ *
+ * @note Performs a comprehensive test comparing move counts generated by
+ * CPU and GPU implementations to validate GPU move generation accuracy.
+ */
 template<class FuncT>
 bool TestMoveCount(FuncT func,
                    const std::string_view &fen,
@@ -287,6 +390,22 @@ bool TestMoveCount(FuncT func,
     }
 }
 
+/**
+ * @brief Validates moves generated by GPU against CPU-generated moves
+ *
+ * @param fen FEN string of the chess board position
+ * @param cMoves Moves generated by CPU
+ * @param hMoves Moves generated by GPU
+ * @param progBar Optional progress bar for testing
+ * @param writeToOut Flag to enable verbose output
+ * @return std::string Description of any move generation discrepancies
+ *
+ * @details Performs a detailed comparison of moves, checking:
+ * - Total move count
+ * - Individual move correctness
+ * - Move representation consistency
+ * Returns an empty string if moves match, otherwise returns error details.
+ */
 std::string ValidateMoves(const std::string &fen,
                    const std::vector<cpu::external_move> &cMoves,
                    const std::vector<cuda_Move> &hMoves,
@@ -412,60 +531,20 @@ std::string ValidateMoves(const std::string &fen,
     return invalidMove;
 }
 
-
-template<class FuncT>
-std::string TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *progBar = nullptr,
-                              bool writeToOut = false) {
-
-    /* welcome message */
-    if (writeToOut) {
-        const auto msg = std::format("Testing moves of position: {}", fen);
-        DUMP_MSG(msg)
-    }
-
-    /* Load boards */
-    const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
-    const cuda_Board board(externalBoard);
-
-    const auto cudaMoves = GenerateMovesByKernel(func, board);
-    const auto cMoves = cpu::GenerateMoves(externalBoard);
-
-    /* validate returned moves */
-    return ValidateMoves(std::string(fen), cMoves, cudaMoves, progBar, writeToOut);
-}
-
-template<class FuncT>
-void RunSinglePosTest(FuncT func) {
-    std::cout << "Starting position comparison test for move gen..." << std::endl;
-
-    auto fens = LoadFenDb();
-
-    ProgressBar progBar(TestFEN.size() + fens.size(), 100);
-    progBar.Start();
-
-    progBar.WriteLine("Testing move gen with specialized positions");
-    for (const auto &fen: TestFEN) {
-        TestSinglePositionOutput(func, fen, &progBar, WRITE_OUT);
-        progBar.Increment();
-    }
-
-    ThreadPool threadPool(NUM_TEST_THREADS);
-
-    progBar.WriteLine("Testing move gen with whole fen db...");
-
-    threadPool.RunThreads(
-            [&](const __uint32_t tid) {
-                for (__uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
-                    TestSinglePositionOutput(func, fens[idx], &progBar, WRITE_OUT);
-                    progBar.Increment();
-                }
-            }
-    );
-
-    threadPool.Wait();
-    std::cout << "TEST FINISHED" << std::endl;
-}
-
+/**
+ * @brief Recursively investigates move generation errors at different board states
+ *
+ * @tparam FuncT Type of move generation kernel
+ * @param funcGen Move generation kernel function
+ * @param board Current chess board state
+ * @param depth Remaining depth to explore
+ * @param progBar Optional progress bar for testing
+ * @param writeToOut Flag to enable verbose output
+ * @return std::string Detailed path of the first detected move generation error
+ *
+ * @note Explores move sequences to pinpoint specific board states
+ * where GPU and CPU move generation diverge.
+ */
 template<class FuncT>
 std::string FindWrongPathRecursive(FuncT funcGen,
                                    cuda_Board &board,
@@ -502,6 +581,112 @@ std::string FindWrongPathRecursive(FuncT funcGen,
     return "";
 }
 
+// ------------------------------
+// Test runners
+// ------------------------------
+
+/**
+ * @brief Validates move generation for a single chess board position
+ *
+ * @tparam FuncT Type of move generation kernel function
+ * @param func Move generation kernel to test
+ * @param fen FEN string representing the chess board position
+ * @param progBar Optional progress bar for tracking test progress
+ * @param writeToOut Flag to enable verbose output logging
+ * @return std::string Detailed error message if move generation fails,
+ *                     empty string if successful
+ *
+ * Comprehensive single-position move generation test that:
+ * 1. Translates FEN to board representation
+ * 2. Generates moves using both GPU and CPU methods
+ * 3. Validates generated moves for:
+ *    - Matching move count
+ *    - Identical move representation
+ *    - Consistency across different generation methods
+ */
+template<class FuncT>
+std::string TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *progBar = nullptr,
+                              bool writeToOut = false) {
+
+    /* welcome message */
+    if (writeToOut) {
+        const auto msg = std::format("Testing moves of position: {}", fen);
+        DUMP_MSG(msg)
+    }
+
+    /* Load boards */
+    const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
+    const cuda_Board board(externalBoard);
+
+    const auto cudaMoves = GenerateMovesByKernel(func, board);
+    const auto cMoves = cpu::GenerateMoves(externalBoard);
+
+    /* validate returned moves */
+    return ValidateMoves(std::string(fen), cMoves, cudaMoves, progBar, writeToOut);
+}
+
+/**
+ * @brief Runs comprehensive move generation tests across multiple chess positions
+ *
+ * @tparam FuncT Type of move generation kernel
+ * @param func Move generation kernel to test
+ *
+ * Executes move generation tests on:
+ * 1. Predefined specialized test positions
+ * 2. A large database of chess positions using multi-threaded testing
+ *
+ * Provides thorough validation of GPU move generation across diverse scenarios.
+ */
+template<class FuncT>
+void RunSinglePosTest(FuncT func) {
+    std::cout << "Starting position comparison test for move gen..." << std::endl;
+
+    auto fens = LoadFenDb();
+
+    ProgressBar progBar(TestFEN.size() + fens.size(), 100);
+    progBar.Start();
+
+    progBar.WriteLine("Testing move gen with specialized positions");
+    for (const auto &fen: TestFEN) {
+        TestSinglePositionOutput(func, fen, &progBar, WRITE_OUT);
+        progBar.Increment();
+    }
+
+    ThreadPool threadPool(NUM_TEST_THREADS);
+
+    progBar.WriteLine("Testing move gen with whole fen db...");
+
+    threadPool.RunThreads(
+            [&](const __uint32_t tid) {
+                for (__uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
+                    TestSinglePositionOutput(func, fens[idx], &progBar, WRITE_OUT);
+                    progBar.Increment();
+                }
+            }
+    );
+
+    threadPool.Wait();
+    std::cout << "TEST FINISHED" << std::endl;
+}
+
+/**
+ * @brief Conducts comprehensive move generation testing across multiple depths
+ *
+ * @tparam FuncT Type of move counting kernel function
+ * @tparam FuncT1 Type of move generation kernel function
+ * @param funcCount Kernel function for counting moves
+ * @param funcGen Kernel function for generating moves
+ *
+ * Systematically tests move generation by:
+ * 1. Iterating through predefined test chess positions
+ * 2. Verifying move counts match between CPU and GPU
+ * 3. When move count verification fails, attempting to:
+ *    - Identify the specific problematic move sequence
+ *    - Locate the exact board state causing the discrepancy
+ *
+ * Provides a robust mechanism for validating CUDA move generation
+ * across different board configurations and move depths.
+ */
 template<class FuncT, class FuncT1>
 void RunDepthPosTest(FuncT funcCount, FuncT1 funcGen) {
     std::cout << "Testing move gen with specialized positions on " << TEST_DEPTH << " depth..." << std::endl;
@@ -535,6 +720,24 @@ void RunDepthPosTest(FuncT funcCount, FuncT1 funcGen) {
     std::cout << "TEST FINISHED" << std::endl;
 }
 
+/**
+ * @brief Internal implementation of comprehensive CUDA move generation testing
+ *
+ * @param threadsAvailable Number of available CUDA threads (unused)
+ * @param deviceProps CUDA device properties (unused)
+ *
+ * Performs an extensive validation of CUDA move generation by:
+ * 1. Performing an initial critical test on a main test position
+ * 2. Running tests for two move generation strategies:
+ *    - Plain move generation
+ *    - Split move generation
+ * 3. Executing both single-position and depth-based move generation tests
+ *
+ * @note The function uses an underscore suffix to differentiate
+ *       the implementation from the error-handling wrapper function
+ *
+ * @throws std::exception If critical testing fails
+ */
 void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     static constexpr __uint32_t EXTENDED_THREAD_STACK_SIZE = 16384;
     static constexpr __uint32_t DEFAULT_THREAD_STACK_SIZE = 1024;
@@ -572,6 +775,18 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
     cudaDeviceSetLimit(cudaLimitStackSize, DEFAULT_THREAD_STACK_SIZE);
 }
 
+/**
+ * @brief Primary test runner for CUDA chess move generation
+ *
+ * @param threadsAvailable Number of CUDA threads available
+ * @param deviceProps CUDA device properties
+ *
+ * Orchestrates comprehensive testing of:
+ * - Standard move generation kernel
+ * - Split move generation kernel
+ *
+ * Includes setup for extended thread stack size and detailed error tracking.
+ */
 void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         MoveGenTest_(threadsAvailable, deviceProps);
