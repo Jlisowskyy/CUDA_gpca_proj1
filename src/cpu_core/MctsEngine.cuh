@@ -13,6 +13,8 @@
 #include "ThreadPool.cuh"
 #include "Mcts.cuh"
 
+#include <cuda_runtime.h>
+
 #include <random>
 #include <thread>
 #include <iostream>
@@ -125,13 +127,23 @@ protected:
      * @param workspace Pointer to the MctsEngine instance
      */
     static void _worker(__uint32_t idx, MctsEngine *workspace) {
+        cudaStream_t stream;
+
+        if constexpr (ENGINE_TYPE == EngineType::GPU) {
+            CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
+        }
+
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
             if constexpr (ENGINE_TYPE == EngineType::GPU) {
-                mcts::ExpandTreeGPU<BATCH_SIZE>(workspace->m_root);
+                mcts::ExpandTreeGPU<BATCH_SIZE>(workspace->m_root, stream);
             } else {
                 mcts::ExpandTreeCPU(workspace->m_root);
             }
+        }
+
+        if constexpr (ENGINE_TYPE == EngineType::GPU) {
+            CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
         }
 
 #ifdef WRITE_OUT
