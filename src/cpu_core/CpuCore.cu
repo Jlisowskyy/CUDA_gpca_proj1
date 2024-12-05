@@ -328,7 +328,7 @@ void CpuCore::runInfinite() {
     auto t1 = std::chrono::steady_clock::now();
     engine.MoveSearchStart();
 
-    _waitForInfiniteStop();
+    _waitForInfiniteStop(engine);
 
     const auto proposedMove = engine.MoveSearchWait();
     auto t2 = std::chrono::steady_clock::now();
@@ -337,8 +337,30 @@ void CpuCore::runInfinite() {
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
-void CpuCore::_waitForInfiniteStop() {
+void CpuCore::_waitForInfiniteStop(MctsEngine<DEFAULT_MCTS_BATCH_SIZE> &engine) {
+    static constexpr __uint32_t SYNC_INTERVAL = 500;
+
     std::string input{};
+
+    bool runThread = true;
+    ThreadPool moveSyncThread(1);
+    moveSyncThread.RunThreads([&](const __uint32_t idx) {
+        __uint32_t timePassedMS{};
+
+        while (runThread) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(SYNC_INTERVAL));
+
+            /* Omit double display situation */
+            if (!runThread) {
+                break;
+            }
+
+            timePassedMS += SYNC_INTERVAL;
+
+            std::cout << "[ " << double(timePassedMS) / 1'000.0 << " ] Currently considered move: " <<
+                      engine.GetCurrentBestMove().GetPackedMove().GetLongAlgebraicNotation() << std::endl;
+        }
+    });
 
     do {
         std::getline(std::cin, input);
@@ -347,4 +369,7 @@ void CpuCore::_waitForInfiniteStop() {
             c = std::tolower(c);
         }
     } while (input != "stop");
+
+    runThread = false;
+    moveSyncThread.Wait();
 }

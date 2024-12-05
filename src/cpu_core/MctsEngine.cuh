@@ -106,6 +106,10 @@ public:
         _adaptTree(move);
     }
 
+    [[nodiscard]] cuda_Move GetCurrentBestMove() const {
+        return _pickMove();
+    }
+
     // ------------------------------
     // Class implementation
     // ------------------------------
@@ -203,7 +207,7 @@ protected:
      *
      * @return cuda_Move The move with the highest calculated win rate
      */
-    [[nodiscard]] cuda_Move _pickMove() {
+    [[nodiscard]] cuda_Move _pickMove() const {
         assert(m_root != nullptr && "ENGINE: CALLED PICK MOVE ON EMPTY TREE!");
 
         cuda_Move bestMove{};
@@ -220,6 +224,8 @@ protected:
         std::cout << "PICKED MOVE: " << bestMove.GetPackedMove().GetLongAlgebraicNotation() << " with winrate: "
                   << bestWinRate << std::endl;
 #endif
+
+        return bestMove;
     }
 
     // ------------------------------

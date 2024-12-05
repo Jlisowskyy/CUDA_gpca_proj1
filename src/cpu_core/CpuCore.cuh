@@ -10,6 +10,7 @@ struct cuda_Board;
 
 #include <tuple>
 #include "../cuda_core/Move.cuh"
+#include "MctsEngine.cuh"
 
 /**
  * @class CpuCore
@@ -152,7 +153,7 @@ private:
      *
      * Blocks execution until "stop" command is received
      */
-    static void _waitForInfiniteStop();
+    static void _waitForInfiniteStop(MctsEngine <DEFAULT_MCTS_BATCH_SIZE> &engine);
 
     // ------------------------------
     // Class fields
