@@ -20,7 +20,7 @@ public:
     // Class creation
     // ------------------------------
 
-    explicit ThreadPool(__uint32_t numThreads) : m_numThreadsToSpawn(numThreads) {
+    explicit ThreadPool(const __uint32_t numThreads) : m_numThreadsToSpawn(numThreads) {
         assert(m_numThreadsToSpawn != INVALID_THREAD_NUM && "ThreadPool: numThreads cannot be 0");
     }
 
@@ -58,6 +58,10 @@ public:
             pThread->join();
             delete pThread;
         }
+    }
+
+    void Reset(const __uint32_t numThreads) {
+        m_numThreadsToSpawn = numThreads;
     }
 
     // ------------------------------
