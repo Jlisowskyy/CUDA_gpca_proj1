@@ -29,8 +29,8 @@ static constexpr __uint32_t SINGLE_RUN_BLOCK_SIZE = 100;
 static constexpr __uint32_t SINGLE_RUN_BOARDS_SIZE = SINGLE_RUN_BLOCK_SIZE * SINGLE_BATCH_BOARD_SIZE;
 static constexpr __uint32_t SPLIT_MAX_STACK_MOVES = 80;
 
-static constexpr __uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
-static constexpr __uint32_t MATERIAL_ADVANTAGE_TO_WIN = 500;
+static __device__ __constant__ constexpr __uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
+static __device__ __constant__ constexpr __uint32_t MATERIAL_ADVANTAGE_TO_WIN = 500;
 
 // --------------------------------
 // Compute kernels components
@@ -138,87 +138,22 @@ __global__ void EvaluateBoardsPlainKernel(
     results[idx] = DRAW;
 }
 
-template<__uint32_t SIZE_BOARDS>
+#ifdef NDEBUG
+
+static constexpr __uint32_t EVAL_SPLIT_KERNEL_BOARDS = 64;
+
+#else
+
+static constexpr __uint32_t EVAL_SPLIT_KERNEL_BOARDS = 32;
+
+#endif
+
 __global__ void EvaluateBoardsSplitKernel(
-        cuda_PackedBoard<SIZE_BOARDS> *boards,
+        cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *boards,
         const __uint32_t *seeds,
         __uint32_t *results,
         __int32_t maxDepth,
-        [[maybe_unused]] BYTE *workMem) {
-    struct stub {
-        char bytes[sizeof(cuda_Move)];
-    };
-
-    __shared__ __uint32_t counters[SIZE_BOARDS];
-    __shared__ stub stacks[SINGLE_BATCH_BOARD_SIZE][SIZE_BOARDS];
-    __shared__ __uint16_t evalCounters[SIZE_BOARDS][2];
-
-    const __uint32_t boardIdx = CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x);
-    const __uint32_t figIdx = CalcFigIdx(threadIdx.x);
-    const __uint32_t resourceIdx = CalcResourceIdx(threadIdx.x);
-
-    if (figIdx== 0) {
-        evalCounters[resourceIdx][1] = 0;
-        evalCounters[resourceIdx][0] = 0;
-    }
-
-    __uint32_t seed = seeds[boardIdx];
-
-    while (maxDepth --> 0) {
-        __syncthreads();
-
-        Stack<cuda_Move> stack((cuda_Move*)stacks[resourceIdx], counters + resourceIdx, false);
-
-        if (figIdx == 0) {
-            stack.Clear();
-        }
-
-        __syncthreads();
-
-        MoveGenerator<PACKED_BOARD_DEFAULT_SIZE, SPLIT_MAX_STACK_MOVES> mGen{(*boards)[boardIdx], stack};
-        mGen.GetMovesSplit(figIdx);
-        __syncthreads();
-
-        const __uint32_t movingColor = (*boards)[boardIdx].MovingColor();
-        if (stack.Size() == 0) {
-
-            if (figIdx == 0) {
-                /* We reached end of moves decide about the label and die */
-                results[boardIdx] = mGen.EvalBoardsNoMoves(movingColor);
-                return;
-            } else {
-                return;
-            }
-        }
-
-        if (figIdx == 0) {
-            /* Check if board is enough rounds in winning position to assume that's a win */
-            __int32_t eval = (*boards)[boardIdx].MaterialEval();
-            eval = movingColor == BLACK ? -eval : eval;
-            const bool isInWinningRange = eval >= MATERIAL_ADVANTAGE_TO_WIN;
-
-            evalCounters[resourceIdx][movingColor] = isInWinningRange ? evalCounters[resourceIdx][movingColor] + 1: 0;
-        }
-
-        __syncthreads();
-
-        /* ASSUME win and die */
-        if (evalCounters[resourceIdx][movingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-            if (figIdx == 0) {
-                results[boardIdx] = movingColor;
-            }
-
-            return;
-        }
-
-        if (figIdx == 0) {
-            const auto nextMove = stack[seed % stack.Size()];
-            cuda_Move::MakeMove(nextMove, (*boards)[boardIdx]);
-        }
-
-        simpleRand(seed);
-    }
-}
+        [[maybe_unused]] BYTE *workMem);
 
 
 #endif //SRC_COMPUTEKERNELS_CUH

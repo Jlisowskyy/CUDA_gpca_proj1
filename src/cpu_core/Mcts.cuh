@@ -37,32 +37,33 @@ namespace mcts {
 
     void PropagateResult(MctsNode *node, __uint32_t result);
 
-    template<__uint32_t BATCH_SIZE>
-    results_t<BATCH_SIZE> SimulateSplit(const cuda_PackedBoard<BATCH_SIZE> &boards, cudaStream_t &stream) {
-        results_t<BATCH_SIZE> hResults{};
+    inline results_t<EVAL_SPLIT_KERNEL_BOARDS>
+    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
+        results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
 
         __uint32_t *dSeeds{};
         __uint32_t *dResults{};
-        cuda_PackedBoard<BATCH_SIZE> *dBoards{};
+        cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *dBoards{};
 
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<BATCH_SIZE>), stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * BATCH_SIZE, stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * BATCH_SIZE, stream));
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards,
-                                            sizeof(cuda_PackedBoard<BATCH_SIZE>), cudaMemcpyHostToDevice, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>), stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
+                                            cudaMemcpyHostToDevice, stream));
 
-        const auto seeds = GenSeeds(BATCH_SIZE);
+        const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(),
-                                            sizeof(__uint32_t) * BATCH_SIZE, cudaMemcpyHostToDevice, stream));
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
+                                            cudaMemcpyHostToDevice, stream));
 
-        EvaluateBoardsSplitKernel<BATCH_SIZE><<<1, BATCH_SIZE * BIT_BOARDS_PER_COLOR>>>(
+        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
                 dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
         );
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
-                                            sizeof(__uint32_t) * BATCH_SIZE, cudaMemcpyDeviceToHost, stream));
+                                            sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            stream));
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
@@ -77,7 +78,7 @@ namespace mcts {
         throw std::runtime_error("NOT IMPLEMENTED");
     }
 
-    template<__uint32_t BATCH_SIZE, sim_t<BATCH_SIZE> FUNC = SimulateSplit<BATCH_SIZE>>
+    template<__uint32_t BATCH_SIZE = EVAL_SPLIT_KERNEL_BOARDS, sim_t<BATCH_SIZE> FUNC = SimulateSplit>
     void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
         cuda_PackedBoard<BATCH_SIZE> batch;
         std::array<MctsNode *, BATCH_SIZE> selectedNodes;

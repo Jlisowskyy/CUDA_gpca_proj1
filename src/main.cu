@@ -7,6 +7,7 @@
 #include "cpu_core/Utils.cuh"
 
 #include "tests/CudaTests.cuh"
+#include "CpuUtils.h"
 
 #include <string>
 #include <iostream>
@@ -16,6 +17,10 @@ int main() {
     InitializeConsole();
     CpuCore core{};
     core.init();
+
+    core.setBoard(new cuda_Board(cpu::GetDefaultBoard()));
+    core.runCVC(5000);
+    return 0;
 
 #ifdef TESTING
 

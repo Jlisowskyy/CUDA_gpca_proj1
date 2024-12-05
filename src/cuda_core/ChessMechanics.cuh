@@ -72,7 +72,7 @@ struct ChessMechanics {
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] __device__ bool IsCheck(const __uint32_t movingColor) const {
+    [[nodiscard]] FAST_DCALL bool IsCheck(const __uint32_t movingColor) const {
         const __uint32_t enemyCol = SwapColor(movingColor);
         const __uint32_t kingsMsb = _boardFetcher.GetKingMsbPos(movingColor);
         const __uint64_t fullBoard = GetFullBitMap();
@@ -115,7 +115,7 @@ struct ChessMechanics {
         return false;
     }
 
-    [[nodiscard]] __uint32_t EvalBoardsNoMoves(__uint32_t movingColor) const {
+    [[nodiscard]] FAST_DCALL __uint32_t EvalBoardsNoMoves(__uint32_t movingColor) const {
         const bool isCheck = IsCheck(movingColor);
         return isCheck ? SwapColor(movingColor) : DRAW;
     }

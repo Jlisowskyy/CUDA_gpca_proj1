@@ -19,7 +19,7 @@
 #include <thread>
 #include <iostream>
 
-static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = 64;
+static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = EVAL_SPLIT_KERNEL_BOARDS;
 
 enum class EngineType {
     CPU,
