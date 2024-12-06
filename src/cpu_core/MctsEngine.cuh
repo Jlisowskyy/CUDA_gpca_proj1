@@ -74,6 +74,9 @@ public:
         /* Reset performance counters */
         mcts::g_ExpandRacesCounter.store(0);
         mcts::g_SimulationCounter.store(0);
+        mcts::g_CopyBackTimes.store(0.0);
+        mcts::g_CopyTimes.store(0.0);
+        mcts::g_KernelTime.store(0.0);
 
         m_shouldWork = true;
         m_pool.Reset(m_numWorkers);
@@ -114,9 +117,15 @@ public:
     void DisplayResults() {
         const auto pickedMove = GetCurrentBestMove();
 
-        std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation() << " with total: "
-                  << mcts::g_SimulationCounter.load() << " simulations made and total expansion races: " <<
-                  mcts::g_ExpandRacesCounter.load() << std::endl;
+        std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
+                  << " with total: " << mcts::g_SimulationCounter.load()
+                  << " simulations made and total expansion races: " << mcts::g_ExpandRacesCounter.load()
+                  << std::endl;
+
+        std::cout << "Performance metrics (average):" << std::endl
+                  << "  Copy times:     " << mcts::g_CopyTimes.load() / mcts::g_SimulationCounter.load() << " seconds" << std::endl
+                  << "  Copy back times: " << mcts::g_CopyBackTimes.load() / mcts::g_SimulationCounter.load()<< " seconds" << std::endl
+                  << "  Kernel times:   " << mcts::g_KernelTime.load() / mcts::g_SimulationCounter.load()<< " seconds" << std::endl;
     }
 
     [[nodiscard]] static constexpr const char *GetName() {

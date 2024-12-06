@@ -22,8 +22,17 @@
  * @param state Reference to the random state, which is modified in-place
  */
 static void simpleRand(uint32_t &state) {
+    static constexpr uint32_t COEF1 = 36969;
+    static constexpr uint32_t COEF2 = 65535;
+    static constexpr uint32_t COEF3 = 17;
+    static constexpr uint32_t COEF4 = 13;
+
     state ^= state << 13;
+    state *= COEF1;
+    state += COEF2;
     state ^= state >> 7;
+    state *= COEF3;
+    state += COEF4;
     state ^= state << 17;
 }
 
