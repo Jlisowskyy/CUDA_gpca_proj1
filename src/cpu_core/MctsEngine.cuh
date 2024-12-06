@@ -19,15 +19,6 @@
 #include <thread>
 #include <iostream>
 
-static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = EVAL_SPLIT_KERNEL_BOARDS;
-
-enum class EngineType {
-    CPU,
-    GPU0,
-    GPU1,
-};
-
-
 /**
  * @brief Monte Carlo Tree Search (MCTS) Engine template class for game AI
  *
@@ -37,7 +28,7 @@ enum class EngineType {
  * @tparam BATCH_SIZE Number of simulations to play in single batch
  * @tparam ENGINE_TYPE Specifies whether to use CPU or GPU expansion strategy
  */
-template<__uint32_t BATCH_SIZE, EngineType ENGINE_TYPE = EngineType::GPU0>
+template<EngineType ENGINE_TYPE = EngineType::GPU0>
 class MctsEngine {
 public:
     // ------------------------------
@@ -125,7 +116,7 @@ public:
                   mcts::g_ExpandRacesCounter.load() << std::endl;
     }
 
-    const char *GetName() const {
+    [[nodiscard]] static constexpr const char *GetName() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU0:
                 return "GPU0";
@@ -133,6 +124,19 @@ public:
                 return "GPU1";
             case EngineType::CPU:
                 return "CPU";
+            default:
+                std::abort();
+        }
+    }
+
+    [[nodiscard]] static constexpr __uint32_t GetPreferredThreadsCount() {
+        switch (ENGINE_TYPE) {
+            case EngineType::GPU0:
+                return 128;
+            case EngineType::GPU1:
+                return 128;
+            case EngineType::CPU:
+                return 20;
             default:
                 std::abort();
         }
@@ -161,10 +165,12 @@ protected:
 
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
-            if constexpr (ENGINE_TYPE == EngineType::GPU0) {
-                mcts::ExpandTreeGPU<BATCH_SIZE>(workspace->m_root, stream);
-            } else {
+            if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
+                mcts::ExpandTreeGPU<ENGINE_TYPE>(workspace->m_root, stream);
+            } else if constexpr (ENGINE_TYPE == EngineType::CPU) {
                 mcts::ExpandTreeCPU(workspace->m_root);
+            } else {
+                std::abort();
             }
         }
 

@@ -39,9 +39,7 @@ public:
      *
      * @param board Initial game board configuration
      */
-    explicit MctsNode(const cuda_Board &board) : m_board(board) {
-        static constexpr __uint32_t INIT_SIZE = 32;
-    }
+    explicit MctsNode(const cuda_Board &board) : m_board(board) {}
 
     /**
      * @brief Construct a child node from a parent and move

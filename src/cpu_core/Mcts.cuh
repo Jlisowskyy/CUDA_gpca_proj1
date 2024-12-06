@@ -20,6 +20,12 @@
 static constexpr __uint32_t MIN_SAMPLES_TO_EXPAND = 32;
 static constexpr __uint32_t MAX_SIMULATION_DEPTH = 100;
 
+enum class EngineType {
+    CPU,
+    GPU0,
+    GPU1,
+};
+
 namespace mcts {
     template<__uint32_t BATCH_SIZE>
     using results_t = std::array<__uint32_t, BATCH_SIZE>;
@@ -38,62 +44,23 @@ namespace mcts {
 
     void PropagateResult(MctsNode *node, __uint32_t result);
 
-    inline results_t<EVAL_SPLIT_KERNEL_BOARDS>
-    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
-        results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
+    results_t<EVAL_SPLIT_KERNEL_BOARDS>
+    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream);
 
-        __uint32_t *dSeeds{};
-        __uint32_t *dResults{};
-        cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *dBoards{};
+    results_t<EVAL_PLAIN_KERNEL_BOARDS>
+    SimulatePlain(const cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> &boards, cudaStream_t &stream);
 
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>), stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
-                                            cudaMemcpyHostToDevice, stream));
-
-        const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
-        assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
-
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
-                                            cudaMemcpyHostToDevice, stream));
-
-        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
-                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
-                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
-        );
-
-//        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
-//                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
-//        );
-
-        CUDA_ASSERT_SUCCESS(cudaGetLastError());
-
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
-                                            sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
-                                            stream));
-        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
-        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
-        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
-
-        CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
-
-        return hResults;
-    }
-
-    template<__uint32_t BATCH_SIZE>
-    results_t<BATCH_SIZE> SimulatePlain(const cuda_PackedBoard<BATCH_SIZE> &boards, cudaStream_t &stream) {
-        throw std::runtime_error("NOT IMPLEMENTED");
-    }
-
-    template<__uint32_t BATCH_SIZE = EVAL_SPLIT_KERNEL_BOARDS, sim_t<BATCH_SIZE> FUNC = SimulateSplit>
+    template<EngineType ENGINE_TYPE>
     void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
+        static_assert(ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0);
+        static constexpr __uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0 ? EVAL_SPLIT_KERNEL_BOARDS :
+                                                 EVAL_PLAIN_KERNEL_BOARDS;
+
         cuda_PackedBoard<BATCH_SIZE> batch;
         std::array<MctsNode *, BATCH_SIZE> selectedNodes;
 
         for (__uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
             MctsNode *node{};
-
 
             while (!node) {
                 node = SelectNode(root);
@@ -130,14 +97,20 @@ namespace mcts {
             batch.saveBoard(idx, node->m_board);
         }
 
-        const auto results = FUNC(batch, stream);
+        results_t<BATCH_SIZE> results;
+
+        if constexpr (ENGINE_TYPE == EngineType::GPU0) {
+            results = SimulateSplit(batch, stream);
+            g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
+        } else {
+            results = SimulatePlain(batch, stream);
+            g_SimulationCounter.fetch_add(EVAL_PLAIN_KERNEL_BOARDS, std::memory_order::relaxed);
+        }
 
         assert(results.size() == selectedNodes.size());
         for (__uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
             PropagateResult(selectedNodes[idx], results[idx]);
         }
-
-        g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
     }
 }
 

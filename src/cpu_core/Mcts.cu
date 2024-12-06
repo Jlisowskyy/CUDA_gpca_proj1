@@ -107,4 +107,88 @@ namespace mcts {
         node->ScoreNode(result);
         PropagateResult(node->m_parent, result);
     }
+
+    results_t<EVAL_SPLIT_KERNEL_BOARDS>
+    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
+        results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
+
+        __uint32_t *dSeeds{};
+        __uint32_t *dResults{};
+        cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *dBoards{};
+
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>), stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
+                                            cudaMemcpyHostToDevice, stream));
+
+        const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
+        assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
+                                            cudaMemcpyHostToDevice, stream));
+
+        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
+                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
+                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
+        );
+
+//        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
+//                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
+//        );
+
+        CUDA_ASSERT_SUCCESS(cudaGetLastError());
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
+                                            sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
+
+        CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
+
+        return hResults;
+    }
+
+    results_t<EVAL_PLAIN_KERNEL_BOARDS>
+    SimulatePlain(const cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
+        results_t<EVAL_PLAIN_KERNEL_BOARDS> hResults{};
+
+        __uint32_t *dSeeds{};
+        __uint32_t *dResults{};
+        cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> *dBoards{};
+        BYTE *dBytes{};
+
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>), stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE, stream));
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>),
+                                            cudaMemcpyHostToDevice, stream));
+
+        const auto seeds = GenSeeds(EVAL_PLAIN_KERNEL_BOARDS);
+        assert(seeds.size() == EVAL_PLAIN_KERNEL_BOARDS);
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
+                                            cudaMemcpyHostToDevice, stream));
+
+        EvaluateBoardsPlainKernel<EVAL_PLAIN_KERNEL_BOARDS><<<1, EVAL_PLAIN_KERNEL_BOARDS, 0, stream>>>(
+                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, dBytes
+        );
+
+        CUDA_ASSERT_SUCCESS(cudaGetLastError());
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
+                                            sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBytes, stream));
+
+        CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
+
+        return hResults;
+    }
 }

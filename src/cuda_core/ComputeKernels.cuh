@@ -78,6 +78,8 @@ __global__ void PolluteCache(__uint32_t *data, const __uint32_t *seeds, __uint32
 
 /* Engine kernels */
 
+static constexpr __uint32_t EVAL_PLAIN_KERNEL_BOARDS = 384;
+
 template<__uint32_t SIZE_BOARDS>
 __global__ void EvaluateBoardsPlainKernel(
         cuda_PackedBoard<SIZE_BOARDS> *boards,
@@ -128,7 +130,7 @@ __global__ void EvaluateBoardsPlainKernel(
 
         /* Apply random generated move */
         const auto nextMove = stack[seed % stack.Size()];
-        cuda_Move::MakeMove(nextMove, (*boards)[idx]);
+        cuda_Move::MakeMove<SIZE_BOARDS>(nextMove, (*boards)[idx]);
 
         /* shuffle the seed */
         simpleRand(seed);

@@ -37,8 +37,7 @@ CpuCore::~CpuCore() {
 }
 
 void CpuCore::runCVC(const __uint32_t moveTime) {
-    _runCVC<MctsEngine<DEFAULT_MCTS_BATCH_SIZE, EngineType::GPU0>,
-            MctsEngine<DEFAULT_MCTS_BATCH_SIZE, EngineType::GPU0>>(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::GPU0>>(moveTime);
 }
 
 void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
@@ -46,7 +45,7 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
@@ -270,7 +269,7 @@ void CpuCore::_runProcessingAnim(__uint32_t moveTime) {
 
 void CpuCore::runInfinite() {
     cuda_Board board = *m_board;
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
 
     auto t1 = std::chrono::steady_clock::now();
     engine.MoveSearchStart();
@@ -284,7 +283,7 @@ void CpuCore::runInfinite() {
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
-void CpuCore::_waitForInfiniteStop(MctsEngine<DEFAULT_MCTS_BATCH_SIZE> &engine) {
+void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU0> &engine) {
     static constexpr __uint32_t SYNC_INTERVAL = 500;
 
     std::string input{};
@@ -322,11 +321,12 @@ void CpuCore::_waitForInfiniteStop(MctsEngine<DEFAULT_MCTS_BATCH_SIZE> &engine) 
 }
 
 void CpuCore::runCVC1(__uint32_t moveTime) {
+    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::CPU>>(moveTime);
 
 }
 
 void CpuCore::runCVC2(__uint32_t moveTime) {
-
+    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::GPU1>>(moveTime);
 }
 
 template<class ENGINE_T1, class ENGINE_T2>
@@ -335,8 +335,8 @@ void CpuCore::_runCVC(__uint32_t moveTime) {
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    ENGINE_T1 engine0{board, NUM_CPU_WORKERS};
-    ENGINE_T2 engine1{board, NUM_CPU_WORKERS};
+    ENGINE_T1 engine0{board, ENGINE_T1::GetPreferredThreadsCount()};
+    ENGINE_T2 engine1{board, ENGINE_T2::GetPreferredThreadsCount()};
 
     __uint32_t engineIdx = 0;
 
@@ -364,7 +364,9 @@ void CpuCore::_runCVC(__uint32_t moveTime) {
 
         ClearLines(28);
 
-        std::cout << "[ ENGINE: " << (engineIdx == 0 ? engine0.GetName() : engine1.GetName()) << " ] ";
+        std::cout << "[ " << engineIdx << " | ENGINE: "
+                  << (engineIdx == 0 ? ENGINE_T1::GetName() : ENGINE_T2::GetName())
+                  << " ] ";
 
         if (engineIdx == 0) {
             engine0.DisplayResults();
