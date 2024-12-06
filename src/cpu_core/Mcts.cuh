@@ -36,7 +36,7 @@ namespace mcts {
     extern std::atomic<__uint32_t> g_ExpandRacesCounter;
     extern std::atomic<__uint64_t> g_SimulationCounter;
 
-    void ExpandTreeCPU(__uint32_t idx, MctsNode *root);
+    void ExpandTreeCPU(MctsNode *root);
 
     [[nodiscard]] MctsNode *SelectNode(MctsNode *root);
 

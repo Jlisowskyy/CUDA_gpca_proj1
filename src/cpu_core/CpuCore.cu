@@ -28,12 +28,15 @@ void InitializeRookMap() {
     FancyMagicRookMap hostMap{
             false}; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
     CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
+
+    cpu::AllocateStacks(5);
 }
 
 CpuCore::CpuCore() = default;
 
 CpuCore::~CpuCore() {
     delete m_deviceProps;
+    cpu::DeallocStacks(5);
 }
 
 void CpuCore::runCVC(const __uint32_t moveTime) {

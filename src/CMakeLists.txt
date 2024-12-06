@@ -66,6 +66,7 @@ if(OpenMP_CXX_FOUND)
 endif()
 
 add_compile_definitions(TREAT_PROMOS_AS_QUEEN_PROMO=1)
+add_compile_definitions(STACK_SIZE_MOVES=1)
 
 # CUDA PART
 add_executable(src ${CUDA_SOURCES})

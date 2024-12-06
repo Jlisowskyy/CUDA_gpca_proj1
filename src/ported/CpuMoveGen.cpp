@@ -10,6 +10,8 @@
 #include "../../engine/include/BitOperations.h"
 
 #include <random>
+#include <atomic>
+#include <array>
 
 /**
  * @brief Simple pseudo-random number generator with XOR-shift algorithm.
@@ -24,10 +26,53 @@ static void simpleRand(uint32_t &state) {
     state ^= state << 17;
 }
 
+
+template<typename T>
+class LockFreeStack {
+private:
+    struct Node {
+        T data;
+        std::atomic<Node *> next;
+
+        explicit Node(const T &value) : data(value), next(nullptr) {}
+    };
+
+    std::atomic<Node *> head{nullptr};
+public:
+    ~LockFreeStack() {
+        while (Node *oldHead = head.load()) {
+            head.store(oldHead->next);
+            delete oldHead;
+        }
+    }
+
+    void push(const T &value) {
+        Node *newNode = new Node(value);
+        Node *currentHead = head.load();
+
+        do {
+            newNode->next.store(head.load());
+        } while (!head.compare_exchange_weak(currentHead, newNode));
+    }
+
+    bool pop(T &result) {
+        Node *oldHead = head.load();
+
+        do {
+            if (oldHead == nullptr) {
+                return false;
+            }
+        } while (!head.compare_exchange_weak(oldHead, oldHead->next.load()));
+
+        result = oldHead->data;
+        delete oldHead;
+        return true;
+    }
+};
+
 using st = Stack<Move, DEFAULT_STACK_SIZE>;
 
-st DefaultStack{};
-st *StackArr{};
+LockFreeStack<st *> GlobalStacks{};
 
 namespace cpu {
     uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap) {
@@ -45,8 +90,10 @@ namespace cpu {
     std::vector<external_move> GenerateMoves(const external_board &board) {
         Board bd = TranslateToInternalBoard(board);
 
-        st s;
-        MoveGenerator mech{bd, s};
+        st *s;
+        assert(GlobalStacks.pop(s));
+
+        MoveGenerator mech{bd, *s};
         auto moves = mech.GetMovesFast();
 
         std::vector<external_move> result;
@@ -56,7 +103,9 @@ namespace cpu {
             result.push_back({mv.GetPackedMove().DumpContent(), mv.DumpIndexes(), mv.DumpMisc()});
         }
 
-        s.PopAggregate(moves);
+        s->PopAggregate(moves);
+        GlobalStacks.push(s);
+
         return result;
     }
 
@@ -82,7 +131,7 @@ namespace cpu {
             100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
     };
 
-    __uint32_t SimulateGame(__uint32_t index, const external_board &board) {
+    __uint32_t SimulateGame(const external_board &board) {
         static constexpr __uint32_t MAX_DEPTH = 100;
         static constexpr __uint32_t DRAW = 2;
         static constexpr __uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
@@ -92,8 +141,11 @@ namespace cpu {
         __uint32_t seed = std::mt19937{
                 static_cast<__uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
 
+        st *s;
+        assert(GlobalStacks.pop(s));
+
         Board bd = TranslateToInternalBoard(board);
-        MoveGenerator mech{bd, StackArr[index]};
+        MoveGenerator mech{bd, *s};
         __uint32_t eval{};
 
         for (__uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
@@ -104,6 +156,7 @@ namespace cpu {
             auto moves = mech.GetMovesFast();
 
             if (moves.size == 0) {
+                GlobalStacks.push(s);
                 return mech.IsCheck() ? SwapColor(bd.MovingColor) : DRAW;
             }
 
@@ -112,26 +165,34 @@ namespace cpu {
             evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
 
             if (evalCounters[bd.MovingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-                StackArr[index].PopAggregate(moves);
+                s->PopAggregate(moves);
+
+                GlobalStacks.push(s);
                 return bd.MovingColor;
             }
 
             const auto nextMove = moves[seed % moves.size];
-            StackArr[index].PopAggregate(moves);
+            s->PopAggregate(moves);
 
             Move::MakeMove(nextMove, bd);
             simpleRand(seed);
         }
 
+        GlobalStacks.push(s);
         return DRAW;
     }
 
     void AllocateStacks(__uint32_t count) {
-        StackArr = new st[count]{};
+        for (__uint32_t i = 0; i < count; ++i) {
+            GlobalStacks.push(new st{});
+        }
     }
 
-    void DeallocStacks() {
-        delete StackArr;
-        StackArr = nullptr;
+    void DeallocStacks(__uint32_t count) {
+        for (__uint32_t i = 0; i < count; ++i) {
+            st *ptr;
+            GlobalStacks.pop(ptr);
+            delete ptr;
+        }
     }
 }

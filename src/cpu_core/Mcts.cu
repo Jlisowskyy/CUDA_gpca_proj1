@@ -12,7 +12,7 @@ namespace mcts {
     std::atomic<__uint32_t> g_ExpandRacesCounter{};
     std::atomic<__uint64_t> g_SimulationCounter{};
 
-    void ExpandTreeCPU(__uint32_t index, MctsNode *root) {
+    void ExpandTreeCPU(MctsNode *root) {
         MctsNode *node = SelectNode(root);
 
         /* We selected node already extended but without any children roll back */
@@ -37,7 +37,7 @@ namespace mcts {
             return;
         }
 
-        const __uint32_t result = cpu::SimulateGame(index, expandedNode->m_board.DumpToExternal());
+        const __uint32_t result = cpu::SimulateGame(expandedNode->m_board.DumpToExternal());
         PropagateResult(expandedNode, result);
 
         g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
