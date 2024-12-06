@@ -64,15 +64,26 @@ set_source_files_properties(
         LANGUAGE CXX
 )
 
-# Compiler-specific compile options
-if(MSVC)
-    target_compile_options(cpu_ported PUBLIC
-            $<$<COMPILE_LANGUAGE:CXX>:/O2;/arch:AVX2;/constexpr:steps133554432>
-    )
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(MSVC)
+        target_compile_options(cpu_ported PUBLIC
+                $<$<COMPILE_LANGUAGE:CXX>:/O2;/arch:AVX2;/constexpr:steps133554432>
+        )
+    else()
+        target_compile_options(cpu_ported PUBLIC
+                $<$<COMPILE_LANGUAGE:CXX>:-fconstexpr-ops-limit=133554432;-fopenmp;-O3;-march=native>
+        )
+    endif()
 else()
-    target_compile_options(cpu_ported PUBLIC
-            $<$<COMPILE_LANGUAGE:CXX>:-fconstexpr-ops-limit=133554432;-fopenmp;-O3;-march=native>
-    )
+    if(MSVC)
+        target_compile_options(cpu_ported PUBLIC
+                $<$<COMPILE_LANGUAGE:CXX>:/Zi;/constexpr:steps133554432>
+        )
+    else()
+        target_compile_options(cpu_ported PUBLIC
+                $<$<COMPILE_LANGUAGE:CXX>:-fconstexpr-ops-limit=133554432;-fopenmp;-O3;-march=native>
+        )
+    endif()
 endif()
 
 target_include_directories(cpu_ported PUBLIC
