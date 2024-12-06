@@ -14,12 +14,29 @@ namespace mcts {
 
     void ExpandTreeCPU(MctsNode *root) {
         MctsNode *node = SelectNode(root);
-        node = ExpandNode(node);
 
-        if (node == nullptr) {
-
+        /* We selected node already extended but without any children roll back */
+        if (node->HasChildrenAssigned()) {
+            PropagateResult(node,
+                            ported_translation::IsCheck(node->m_board) ?
+                            SwapColor(node->m_board.MovingColor) : DRAW
+            );
+            return;
         }
 
+        MctsNode *expandedNode = ExpandNode(node);
+
+        /* Selected node was not expanded yet, but we found out that it is a dead end indeed */
+        if (expandedNode == nullptr) {
+            PropagateResult(node,
+                            ported_translation::IsCheck(node->m_board) ?
+                            SwapColor(node->m_board.MovingColor) : DRAW
+            );
+            return;
+        }
+
+        const __uint32_t result = cpu::SimulateGame(expandedNode->m_board.DumpToExternal());
+        PropagateResult(expandedNode, result);
     }
 
     MctsNode *SelectNode(MctsNode *const root) {
@@ -74,7 +91,8 @@ namespace mcts {
             delete pChildren;
         }
 
-        return root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
+        return root->GetChildren().empty() ? nullptr :
+               root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
     }
 
     void PropagateResult(MctsNode *const node, const __uint32_t result) {

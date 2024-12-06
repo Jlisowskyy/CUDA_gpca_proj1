@@ -58,4 +58,8 @@ namespace cpu {
 
         return bd;
     }
+
+    __uint32_t SimulateGame(const external_board &board) {
+        return 0;
+    }
 }

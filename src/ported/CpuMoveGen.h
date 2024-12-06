@@ -71,6 +71,8 @@ namespace cpu {
      * @return bool True if the current side is in check, false otherwise
      */
     [[nodiscard]] bool IsCheck(const external_board &board);
+
+    [[nodiscard]] __uint32_t SimulateGame(const external_board &board);
 }
 
 #endif //SRC_CPUMOVEGEN_H
