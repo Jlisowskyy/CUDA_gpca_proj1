@@ -5,6 +5,21 @@
 #include <cassert>
 #include <stdexcept>
 
+#ifndef _MSC_VER 
+
+using uint8_t  = __uint8_t;
+using uint16_t = __uint16_t;
+using uint32_t = __uint32_t;
+using uint64_t = __uint64_t;
+
+using int8_t   = __int8_t;
+using int16_t  = __int16_t;
+using int32_t  = __int32_t;
+using int64_t  = __int64_t;
+
+
+#endif
+
 void AssertSuccess(cudaError_t error, const char *file, int line);
 
 bool TraceError(cudaError_t error, const char *file, int line);
