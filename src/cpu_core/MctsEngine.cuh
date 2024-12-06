@@ -139,7 +139,7 @@ public:
             case EngineType::GPU1:
                 return 128;
             case EngineType::CPU:
-                return 20;
+                return 1;
             default:
                 std::abort();
         }

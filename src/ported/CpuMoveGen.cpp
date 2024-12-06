@@ -12,6 +12,7 @@
 #include <random>
 #include <atomic>
 #include <array>
+#include <mutex>
 
 /**
  * @brief Simple pseudo-random number generator with XOR-shift algorithm.
@@ -27,52 +28,73 @@ static void simpleRand(uint32_t &state) {
 }
 
 
-template<typename T>
-class LockFreeStack {
+//template<typename T>
+//class ThreadSafeStack {
+//private:
+//    struct Node {
+//        T data;
+//        std::atomic<Node *> next;
+//
+//        explicit Node(const T &value) : data(value), next(nullptr) {}
+//    };
+//
+//    std::atomic<Node *> head{nullptr};
+//public:
+//    ~ThreadSafeStack() {
+//        while (Node *oldHead = head.load()) {
+//            head.store(oldHead->next);
+//            delete oldHead;
+//        }
+//    }
+//
+//    void push(const T &value) {
+//        Node *newNode = new Node(value);
+//        Node *currentHead = head.load();
+//
+//        do {
+//            newNode->next.store(head.load());
+//        } while (!head.compare_exchange_weak(currentHead, newNode));
+//    }
+//
+//    bool pop(T &result) {
+//        Node *oldHead = head.load();
+//
+//        do {
+//            if (oldHead == nullptr) {
+//                return false;
+//            }
+//        } while (!head.compare_exchange_weak(oldHead, oldHead->next.load()));
+//
+//        result = oldHead->data;
+//        delete oldHead;
+//        return true;
+//    }
+//};
+
+template<typename T, size_t STACK_SIZE>
+class ThreadSafeStack {
 private:
-    struct Node {
-        T data;
-        std::atomic<Node *> next;
+    std::array<T, STACK_SIZE> data{};
+    size_t top{};
 
-        explicit Node(const T &value) : data(value), next(nullptr) {}
-    };
-
-    std::atomic<Node *> head{nullptr};
+    std::mutex guard{};
 public:
-    ~LockFreeStack() {
-        while (Node *oldHead = head.load()) {
-            head.store(oldHead->next);
-            delete oldHead;
-        }
-    }
 
     void push(const T &value) {
-        Node *newNode = new Node(value);
-        Node *currentHead = head.load();
-
-        do {
-            newNode->next.store(head.load());
-        } while (!head.compare_exchange_weak(currentHead, newNode));
+        std::lock_guard<std::mutex> lock(guard);
+        data[top++] = value;
     }
 
     bool pop(T &result) {
-        Node *oldHead = head.load();
-
-        do {
-            if (oldHead == nullptr) {
-                return false;
-            }
-        } while (!head.compare_exchange_weak(oldHead, oldHead->next.load()));
-
-        result = oldHead->data;
-        delete oldHead;
+        std::lock_guard<std::mutex> lock(guard);
+        result = data[--top];
         return true;
     }
 };
 
 using st = Stack<Move, DEFAULT_STACK_SIZE>;
 
-LockFreeStack<st *> GlobalStacks{};
+ThreadSafeStack<st *, 1024> GlobalStacks{};
 
 namespace cpu {
     uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap) {
