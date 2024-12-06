@@ -4,6 +4,7 @@
 #include <cuda_runtime.h>
 #include <cassert>
 #include <stdexcept>
+#include <device_atomic_functions.hpp>
 
 #ifndef _MSC_VER 
 

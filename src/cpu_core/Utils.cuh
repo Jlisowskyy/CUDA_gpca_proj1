@@ -5,6 +5,8 @@
 #ifndef SRC_UTILS_CUH
 #define SRC_UTILS_CUH
 
+#include "../cuda_core/Helpers.cuh"
+
 #include <string>
 
 /**
