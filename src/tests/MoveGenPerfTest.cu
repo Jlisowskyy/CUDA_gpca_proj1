@@ -28,8 +28,8 @@
 #include <chrono>
 #include <format>
 
-static constexpr __uint32_t RETRIES = 2;
-static constexpr __uint32_t MAX_DEPTH = 100;
+static constexpr uint32_t RETRIES = 2;
+static constexpr uint32_t MAX_DEPTH = 100;
 
 /**
  * @brief Displays performance results of move generation tests.
@@ -38,7 +38,7 @@ static constexpr __uint32_t MAX_DEPTH = 100;
  * @param boardEvaluated Total number of chess boards processed
  * @param movesGenerated Total number of moves generated
  */
-void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, __uint64_t movesGenerated) {
+void DisplayPerfResults(const double seconds, const uint64_t boardEvaluated, uint64_t movesGenerated) {
     const double milliseconds = seconds * 1000.0;
     const double boardsEvaluatedPerMs = static_cast<double>(boardEvaluated) / milliseconds;
     const double boardsEvaluatedPerS = boardsEvaluatedPerMs * 1000.0;
@@ -63,13 +63,13 @@ void DisplayPerfResults(const double seconds, const __uint64_t boardEvaluated, _
  * @param seconds Total test execution time in seconds
  * @param results Vector of performance result entries
  */
-void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64_t> &results) {
-    __uint64_t boardEvaluated{};
-    __uint64_t movesGenerated{};
-    for (const __uint64_t result: results) {
-        const auto pScore = (const __uint32_t *) (&result);
-        const __uint32_t bEval = pScore[0];
-        const __uint32_t mGen = pScore[1];
+void DisplayPerfResults(const double seconds, const thrust::host_vector<uint64_t> &results) {
+    uint64_t boardEvaluated{};
+    uint64_t movesGenerated{};
+    for (const uint64_t result: results) {
+        const auto pScore = (const uint32_t *) (&result);
+        const uint32_t bEval = pScore[0];
+        const uint32_t mGen = pScore[1];
 
         boardEvaluated += bEval;
         movesGenerated += mGen;
@@ -96,11 +96,11 @@ void DisplayPerfResults(const double seconds, const thrust::host_vector<__uint64
  *
  * @note Performs multiple test retries to ensure consistent results
  */
-template<class FuncT, __uint32_t BATCH_SIZE>
-void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
+template<class FuncT, uint32_t BATCH_SIZE>
+void SimpleTester(FuncT func, uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
                   const std::vector<std::string> &fenDb,
-                  const std::vector<__uint32_t> &seeds) {
-    const __uint32_t blocks = threadsAvailable / BATCH_SIZE;
+                  const std::vector<uint32_t> &seeds) {
+    const uint32_t blocks = threadsAvailable / BATCH_SIZE;
     const auto sizeThreads = blocks * BATCH_SIZE;
 
     assert(sizeThreads == threadsAvailable && "Wrongly generated block/threads");
@@ -108,12 +108,12 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
 
     std::vector<cuda_Board> boards(sizeThreads);
 
-    for (__uint32_t i = 0; i < sizeThreads; ++i) {
+    for (uint32_t i = 0; i < sizeThreads; ++i) {
         boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
     }
 
-    thrust::device_vector<__uint32_t> dSeeds = seeds;
-    thrust::device_vector<__uint64_t> dResults(sizeThreads);
+    thrust::device_vector<uint32_t> dSeeds = seeds;
+    thrust::device_vector<uint64_t> dResults(sizeThreads);
     thrust::device_vector<cuda_Move> dMoves(sizeThreads * 256);
 
     auto *packedBoard = new DefaultPackedBoardT(boards);
@@ -123,7 +123,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
 
     const auto t1 = std::chrono::high_resolution_clock::now();
 
-    for (__uint32_t i = 0; i < RETRIES; ++i) {
+    for (uint32_t i = 0; i < RETRIES; ++i) {
         CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
 
         func<<<blocks, BATCH_SIZE>>>(d_boards,
@@ -135,7 +135,7 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
     GUARDED_SYNC();
 
     const auto t2 = std::chrono::high_resolution_clock::now();
-    thrust::host_vector<__uint64_t> hResults = dResults;
+    thrust::host_vector<uint64_t> hResults = dResults;
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     DisplayPerfResults(seconds, hResults);
@@ -160,29 +160,29 @@ void SimpleTester(FuncT func, __uint32_t threadsAvailable, const cudaDeviceProp 
  * @note Designed to handle larger numbers of boards with more granular processing
  */
 template<class FuncT>
-void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
-                 const std::vector<__uint32_t> &seeds) {
+void SplitTester(FuncT func, uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
+                 const std::vector<uint32_t> &seeds) {
     std::vector<cuda_Board> boards(totalBoardsToProcess);
 
-    for (__uint32_t i = 0; i < totalBoardsToProcess; ++i) {
+    for (uint32_t i = 0; i < totalBoardsToProcess; ++i) {
         boards[i] = cuda_Board(cpu::TranslateFromFen(fenDb[i]));
     }
 
-    thrust::device_vector<__uint32_t> dSeeds = seeds;
-    thrust::device_vector<__uint64_t> dResults(totalBoardsToProcess);
+    thrust::device_vector<uint32_t> dSeeds = seeds;
+    thrust::device_vector<uint64_t> dResults(totalBoardsToProcess);
     auto *packedBoard = new DefaultPackedBoardT(boards);
 
     DefaultPackedBoardT *d_boards;
     CUDA_ASSERT_SUCCESS(cudaMalloc(&d_boards, sizeof(DefaultPackedBoardT)));
 
-    const __uint32_t bIdxRange = totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE;
+    const uint32_t bIdxRange = totalBoardsToProcess / SINGLE_RUN_BOARDS_SIZE;
 
     const auto t1 = std::chrono::high_resolution_clock::now();
-    for (__uint32_t i = 0; i < RETRIES; ++i) {
+    for (uint32_t i = 0; i < RETRIES; ++i) {
         CUDA_ASSERT_SUCCESS(cudaMemcpy(d_boards, packedBoard, sizeof(DefaultPackedBoardT), cudaMemcpyHostToDevice));
 
-        for (__uint32_t bIdx = 0; bIdx < bIdxRange;) {
-            for (__uint32_t j = 0; j < 4 && bIdx < bIdxRange; ++j, ++bIdx) {
+        for (uint32_t bIdx = 0; bIdx < bIdxRange;) {
+            for (uint32_t j = 0; j < 4 && bIdx < bIdxRange; ++j, ++bIdx) {
                 func<<<SINGLE_RUN_BLOCK_SIZE, SPLIT_BATCH_NUM_THREADS>>>(
                         d_boards,
                         thrust::raw_pointer_cast(dSeeds.data()) + bIdx * SINGLE_RUN_BOARDS_SIZE,
@@ -194,7 +194,7 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
     }
 
     const auto t2 = std::chrono::high_resolution_clock::now();
-    thrust::host_vector<__uint64_t> hResults = dResults;
+    thrust::host_vector<uint64_t> hResults = dResults;
 
     const double seconds = std::chrono::duration<double>(t2 - t1).count();
     DisplayPerfResults(seconds, hResults);
@@ -214,8 +214,8 @@ void SplitTester(FuncT func, __uint32_t totalBoardsToProcess, const std::vector<
  * @param seeds Random seeds for test reproducibility
  */
 void
-MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
-                 const std::vector<__uint32_t> &seeds) {
+MoveGenPerfGPUV1(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps, const std::vector<std::string> &fenDb,
+                 const std::vector<uint32_t> &seeds) {
 
     std::cout << "Running MoveGen V1 Performance Test on GPU" << std::endl;
     SimpleTester<decltype(SimulateGamesKernel), SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE>(SimulateGamesKernel,
@@ -233,8 +233,8 @@ MoveGenPerfGPUV1(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps,
  * @param fenDb Database of chess positions in FEN notation
  * @param seeds Random seeds for test reproducibility
  */
-void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
-                      const std::vector<__uint32_t> &seeds) {
+void MoveGenPerfGPUV2(uint32_t totalBoardsToProcess, const std::vector<std::string> &fenDb,
+                      const std::vector<uint32_t> &seeds) {
     std::cout << "Running MoveGen V2 Performance Test on GPU" << std::endl;
     SplitTester(SimulateGamesKernelSplitMoves, totalBoardsToProcess, fenDb, seeds);
 }
@@ -249,12 +249,12 @@ void MoveGenPerfGPUV2(__uint32_t totalBoardsToProcess, const std::vector<std::st
  * @note Uses static constexpr values for blocks and block size
  */
 void TestSplitIndexes() {
-    static constexpr __uint32_t BLOCKS = 2;
-    static constexpr __uint32_t BLOCK_SIZE = 384;
+    static constexpr uint32_t BLOCKS = 2;
+    static constexpr uint32_t BLOCK_SIZE = 384;
 
     std::cout << "Testing split indexes:" << std::endl;
-    for (__uint32_t bx = 0; bx < BLOCKS; ++bx) {
-        for (__uint32_t tx = 0; tx < BLOCK_SIZE; ++tx) {
+    for (uint32_t bx = 0; bx < BLOCKS; ++bx) {
+        for (uint32_t tx = 0; tx < BLOCK_SIZE; ++tx) {
             const auto [plainIdx, boardIdx, figIdx, counterIdx] = CalcSplitIdx(tx, bx, BLOCK_SIZE);
 
             std::cout << std::format("[ bx: {}, tx: {} ] : [ plainIdx: {}, boardIdx: {}, figIdx: {}, counterIdx: {}]",
@@ -279,7 +279,7 @@ void TestSplitIndexes() {
  *
  * @throws std::runtime_error If insufficient chess positions are available
  */
-void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void MoveGenPerfTest_(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     const auto fenDb = LoadFenDb();
     const auto seeds = GenSeeds(threadsAvailable);
 
@@ -313,7 +313,7 @@ void MoveGenPerfTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceP
  * @param threadsAvailable Total number of CUDA threads for testing
  * @param deviceProps CUDA device properties
  */
-void MoveGenPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void MoveGenPerfTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         MoveGenPerfTest_(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {

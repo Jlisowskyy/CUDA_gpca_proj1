@@ -79,11 +79,11 @@ namespace cpu {
      * @param board
      * @return
      */
-    [[nodiscard]] __uint32_t SimulateGame(const external_board &board);
+    [[nodiscard]] uint32_t SimulateGame(const external_board &board);
 
-    void AllocateStacks(__uint32_t count);
+    void AllocateStacks(uint32_t count);
 
-    void DeallocStacks(__uint32_t count);
+    void DeallocStacks(uint32_t count);
 }
 
 #endif //SRC_CPUMOVEGEN_H

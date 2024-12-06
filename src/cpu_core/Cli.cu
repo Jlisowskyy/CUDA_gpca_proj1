@@ -171,11 +171,11 @@ Please provide input:)";
     std::cout << gameTypeMsg << std::endl;
 }
 
-__uint32_t Cli::_readSecondsPerMove() {
+uint32_t Cli::_readSecondsPerMove() {
     static constexpr std::string_view msg = "Provide time for the engine too analyze single move (MILLISECONDS):";
 
     std::string input{};
-    __uint32_t result{};
+    uint32_t result{};
 
     do {
         std::cout << msg << std::endl;
@@ -191,9 +191,9 @@ __uint32_t Cli::_readSecondsPerMove() {
     return result;
 }
 
-__uint32_t Cli::_readPlayingColor() {
+uint32_t Cli::_readPlayingColor() {
     static constexpr std::string_view msg = "Pick your color to play: (white, black, b, w)";
-    static std::unordered_map<std::string, __uint32_t> inputMap{
+    static std::unordered_map<std::string, uint32_t> inputMap{
             {"white", WHITE},
             {"w",     WHITE},
             {"black", BLACK},

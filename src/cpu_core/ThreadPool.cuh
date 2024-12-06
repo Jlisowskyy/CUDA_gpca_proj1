@@ -24,7 +24,7 @@ public:
     /**
      * @brief Constant indicating invalid thread number
      */
-    static constexpr __uint32_t INVALID_THREAD_NUM = 0;
+    static constexpr uint32_t INVALID_THREAD_NUM = 0;
 
     // ------------------------------
     // Class creation
@@ -35,7 +35,7 @@ public:
      *
      * @param numThreads Number of threads to manage
      */
-    explicit ThreadPool(const __uint32_t numThreads) : m_numThreadsToSpawn(numThreads) {
+    explicit ThreadPool(const uint32_t numThreads) : m_numThreadsToSpawn(numThreads) {
         assert(m_numThreadsToSpawn != INVALID_THREAD_NUM && "ThreadPool: numThreads cannot be 0");
     }
 
@@ -66,7 +66,7 @@ public:
         assert(m_numThreadsToSpawn != INVALID_THREAD_NUM && "Detected second run usage on the thread pool");
 
         m_threads.reserve(m_numThreadsToSpawn);
-        for (__uint32_t idx = 0; idx < m_numThreadsToSpawn; ++idx) {
+        for (uint32_t idx = 0; idx < m_numThreadsToSpawn; ++idx) {
             m_threads.push_back(new std::thread(func, idx, std::forward<Args>(args)...));
         }
 
@@ -93,7 +93,7 @@ public:
      *
      * @param numThreads New number of threads
      */
-    void Reset(const __uint32_t numThreads) {
+    void Reset(const uint32_t numThreads) {
         assert(m_threads.empty() && "Detected early reset on thread pool");
 
         m_numThreadsToSpawn = numThreads;
@@ -108,7 +108,7 @@ protected:
     // Class fields
     // ------------------------------
 
-    __uint32_t m_numThreadsToSpawn{};
+    uint32_t m_numThreadsToSpawn{};
     std::vector<std::thread *> m_threads{};
 };
 

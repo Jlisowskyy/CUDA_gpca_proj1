@@ -57,7 +57,7 @@ static constexpr const char *MAIN_TEST_FEN = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1
  * Controls how long move sequences will be explored during
  * comprehensive move generation validation.
  */
-static constexpr __uint32_t TEST_DEPTH = 4;
+static constexpr uint32_t TEST_DEPTH = 4;
 
 /**
  * @brief Macro for flexible message logging during testing
@@ -100,7 +100,7 @@ static constexpr bool WRITE_OUT = false;
 #endif
 
 /* THREAD POOL SIZE FOR TESTS */
-static constexpr __uint32_t NUM_TEST_THREADS = 64;
+static constexpr uint32_t NUM_TEST_THREADS = 64;
 
 // ------------------------------
 // Test kernels
@@ -120,7 +120,7 @@ void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves,
     };
 
     __shared__ stub sharedStack[DEFAULT_STACK_SIZE];
-    __shared__ __uint32_t counter;
+    __shared__ uint32_t counter;
     Stack<cuda_Move> stack((cuda_Move*)sharedStack, &counter);
 
     MoveGenerator<1> gen{(*board)[0], stack};
@@ -148,9 +148,9 @@ void __global__ GetGPUMovesKernelSplit(SmallPackedBoardT *board, cuda_Move *outM
         char bytes[sizeof(cuda_Move)];
     };
 
-    const __uint64_t figIdx = threadIdx.x % 6;
+    const uint64_t figIdx = threadIdx.x % 6;
     __shared__ stub sharedStack[DEFAULT_STACK_SIZE];
-    __shared__ __uint32_t counter;
+    __shared__ uint32_t counter;
     Stack<cuda_Move> stack((cuda_Move *) sharedStack, &counter, false);
 
     if (figIdx == 0) {
@@ -183,7 +183,7 @@ void __global__ GetGPUMovesKernelSplit(SmallPackedBoardT *board, cuda_Move *outM
  * @note Generates a complete move count by exploring all possible move sequences
  * up to the specified depth on the GPU. Utilizes basic simple algorithm.
  */
-void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
+void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth, uint64_t *outCount) {
     struct stub {
         char bytes[sizeof(cuda_Move)];
     };
@@ -206,7 +206,7 @@ void __global__ GetGPUMoveCountsKernel(SmallPackedBoardT *board, const int depth
  * @note Similar to GetGPUMoveCountsKernel, but distributes move counting across
  * multiple threads, with each thread handling moves for a specific piece type.
  */
-void __global__ GetGPUMoveCountsKernelSplit(SmallPackedBoardT *board, const int depth, __uint64_t *outCount) {
+void __global__ GetGPUMoveCountsKernelSplit(SmallPackedBoardT *board, const int depth, uint64_t *outCount) {
     struct stub {
         char bytes[sizeof(cuda_Move)];
     };
@@ -216,7 +216,7 @@ void __global__ GetGPUMoveCountsKernelSplit(SmallPackedBoardT *board, const int 
     MoveGenerator<1> gen{(*board)[0], stack};
 
     /* NOTE: threadIdx < 6 */
-    const __uint32_t figIdx = threadIdx.x;
+    const uint32_t figIdx = threadIdx.x;
 
     if (figIdx == 0) {
         stack.Clear();
@@ -251,7 +251,7 @@ void RunSplitKernel(SmallPackedBoardT *dBoard, cuda_Move *dMoves, int *dCount, c
     }
 };
 
-void RunBaseKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount,
+void RunBaseKernelMoveCount(SmallPackedBoardT *boards, const int depth, uint64_t *outCount,
                             cudaStream_t *stream = nullptr) {
     if (stream) {
         GetGPUMoveCountsKernel<<<1, 1, 0, *stream>>>(boards, depth, outCount);
@@ -260,7 +260,7 @@ void RunBaseKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64
     }
 }
 
-void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, __uint64_t *outCount,
+void RunSplitKernelMoveCount(SmallPackedBoardT *boards, const int depth, uint64_t *outCount,
                              cudaStream_t *stream = nullptr) {
     if (stream) {
         GetGPUMoveCountsKernelSplit<<<1, 6, 0, *stream>>>(boards, depth, outCount);
@@ -354,7 +354,7 @@ bool TestMoveCount(FuncT func,
     const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
     cuda_Board board(externalBoard);
 
-    thrust::device_vector<__uint64_t> dCount(1);
+    thrust::device_vector<uint64_t> dCount(1);
     thrust::device_vector<cuda_Move> dStack(16384);
 
     auto *packedBoard = new SmallPackedBoardT(std::vector{board});
@@ -366,8 +366,8 @@ bool TestMoveCount(FuncT func,
     CUDA_TRACE_ERROR(cudaGetLastError());
     GUARDED_SYNC();
 
-    thrust::host_vector<__uint64_t> hdCount = dCount;
-    const __uint64_t hCount = hdCount[0];
+    thrust::host_vector<uint64_t> hdCount = dCount;
+    const uint64_t hCount = hdCount[0];
 
     const auto cCount = cpu::CountMoves(externalBoard, depth);
 
@@ -425,7 +425,7 @@ std::string ValidateMoves(const std::string &fen,
         assert(result && "GPU move gen failed: received repeated move");
     }
 
-    __uint32_t errors{};
+    uint32_t errors{};
     std::string invalidMove{};
     for (const auto CPUmove: cMoves) {
         cuda_PackedMove convertedCPUMove{CPUmove[0]};
@@ -455,8 +455,8 @@ std::string ValidateMoves(const std::string &fen,
         }
 
         /* Prohibit unused bits */
-        static constexpr __uint32_t CheckTypeBit = (__uint32_t) 1 << 15;
-        static constexpr __uint32_t PackedIndexesMask = ~(CheckTypeBit);
+        static constexpr uint32_t CheckTypeBit = (uint32_t) 1 << 15;
+        static constexpr uint32_t PackedIndexesMask = ~(CheckTypeBit);
 
         if (gpuMove.GetPackedIndexes() != (PackedIndexesMask & CPUmove[1])) {
             const auto msg = std::format(
@@ -657,8 +657,8 @@ void RunSinglePosTest(FuncT func) {
     progBar.WriteLine("Testing move gen with whole fen db...");
 
     threadPool.RunThreads(
-            [&](const __uint32_t tid) {
-                for (__uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
+            [&](const uint32_t tid) {
+                for (uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
                     TestSinglePositionOutput(func, fens[idx], &progBar, WRITE_OUT);
                     progBar.Increment();
                 }
@@ -738,9 +738,9 @@ void RunDepthPosTest(FuncT funcCount, FuncT1 funcGen) {
  *
  * @throws std::exception If critical testing fails
  */
-void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]] const cudaDeviceProp &deviceProps) {
-    static constexpr __uint32_t EXTENDED_THREAD_STACK_SIZE = 16384;
-    static constexpr __uint32_t DEFAULT_THREAD_STACK_SIZE = 1024;
+void MoveGenTest_([[maybe_unused]] uint32_t threadsAvailable, [[maybe_unused]] const cudaDeviceProp &deviceProps) {
+    static constexpr uint32_t EXTENDED_THREAD_STACK_SIZE = 16384;
+    static constexpr uint32_t DEFAULT_THREAD_STACK_SIZE = 1024;
 
     std::cout << "MoveGen Test" << std::endl;
 
@@ -787,7 +787,7 @@ void MoveGenTest_([[maybe_unused]] __uint32_t threadsAvailable, [[maybe_unused]]
  *
  * Includes setup for extended thread stack size and detailed error tracking.
  */
-void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void MoveGenTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         MoveGenTest_(threadsAvailable, deviceProps);
     } catch (const std::exception &e) {

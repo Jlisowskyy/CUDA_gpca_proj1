@@ -20,21 +20,21 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t GetBoardIndex(int color) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint32_t GetBoardIndex(int color) {
         return BIT_BOARDS_PER_COLOR * color + ROOK_INDEX;
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static __uint64_t
-    GetMoves(__uint32_t msbInd, __uint64_t fullBoard, [[maybe_unused]] __uint64_t = 0) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static uint64_t
+    GetMoves(uint32_t msbInd, uint64_t fullBoard, [[maybe_unused]] uint64_t = 0) {
         return G_ROOK_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
     }
 
-    template<__uint32_t NUM_BOARDS>
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr __uint32_t
-    GetMatchingCastlingIndex(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher, __uint64_t figBoard) {
-        __uint32_t rv{};
+    template<uint32_t NUM_BOARDS>
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint32_t
+    GetMatchingCastlingIndex(const cuda_PackedBoard<NUM_BOARDS>::BoardFetcher &fetcher, uint64_t figBoard) {
+        uint32_t rv{};
 
-        __uint32_t index = fetcher.MovingColor() * CASTLINGS_PER_COLOR;
+        uint32_t index = fetcher.MovingColor() * CASTLINGS_PER_COLOR;
         rv += (1 + index) * (fetcher.GetCastlingRight(index) && ((CASTLING_ROOK_MAPS[index] & figBoard) != 0));
 
         index += 1;

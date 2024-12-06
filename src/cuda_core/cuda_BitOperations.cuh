@@ -7,8 +7,8 @@
 #include <cuda_device_runtime_api.h>
 
 /* This values should be used inside every shifting operation to ensure correct types under the operation */
-__device__ __constant__ static constexpr __uint64_t cuda_MinMsbPossible = static_cast<__uint64_t>(1);
-__device__ __constant__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible << 63;
+__device__ __constant__ static constexpr uint64_t cuda_MinMsbPossible = static_cast<uint64_t>(1);
+__device__ __constant__ static constexpr uint64_t cuda_MaxMsbPossible = cuda_MinMsbPossible << 63;
 
 /*
  *  This header collects some functions used to manipulate bits in a 64-bit unsigned integers.
@@ -20,12 +20,12 @@ __device__ __constant__ static constexpr __uint64_t cuda_MaxMsbPossible = cuda_M
  * */
 
 /* Function efficiently computes MsbPos */
-FAST_DCALL_ALWAYS int ExtractMsbPos(const __uint64_t x) { return __clzll(static_cast<int64_t>(x)); }
+FAST_DCALL_ALWAYS int ExtractMsbPos(const uint64_t x) { return __clzll(static_cast<int64_t>(x)); }
 
-FAST_CALL_ALWAYS int ExtractMsbPosNeutral(const __uint64_t x) {
+FAST_CALL_ALWAYS int ExtractMsbPosNeutral(const uint64_t x) {
     if (x == 0) return 63;
 
-    __uint64_t val = x;
+    uint64_t val = x;
     int pos = 0;
 
     /* Binary search approach to find MSB position */
@@ -57,12 +57,12 @@ FAST_CALL_ALWAYS int ExtractMsbPosNeutral(const __uint64_t x) {
     return 63 - pos;
 }
 
-HYBRID constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
+HYBRID constexpr int ExtractMsbPosConstexpr(const uint64_t x) {
     if (x == 0) {
         return 0;
     }
 
-    __uint64_t cursor = cuda_MaxMsbPossible;
+    uint64_t cursor = cuda_MaxMsbPossible;
     int count = 0;
 
     while ((cursor & x) == 0) {
@@ -74,62 +74,62 @@ HYBRID constexpr int ExtractMsbPosConstexpr(const __uint64_t x) {
 }
 
 /* Nice way to reverse from MsbPos to LsbPos and other way around */
-FAST_CALL constexpr __uint32_t ConvertToReversedPos(const __uint32_t x) {
+FAST_CALL constexpr uint32_t ConvertToReversedPos(const uint32_t x) {
     return x ^ 63; // equals to 63 - x;
 }
 
 template<typename NumT>
-FAST_CALL constexpr void SetBitBoardBit(NumT &bitBoard, const __uint32_t pos, const bool value) {
+FAST_CALL constexpr void SetBitBoardBit(NumT &bitBoard, const uint32_t pos, const bool value) {
     bitBoard = (value << pos) | (bitBoard & ~(cuda_MinMsbPossible << pos));
 }
 
-FAST_CALL constexpr __uint32_t SwapColor(const __uint32_t col) { return col ^ 1; }
+FAST_CALL constexpr uint32_t SwapColor(const uint32_t col) { return col ^ 1; }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
-FAST_DCALL_ALWAYS int ExtractMsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }
+FAST_DCALL_ALWAYS int ExtractMsbReversedPos(const uint64_t x) { return ConvertToReversedPos(ExtractMsbPos(x)); }
 
 /* Function efficiently computes LsbPos */
-FAST_DCALL_ALWAYS int ExtractLsbPos(const __uint64_t x) { return __ffsll(static_cast<__int64_t>(x)); }
+FAST_DCALL_ALWAYS int ExtractLsbPos(const uint64_t x) { return __ffsll(static_cast<int64_t>(x)); }
 
 /* Simply Runs 'ExtractMsbPos' and applies 'ConvertToReversedPos' on it */
-FAST_DCALL_ALWAYS int ExtractLsbReversedPos(const __uint64_t x) { return ConvertToReversedPos(ExtractLsbPos(x)); }
+FAST_DCALL_ALWAYS int ExtractLsbReversedPos(const uint64_t x) { return ConvertToReversedPos(ExtractLsbPos(x)); }
 
 /* Function does nothing, simply returns given value */
 FAST_CALL constexpr int NoOp(const int m) { return m; }
 
 /* Functions returns BitMap with MsbPos as 1 */
-FAST_DCALL_ALWAYS __uint64_t ExtractMsbBitBuiltin(const __uint64_t x) {
+FAST_DCALL_ALWAYS uint64_t ExtractMsbBitBuiltin(const uint64_t x) {
     return cuda_MaxMsbPossible >> ExtractMsbPos(x);
 }
 
 /* Functions returns BitMap with LsbPos as 1 */
-FAST_DCALL_ALWAYS __uint64_t ExtractLsbBitBuiltin(const __uint64_t x) {
+FAST_DCALL_ALWAYS uint64_t ExtractLsbBitBuiltin(const uint64_t x) {
     return cuda_MinMsbPossible << ExtractLsbReversedPos(x);
 }
 
 /* Functions returns BitMap with LsbPos as 1 */
-FAST_CALL constexpr __uint64_t ExtractLsbOwn1(const __uint64_t x) { return x & -x; }
+FAST_CALL constexpr uint64_t ExtractLsbOwn1(const uint64_t x) { return x & -x; }
 
 /* Functions returns BitMap with MsbPos as 1, with additional check whether given argument is 0 */
-FAST_DCALL_ALWAYS __uint64_t ExtractMsbBit(const __uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
+FAST_DCALL_ALWAYS uint64_t ExtractMsbBit(const uint64_t x) { return x == 0 ? 0 : ExtractMsbBitBuiltin(x); }
 
-FAST_CALL constexpr __uint64_t ExtractMsbBitConstexpr(const __uint64_t x) {
+FAST_CALL constexpr uint64_t ExtractMsbBitConstexpr(const uint64_t x) {
     return x == 0 ? 0 : (cuda_MaxMsbPossible >> ExtractMsbPosConstexpr(x));
 }
 
 /* Functions returns BitMap with LsbPos as 1 */
-FAST_CALL constexpr __uint64_t ExtractLsbBit(const __uint64_t x) { return ExtractLsbOwn1(x); }
+FAST_CALL constexpr uint64_t ExtractLsbBit(const uint64_t x) { return ExtractLsbOwn1(x); }
 
 /* Function simply returns a map with remove all bits that are present on b*/
-FAST_CALL constexpr __uint64_t ClearAFromIntersectingBits(const __uint64_t a, const __uint64_t b) {
+FAST_CALL constexpr uint64_t ClearAFromIntersectingBits(const uint64_t a, const uint64_t b) {
     return a ^ (a & b);
 }
 
 /* Function simply counts ones on the given BitMap*/
-FAST_DCALL_ALWAYS int CountOnesInBoard(const __uint64_t bitMap) { return __popcll(bitMap); }
+FAST_DCALL_ALWAYS int CountOnesInBoard(const uint64_t bitMap) { return __popcll(bitMap); }
 
 /* Count same bits */
-FAST_DCALL_ALWAYS int CountSameBits(const __uint64_t a, const __uint64_t b) {
+FAST_DCALL_ALWAYS int CountSameBits(const uint64_t a, const uint64_t b) {
     return __popcll((a & b) | ((~a) & (~b)));
 }
 
@@ -141,23 +141,23 @@ FAST_DCALL_ALWAYS int CountSameBits(const __uint64_t a, const __uint64_t b) {
 
 template<class IndexableT>
 HYBRID constexpr void
-GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, IndexableT &container,
-                                 __uint32_t &containerPos) {
+GenerateBitPermutationsRecursion(const uint64_t number, const int bitPos, IndexableT &container,
+                                 uint32_t &containerPos) {
     if (bitPos == -1 || number == 0) {
         return;
     }
-    __uint64_t nextBit{};
+    uint64_t nextBit{};
 
     for (int i = bitPos; i >= 0; --i) {
-        if (const __uint64_t bitMap = 1LLU << i; (bitMap & number) != 0) {
+        if (const uint64_t bitMap = 1LLU << i; (bitMap & number) != 0) {
             GenerateBitPermutationsRecursion(number ^ bitMap, i - 1, container, containerPos);
             nextBit = bitMap;
             break;
         }
     }
 
-    const __uint32_t rangeEnd = containerPos;
-    for (__uint32_t i = 0; i < rangeEnd; ++i) {
+    const uint32_t rangeEnd = containerPos;
+    for (uint32_t i = 0; i < rangeEnd; ++i) {
         container[rangeEnd + i] = container[i] | nextBit;
     }
 
@@ -165,9 +165,9 @@ GenerateBitPermutationsRecursion(const __uint64_t number, const int bitPos, Inde
 }
 
 template<class IndexableT>
-FAST_CALL constexpr __uint32_t GenerateBitPermutations(const __uint64_t number, IndexableT &container) {
+FAST_CALL constexpr uint32_t GenerateBitPermutations(const uint64_t number, IndexableT &container) {
     container[0] = 0;
-    __uint32_t index = 1;
+    uint32_t index = 1;
 
     GenerateBitPermutationsRecursion(number, 63, container, index);
     return index;

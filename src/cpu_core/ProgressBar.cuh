@@ -24,7 +24,7 @@ public:
      * @param total Total number of steps in the task
      * @param width Width of the progress bar in console characters
      */
-    ProgressBar(__uint32_t total, __uint32_t width) : m_total(total), m_current(0), m_width(width),
+    ProgressBar(uint32_t total, uint32_t width) : m_total(total), m_current(0), m_width(width),
                                                       m_numCharacters(0) {}
 
     // ------------------------------
@@ -46,7 +46,7 @@ public:
      *
      * @param increment Number of steps to advance (default 1)
      */
-    void Increment(__uint32_t increment = 1) {
+    void Increment(uint32_t increment = 1) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         m_current += increment;
@@ -55,7 +55,7 @@ public:
             throw std::runtime_error("Extended progress bar points!");
         }
 
-        const auto newNumCharacters = static_cast<__uint32_t>((static_cast<double>(m_current) / m_total) * m_width);
+        const auto newNumCharacters = static_cast<uint32_t>((static_cast<double>(m_current) / m_total) * m_width);
 
         if (newNumCharacters > m_numCharacters) {
             m_numCharacters = newNumCharacters;
@@ -101,11 +101,11 @@ protected:
 
         std::cout << "[";
 
-        for (__uint32_t i = 0; i < m_numCharacters; ++i) {
+        for (uint32_t i = 0; i < m_numCharacters; ++i) {
             std::cout << "#";
         }
 
-        for (__uint32_t i = m_numCharacters; i < m_width; ++i) {
+        for (uint32_t i = m_numCharacters; i < m_width; ++i) {
             std::cout << " ";
         }
 
@@ -126,10 +126,10 @@ protected:
     // Class fields
     // ------------------------------
 
-    __uint32_t m_total;
-    __uint32_t m_current;
-    __uint32_t m_width;
-    __uint32_t m_numCharacters;
+    uint32_t m_total;
+    uint32_t m_current;
+    uint32_t m_width;
+    uint32_t m_numCharacters;
 
     std::mutex m_mutex{};
 };

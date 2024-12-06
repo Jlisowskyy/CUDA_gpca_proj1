@@ -21,8 +21,8 @@
 #include <string>
 #include <cassert>
 
-static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
-static constexpr __uint32_t NUM_CPU_WORKERS = 128;
+static constexpr uint32_t PROG_BAR_STEP_MS = 50;
+static constexpr uint32_t NUM_CPU_WORKERS = 128;
 
 void InitializeRookMap() {
     FancyMagicRookMap hostMap{
@@ -39,11 +39,11 @@ CpuCore::~CpuCore() {
     cpu::DeallocStacks(5);
 }
 
-void CpuCore::runCVC(const __uint32_t moveTime) {
+void CpuCore::runCVC(const uint32_t moveTime) {
     _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU1>>(moveTime);
 }
 
-void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
+void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
     /* prepare components */
     cuda_Board board = *m_board;
 
@@ -88,7 +88,7 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
 
     /* Decide who won the game */
     if (ported_translation::IsCheck(board)) {
-        const __uint32_t winningColor = SwapColor(board.MovingColor);
+        const uint32_t winningColor = SwapColor(board.MovingColor);
         const std::string winningColorStr = winningColor == WHITE ? "WHITE" : "BLACK";
 
         std::cout << std::string(80, '-') << std::endl << std::endl;
@@ -107,7 +107,7 @@ cuda_Move CpuCore::_readPlayerMove(const std::vector<cuda_Move> &correctMoves) {
     std::string input{};
     cuda_Move outMove{};
     bool isValid = false;
-    __uint32_t retries{};
+    uint32_t retries{};
 
     do {
         std::cout << msg << std::endl;
@@ -256,12 +256,12 @@ bool CpuCore::_validateMove(const std::vector<cuda_Move> &validMoves, const cuda
                        });
 }
 
-void CpuCore::_runProcessingAnim(__uint32_t moveTime) {
-    __uint32_t timeLeft = moveTime;
+void CpuCore::_runProcessingAnim(uint32_t moveTime) {
+    uint32_t timeLeft = moveTime;
 
     ProgressBar bar(moveTime, 50);
     while (timeLeft) {
-        const __uint32_t curStep = std::min(PROG_BAR_STEP_MS, timeLeft);
+        const uint32_t curStep = std::min(PROG_BAR_STEP_MS, timeLeft);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(curStep));
 
@@ -287,14 +287,14 @@ void CpuCore::runInfinite() {
 }
 
 void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU1> &engine) {
-    static constexpr __uint32_t SYNC_INTERVAL = 500;
+    static constexpr uint32_t SYNC_INTERVAL = 500;
 
     std::string input{};
 
     bool runThread = true;
     ThreadPool moveSyncThread(1);
-    moveSyncThread.RunThreads([&](const __uint32_t idx) {
-        __uint32_t timePassedMS{};
+    moveSyncThread.RunThreads([&](const uint32_t idx) {
+        uint32_t timePassedMS{};
 
         while (runThread) {
             std::this_thread::sleep_for(std::chrono::milliseconds(SYNC_INTERVAL));
@@ -323,17 +323,17 @@ void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU1> &engine) {
     moveSyncThread.Wait();
 }
 
-void CpuCore::runCVC1(__uint32_t moveTime) {
+void CpuCore::runCVC1(uint32_t moveTime) {
     _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::CPU>>(moveTime);
 
 }
 
-void CpuCore::runCVC2(__uint32_t moveTime) {
+void CpuCore::runCVC2(uint32_t moveTime) {
     _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU0>>(moveTime);
 }
 
 template<class ENGINE_T1, class ENGINE_T2>
-void CpuCore::_runCVC(__uint32_t moveTime) {
+void CpuCore::_runCVC(uint32_t moveTime) {
     /* prepare components */
     cuda_Board board = *m_board;
 
@@ -342,7 +342,7 @@ void CpuCore::_runCVC(__uint32_t moveTime) {
     ENGINE_T2 engine1{board, ENGINE_T2::GetPreferredThreadsCount()};
 
     /* Pick randomly who should begin */
-    __uint32_t engineIdx = std::mt19937(std::chrono::steady_clock::now().time_since_epoch().count())() % 2;
+    uint32_t engineIdx = std::mt19937(std::chrono::steady_clock::now().time_since_epoch().count())() % 2;
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
@@ -392,7 +392,7 @@ void CpuCore::_runCVC(__uint32_t moveTime) {
 
     /* Decide who won the game */
     if (ported_translation::IsCheck(board)) {
-        const __uint32_t winningColor = SwapColor(board.MovingColor);
+        const uint32_t winningColor = SwapColor(board.MovingColor);
         const std::string winningColorStr = winningColor == WHITE ? "WHITE" : "BLACK";
 
         std::cout << std::string(80, '-') << std::endl << std::endl;

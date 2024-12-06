@@ -5,7 +5,7 @@
 #include "BaseMoveHashMap.cuh"
 #include "RookMapGenerator.cuh"
 
-__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK_PARAMS{
+__device__ static constexpr cuda_Array<uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK_PARAMS{
         1170940307609551394LLU,
         864693331908632740LLU,
         18577430269659234LLU,
@@ -72,7 +72,7 @@ __device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> MAGICS_ROOK
         612489824202555536LLU,
 };
 
-__device__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> OFFSETS_ROOK_PARAMS{
+__device__ static constexpr cuda_Array<uint64_t, BIT_BOARD_FIELDS> OFFSETS_ROOK_PARAMS{
         12,
         11,
         11,
@@ -150,9 +150,9 @@ public:
     /* WORKAROUND: needed temp constructor for deviceMap initialization */
     HYBRID constexpr explicit FancyMagicRookMap(bool) {
         for (int i = 0; i < static_cast<int>(BIT_BOARD_FIELDS); ++i) {
-            const __uint32_t boardIndex = ConvertToReversedPos(i);
-            const __uint64_t magic = MAGICS_ROOK_PARAMS[i];
-            const __uint64_t shift = OFFSETS_ROOK_PARAMS[i];
+            const uint32_t boardIndex = ConvertToReversedPos(i);
+            const uint64_t magic = MAGICS_ROOK_PARAMS[i];
+            const uint64_t shift = OFFSETS_ROOK_PARAMS[i];
 
             m_maps[i] = _underlyingMapT(RookMapGenerator::InitMasks(boardIndex), magic, shift);
 
@@ -168,8 +168,8 @@ public:
 
     constexpr FancyMagicRookMap(const FancyMagicRookMap &) = default;
 
-    [[nodiscard]] FAST_DCALL_ALWAYS constexpr __uint64_t GetMoves(__uint32_t msbInd, __uint64_t fullBoard) const {
-        const __uint64_t neighbors = fullBoard & m_maps[msbInd].getFullMask();
+    [[nodiscard]] FAST_DCALL_ALWAYS constexpr uint64_t GetMoves(uint32_t msbInd, uint64_t fullBoard) const {
+        const uint64_t neighbors = fullBoard & m_maps[msbInd].getFullMask();
         return m_maps[msbInd][neighbors];
     }
 

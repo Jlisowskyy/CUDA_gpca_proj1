@@ -60,21 +60,21 @@ public:
      *
      * @param moveTime Maximum thinking time for each engine move in milliseconds
      */
-    void runCVC(__uint32_t moveTime);
+    void runCVC(uint32_t moveTime);
 
     /**
      * @brief Runs a Computer vs Computer (CVC) game mode (BEST GPU VS CPU)
      *
      * @param moveTime Maximum thinking time for each engine move in milliseconds
      */
-    void runCVC1(__uint32_t moveTime);
+    void runCVC1(uint32_t moveTime);
 
     /**
      * @brief Runs a Computer vs Computer (CVC) game mode (GPU0 VS GPU1)
      *
      * @param moveTime Maximum thinking time for each engine move in milliseconds
      */
-    void runCVC2(__uint32_t moveTime);
+    void runCVC2(uint32_t moveTime);
 
     /**
      * @brief Runs a Player vs Computer (PVC) game mode
@@ -82,7 +82,7 @@ public:
      * @param moveTime Maximum thinking time for the computer's moves
      * @param playerColor Color of the human player (WHITE or BLACK)
      */
-    void runPVC(__uint32_t moveTime, __uint32_t playerColor);
+    void runPVC(uint32_t moveTime, uint32_t playerColor);
 
     /**
      * @brief Runs the engine in infinite search mode
@@ -160,7 +160,7 @@ private:
      *
      * @note Also stands as blocking mechanism to pass the time
      */
-    static void _runProcessingAnim(__uint32_t moveTime);
+    static void _runProcessingAnim(uint32_t moveTime);
 
     /**
      * @brief Waits for user input to stop infinite search mode
@@ -170,7 +170,7 @@ private:
     static void _waitForInfiniteStop(MctsEngine <EngineType::GPU1> &engine);
 
     template<class ENGINE_T1, class ENGINE_T2>
-    void _runCVC(__uint32_t moveTime);
+    void _runCVC(uint32_t moveTime);
 
     // ------------------------------
     // Class fields

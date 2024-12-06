@@ -9,9 +9,9 @@
 #include "MoveGenerationUtils.cuh"
 #include "Helpers.cuh"
 
-__device__ static constexpr __uint32_t rook_DirectedMaskCount = 4;
-__device__ static constexpr __uint32_t MaxRookPossibleNeighborsWoutOverlap = 144;
-__device__ static constexpr __uint32_t MaxRookPossibleNeighborsWithOverlap = 4096;
+__device__ static constexpr uint32_t rook_DirectedMaskCount = 4;
+__device__ static constexpr uint32_t MaxRookPossibleNeighborsWoutOverlap = 144;
+__device__ static constexpr uint32_t MaxRookPossibleNeighborsWithOverlap = 4096;
 __device__ static constexpr int NorthOffset = 8;
 __device__ static constexpr int SouthOffset = -8;
 __device__ static constexpr int WestOffset = -1;
@@ -19,7 +19,7 @@ __device__ static constexpr int EastOffset = 1;
 
 class RookMapGenerator final {
 public:
-    using MasksT = cuda_Array<__uint64_t, rook_DirectedMaskCount>;
+    using MasksT = cuda_Array<uint64_t, rook_DirectedMaskCount>;
 
     // ---------------------------------------
     // Class creation and initialization
@@ -31,11 +31,11 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] HYBRID constexpr static MasksT InitMasks(__uint32_t bInd) {
+    [[nodiscard]] HYBRID constexpr static MasksT InitMasks(uint32_t bInd) {
         constexpr int SouthBarrier = 7;
         constexpr int NorthBarrier = 56;
 
-        cuda_Array<__uint64_t, rook_DirectedMaskCount> ret{};
+        cuda_Array<uint64_t, rook_DirectedMaskCount> ret{};
 
         // Mask generation.
         const int westBarrier = (bInd / 8) * 8;
@@ -56,13 +56,13 @@ public:
         return ret;
     }
 
-    [[nodiscard]] HYBRID constexpr static __uint64_t GenMoves(__uint64_t neighborsWoutOverlap, __uint32_t bInd) {
+    [[nodiscard]] HYBRID constexpr static uint64_t GenMoves(uint64_t neighborsWoutOverlap, uint32_t bInd) {
         constexpr int northBarrier = 64;
         constexpr int southBarrier = -1;
         const int westBarrier = (bInd / 8) * 8 - 1;
         const int eastBarrier = westBarrier + 9;
 
-        __uint64_t moves = 0;
+        uint64_t moves = 0;
 
         // North lines moves
         moves |= GenSlidingMoves(
@@ -88,38 +88,38 @@ public:
     }
 
 
-    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap>, __uint32_t>
+    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<uint64_t, MaxRookPossibleNeighborsWoutOverlap>, uint32_t>
     GenPossibleNeighborsWoutOverlap(int bInd, const MasksT &masks) {
-        cuda_Array<__uint64_t, MaxRookPossibleNeighborsWoutOverlap> ret{};
-        __uint32_t usedFields = 0;
+        cuda_Array<uint64_t, MaxRookPossibleNeighborsWoutOverlap> ret{};
+        uint32_t usedFields = 0;
 
         const int westBarrier = ((bInd >> 3) << 3) - 1;
         const int eastBarrier = westBarrier + 9;
         constexpr int northBarrier = 64;
         constexpr int southBarrier = -1;
 
-        const __uint64_t bPos = 1LLU << bInd;
+        const uint64_t bPos = 1LLU << bInd;
         for (int westCord = bInd; westCord > westBarrier; westCord += WestOffset) {
-            const __uint64_t westPos = cuda_MinMsbPossible << westCord;
+            const uint64_t westPos = cuda_MinMsbPossible << westCord;
             if (westPos != bPos && (masks[wMask] & westPos) == 0)
                 continue;
 
             for (int eastCord = bInd; eastCord < eastBarrier; eastCord += EastOffset) {
-                const __uint64_t eastPos = cuda_MinMsbPossible << eastCord;
+                const uint64_t eastPos = cuda_MinMsbPossible << eastCord;
                 if (eastPos != bPos && (masks[eMask] & eastPos) == 0)
                     continue;
 
                 for (int northCord = bInd; northCord < northBarrier; northCord += NorthOffset) {
-                    const __uint64_t northPos = cuda_MinMsbPossible << northCord;
+                    const uint64_t northPos = cuda_MinMsbPossible << northCord;
                     if (northPos != bPos && (masks[nMask] & northPos) == 0)
                         continue;
 
                     for (int southCord = bInd; southCord > southBarrier; southCord += SouthOffset) {
-                        const __uint64_t southPos = cuda_MinMsbPossible << southCord;
+                        const uint64_t southPos = cuda_MinMsbPossible << southCord;
                         if (southPos != bPos && (masks[sMask] & southPos) == 0)
                             continue;
 
-                        const __uint64_t neighbor = (southPos | northPos | eastPos | westPos) & ~bPos;
+                        const uint64_t neighbor = (southPos | northPos | eastPos | westPos) & ~bPos;
                         ret[usedFields++] = neighbor;
                     }
                 }
@@ -129,17 +129,17 @@ public:
         return {ret, usedFields};
     }
 
-    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap>, __uint32_t>
+    [[nodiscard]] HYBRID constexpr static thrust::pair<cuda_Array<uint64_t, MaxRookPossibleNeighborsWithOverlap>, uint32_t>
     GenPossibleNeighborsWithOverlap(const MasksT &masks) {
-        cuda_Array<__uint64_t, MaxRookPossibleNeighborsWithOverlap> ret{};
-        const __uint64_t fullMask = masks[nMask] | masks[sMask] | masks[eMask] | masks[wMask];
+        cuda_Array<uint64_t, MaxRookPossibleNeighborsWithOverlap> ret{};
+        const uint64_t fullMask = masks[nMask] | masks[sMask] | masks[eMask] | masks[wMask];
 
-        __uint32_t usedFields = GenerateBitPermutations(fullMask, ret);
+        uint32_t usedFields = GenerateBitPermutations(fullMask, ret);
 
         return {ret, usedFields};
     }
 
-    [[nodiscard]] HYBRID static constexpr __uint32_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
+    [[nodiscard]] HYBRID static constexpr uint32_t PossibleNeighborWoutOverlapCountOnField(int x, int y) {
         const int westCount = cuda_max(1, x);
         const int southCount = cuda_max(1, y);
         const int northCount = cuda_max(1, 7 - y);
@@ -148,12 +148,12 @@ public:
         return westCount * eastCount * southCount * northCount;
     }
 
-    [[nodiscard]] HYBRID static constexpr __uint64_t
-    StripBlockingNeighbors(__uint64_t fullBoard, const MasksT &masks) {
-        const __uint64_t northPart = ExtractLsbBit(fullBoard & masks[nMask]);
-        const __uint64_t southPart = ExtractMsbBitConstexpr(fullBoard & masks[sMask]);
-        const __uint64_t westPart = ExtractMsbBitConstexpr(fullBoard & masks[wMask]);
-        const __uint64_t eastPart = ExtractLsbBit(fullBoard & masks[eMask]);
+    [[nodiscard]] HYBRID static constexpr uint64_t
+    StripBlockingNeighbors(uint64_t fullBoard, const MasksT &masks) {
+        const uint64_t northPart = ExtractLsbBit(fullBoard & masks[nMask]);
+        const uint64_t southPart = ExtractMsbBitConstexpr(fullBoard & masks[sMask]);
+        const uint64_t westPart = ExtractMsbBitConstexpr(fullBoard & masks[wMask]);
+        const uint64_t eastPart = ExtractLsbBit(fullBoard & masks[eMask]);
         return northPart | southPart | westPart | eastPart;
     }
 

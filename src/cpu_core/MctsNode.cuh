@@ -69,7 +69,7 @@ public:
      *
      * @return number of samples simulated or being worked on
      */
-    [[nodiscard]] __uint64_t GetNumSamples() const {
+    [[nodiscard]] uint64_t GetNumSamples() const {
         return m_numSamples.load();
     }
 
@@ -103,12 +103,12 @@ public:
      *
      * @note index can be read from EVAL_RESULTS enum
      */
-    void ScoreNode(const __uint32_t resultIdx) {
+    void ScoreNode(const uint32_t resultIdx) {
         assert(resultIdx < 3 && "DETECTED WRONG RESULT IDX");
         m_scores[resultIdx].fetch_add(1, std::memory_order_relaxed);
     }
 
-    [[nodiscard]] __uint64_t GetScore(const __uint32_t idx) const {
+    [[nodiscard]] uint64_t GetScore(const uint32_t idx) const {
         assert(idx < 3 && "DETECTED WRONG RESULT IDX");
 
         return m_scores[idx].load();
@@ -144,7 +144,7 @@ public:
         }
 
         const double averageScore = CalculateWinRate();
-        const __uint64_t parentNumSamples = m_parent->GetNumSamples();
+        const uint64_t parentNumSamples = m_parent->GetNumSamples();
 
         return averageScore + UCB_COEF * std::sqrt(std::log(parentNumSamples) / double(GetNumSamples()));
     }
@@ -157,7 +157,7 @@ public:
     [[nodiscard]] double CalculateWinRate() const {
         assert(GetNumSamples() != 0 && "CALLED CALC WIN RATE WITHOUT ANY SAMPLES!");
 
-        const __uint64_t score = GetScore(m_board.MovingColor) + (GetScore(DRAW) + 1) / 2;
+        const uint64_t score = GetScore(m_board.MovingColor) + (GetScore(DRAW) + 1) / 2;
         return double(score) / double(GetNumSamples());
     }
 
@@ -180,8 +180,8 @@ public:
 
 private:
     std::atomic<std::vector<MctsNode *> *> m_children{};
-    std::atomic<__uint64_t> m_scores[NUM_EVAL_RESULTS]{};
-    std::atomic<__uint64_t> m_numSamples{};
+    std::atomic<uint64_t> m_scores[NUM_EVAL_RESULTS]{};
+    std::atomic<uint64_t> m_numSamples{};
 };
 
 #endif //SRC_MCTSNODE_CUH

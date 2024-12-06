@@ -8,7 +8,7 @@
 #include "cuda_Array.cuh"
 #include "cuda_Board.cuh"
 
-__device__ __constant__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_PARAMS_MAGICS{
+__device__ __constant__ static constexpr cuda_Array<uint64_t, BIT_BOARD_FIELDS> BISHOP_PARAMS_MAGICS{
         2459020380749179396LLU,
         18228596997040662761LLU,
         577023771530035456LLU,
@@ -75,7 +75,7 @@ __device__ __constant__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS
         18381131039969901408LLU,
 };
 
-__device__ __constant__ static constexpr cuda_Array<__uint64_t, BIT_BOARD_FIELDS> BISHOP_OFFSET_PARAMS{
+__device__ __constant__ static constexpr cuda_Array<uint64_t, BIT_BOARD_FIELDS> BISHOP_OFFSET_PARAMS{
         6,
         5,
         5,
@@ -151,8 +151,8 @@ public:
     __device__ constexpr FancyMagicBishopMap() {
         for (int i = 0; i < static_cast<int>(BIT_BOARD_FIELDS); ++i) {
             const int boardIndex = ConvertToReversedPos(i);
-            const __uint64_t magic = BISHOP_PARAMS_MAGICS[i];
-            const __uint64_t shift = BISHOP_OFFSET_PARAMS[i];
+            const uint64_t magic = BISHOP_PARAMS_MAGICS[i];
+            const uint64_t shift = BISHOP_OFFSET_PARAMS[i];
 
             _maps[i] = _underlyingMapT(BishopMapGenerator::InitMasks(boardIndex), magic, shift);
 
@@ -166,8 +166,8 @@ public:
         }
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS constexpr __uint64_t GetMoves(__uint32_t msbInd, __uint64_t fullBoard) const {
-        const __uint64_t neighbors = fullBoard & _maps[msbInd].getFullMask();
+    [[nodiscard]] FAST_DCALL_ALWAYS constexpr uint64_t GetMoves(uint32_t msbInd, uint64_t fullBoard) const {
+        const uint64_t neighbors = fullBoard & _maps[msbInd].getFullMask();
         return _maps[msbInd][neighbors];
     }
 

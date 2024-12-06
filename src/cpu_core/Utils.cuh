@@ -21,7 +21,7 @@ void InitializeConsole();
  *
  * @param numLines Number of lines to clear
  */
-void ClearLines(__uint32_t numLines);
+void ClearLines(uint32_t numLines);
 
 /**
  * @brief Clear current line in console

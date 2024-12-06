@@ -23,7 +23,7 @@
 #include <type_traits>
 
 #define GET_PAWN_FIELD(param) \
-    __uint64_t param{}; \
+    uint64_t param{}; \
     \
     if constexpr (std::is_same<MapT, WhitePawnMap>::value) { \
         param = WhitePawnMapConstants::param; \
@@ -37,7 +37,7 @@ __device__ static constexpr uint16_t PromoFlags[]{
         0, KnightFlag, BishopFlag, RookFlag, QueenFlag,
 };
 
-template<__uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE, __uint32_t STACK_SIZE = UINT32_MAX>
+template<uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE, uint32_t STACK_SIZE = UINT32_MAX>
 class MoveGenerator : ChessMechanics<NUM_BOARDS> {
     using ChessMechanics<NUM_BOARDS>::GetColBitMap;
     using ChessMechanics<NUM_BOARDS>::GetBlockedFieldBitMap;
@@ -52,7 +52,7 @@ class MoveGenerator : ChessMechanics<NUM_BOARDS> {
 
     using _fetcher_t = cuda_PackedBoard<NUM_BOARDS>::BoardFetcher;
 
-    enum MoveGenFlags : __uint32_t {
+    enum MoveGenFlags : uint32_t {
         EMPTY_FLAGS = 0,
         CHECK_CASTLINGS = 1,
         PROMOTE_PAWNS = 2,
@@ -61,11 +61,11 @@ class MoveGenerator : ChessMechanics<NUM_BOARDS> {
         CONSIDER_EL_PASSANT = 16,
     };
 
-    FAST_DCALL_ALWAYS static constexpr __uint32_t ExtractFlag(__uint32_t flags, MoveGenFlags flag) {
+    FAST_DCALL_ALWAYS static constexpr uint32_t ExtractFlag(uint32_t flags, MoveGenFlags flag) {
         return flags & flag;
     }
 
-    FAST_DCALL_ALWAYS static constexpr bool IsFlagOn(__uint32_t flags, MoveGenFlags flag) {
+    FAST_DCALL_ALWAYS static constexpr bool IsFlagOn(uint32_t flags, MoveGenFlags flag) {
         return ExtractFlag(flags, flag) != 0;
     }
 
@@ -96,9 +96,9 @@ public:
 
     FAST_DCALL void GetMovesFast() {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
-        const __uint32_t movingColor = _boardFetcher.MovingColor();
-        const __uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
-        const __uint64_t allyMap = GetColBitMap(movingColor);
+        const uint32_t movingColor = _boardFetcher.MovingColor();
+        const uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
+        const uint64_t allyMap = GetColBitMap(movingColor);
         const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(movingColor,
                                                                                             enemyMap | allyMap);
 
@@ -115,11 +115,11 @@ public:
                     wasCheckedBySimple);
     }
 
-    FAST_DCALL void GetMovesSplit(const __uint32_t figIdx) {
+    FAST_DCALL void GetMovesSplit(const uint32_t figIdx) {
         // Prepare crucial components and additionally detect whether we are at check and which figure type attacks king
-        const __uint32_t movingColor = _boardFetcher.MovingColor();
-        const __uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
-        const __uint64_t allyMap = GetColBitMap(movingColor);
+        const uint32_t movingColor = _boardFetcher.MovingColor();
+        const uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
+        const uint64_t allyMap = GetColBitMap(movingColor);
         const auto [blockedFigMap, checksCount, wasCheckedBySimple] = GetBlockedFieldBitMap(movingColor,
                                                                                             allyMap | enemyMap);
 
@@ -139,17 +139,17 @@ public:
                          wasCheckedBySimple);
     }
 
-    [[nodiscard]] __device__ __uint64_t CountMoves(int depth, void *ptr) {
+    [[nodiscard]] __device__ uint64_t CountMoves(int depth, void *ptr) {
         _fetcher_t fetcher = _boardFetcher;
         return CountMovesRecursive(fetcher, ptr, 0, depth);
     }
 
-    [[nodiscard]] __device__ __uint64_t CountMovesSplit(__uint32_t figIdx, int depth, void *ptr) {
+    [[nodiscard]] __device__ uint64_t CountMovesSplit(uint32_t figIdx, int depth, void *ptr) {
         _fetcher_t fetcher = _boardFetcher;
         return CountMovesRecursiveSplit(figIdx, fetcher, ptr, 0, depth);
     }
 
-    [[nodiscard]] __device__ __uint64_t
+    [[nodiscard]] __device__ uint64_t
     CountMovesRecursive(_fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
         if (curDepth == maxDepth) {
             return 1;
@@ -164,10 +164,10 @@ public:
             return localStack.Size();
         }
 
-        __uint64_t sum{};
+        uint64_t sum{};
 
         VolatileBoardData data(fetcher.Castlings(), fetcher.ElPassantField());
-        for (__uint32_t i = 0; i < localStack.Size(); ++i) {
+        for (uint32_t i = 0; i < localStack.Size(); ++i) {
             cuda_Move::MakeMove<NUM_BOARDS>(localStack[i], fetcher);
             sum += CountMovesRecursive(fetcher, ptr, curDepth + 1, maxDepth);
             cuda_Move::UnmakeMove<NUM_BOARDS>(localStack[i], fetcher, data);
@@ -176,8 +176,8 @@ public:
         return sum;
     }
 
-    [[nodiscard]] __device__ __uint64_t
-    CountMovesRecursiveSplit(__uint32_t figIdx, _fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
+    [[nodiscard]] __device__ uint64_t
+    CountMovesRecursiveSplit(uint32_t figIdx, _fetcher_t &fetcher, void *ptr, int curDepth, int maxDepth) {
         if (curDepth == maxDepth) {
             return 1;
         }
@@ -199,10 +199,10 @@ public:
             return localStack.Size();
         }
 
-        __uint64_t sum{};
+        uint64_t sum{};
 
         VolatileBoardData data(fetcher.Castlings(), fetcher.ElPassantField());
-        for (__uint32_t i = 0; i < localStack.Size(); ++i) {
+        for (uint32_t i = 0; i < localStack.Size(); ++i) {
             if (figIdx == 0) {
                 cuda_Move::MakeMove<NUM_BOARDS>(localStack[i], fetcher);
             }
@@ -226,13 +226,13 @@ public:
 
 private:
 
-    FAST_DCALL void _upTo1CheckSplit(const __uint32_t movingColor, const __uint32_t figIdx, const __uint64_t allyMap,
-                                     const __uint64_t enemyMap, const __uint64_t blockedFigMap,
-                                     const __uint32_t flags, bool wasCheckedBySimpleFig = false) {
+    FAST_DCALL void _upTo1CheckSplit(const uint32_t movingColor, const uint32_t figIdx, const uint64_t allyMap,
+                                     const uint64_t enemyMap, const uint64_t blockedFigMap,
+                                     const uint32_t flags, bool wasCheckedBySimpleFig = false) {
         ASSERT(allyMap != 0 && enemyMap != 0, "Full map is empty!");
-        static constexpr __uint64_t UNUSED = 0;
+        static constexpr uint64_t UNUSED = 0;
 
-        const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
+        const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<uint64_t, uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
                         movingColor, allyMap | enemyMap);
@@ -316,12 +316,12 @@ private:
     }
 
     FAST_DCALL void
-    _upTo1Check(const __uint32_t movingColor, const __uint64_t allyMap, const __uint64_t enemyMap, const __uint64_t blockedFigMap,
-                const __uint32_t flags, const bool wasCheckedBySimpleFig = false) {
+    _upTo1Check(const uint32_t movingColor, const uint64_t allyMap, const uint64_t enemyMap, const uint64_t blockedFigMap,
+                const uint32_t flags, const bool wasCheckedBySimpleFig = false) {
         ASSERT(allyMap != 0 && enemyMap != 0, "Full map is empty!");
-        static constexpr __uint64_t UNUSED = 0;
+        static constexpr uint64_t UNUSED = 0;
 
-        const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<__uint64_t, __uint64_t> {
+        const auto [pinnedFigsMap, allowedTilesMap] = [&]() -> thrust::pair<uint64_t, uint64_t> {
             if (!IsFlagOn(flags, ASSUME_CHECK)) {
                 return GetPinnedFigsMap<ChessMechanics<NUM_BOARDS>::PinnedFigGen::WoutAllowedTiles>(
                         movingColor, allyMap | enemyMap);
@@ -393,22 +393,22 @@ private:
         }
     }
 
-    FAST_DCALL void _doubleCheckGen(const __uint32_t movingColor, const __uint64_t blockedFigMap) {
-        const __uint64_t allyMap = GetColBitMap(movingColor);
-        const __uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
+    FAST_DCALL void _doubleCheckGen(const uint32_t movingColor, const uint64_t blockedFigMap) {
+        const uint64_t allyMap = GetColBitMap(movingColor);
+        const uint64_t enemyMap = GetColBitMap(SwapColor(movingColor));
         _processPlainKingMoves(movingColor, blockedFigMap, allyMap, enemyMap);
     }
 
     template<class MapT>
     FAST_DCALL bool _processPawnMoves(
-            const __uint32_t movingColor, const __uint64_t enemyMap, const __uint64_t allyMap,
-            const __uint64_t pinnedFigMap, const __uint32_t flags,
-            const __uint64_t allowedMoveFilter = 0
+            const uint32_t movingColor, const uint64_t enemyMap, const uint64_t allyMap,
+            const uint64_t pinnedFigMap, const uint32_t flags,
+            const uint64_t allowedMoveFilter = 0
     ) {
         GET_PAWN_FIELD(PromotingMask);
 
-        const __uint64_t promotingPawns = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) & PromotingMask;
-        const __uint64_t nonPromotingPawns = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) ^ promotingPawns;
+        const uint64_t promotingPawns = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) & PromotingMask;
+        const uint64_t nonPromotingPawns = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) ^ promotingPawns;
 
         if (!_processFigMoves<MapT>(
                 movingColor, enemyMap, allyMap, pinnedFigMap, CONSIDER_EL_PASSANT | SELECT_FIGURES | flags,
@@ -440,8 +440,8 @@ private:
     // TODO: Consider different solution?
     template<class MapT>
     FAST_DCALL bool _processElPassantMoves(
-            const __uint32_t movingColor, const __uint64_t fullMap, const __uint64_t pinnedFigMap, const bool isCheck,
-            const __uint64_t allowedMoveFilter = 0
+            const uint32_t movingColor, const uint64_t fullMap, const uint64_t pinnedFigMap, const bool isCheck,
+            const uint64_t allowedMoveFilter = 0
     ) {
         ASSERT(fullMap != 0, "Full map is empty!");
 
@@ -450,29 +450,29 @@ private:
         }
 
         // calculation preparation
-        const __uint64_t suspectedFields = MapT::GetElPassantSuspectedFields(_boardFetcher.ElPassantField());
-        const __uint32_t enemyCord = SwapColor(movingColor) * BIT_BOARDS_PER_COLOR;
-        const __uint64_t enemyRookFigs =
+        const uint64_t suspectedFields = MapT::GetElPassantSuspectedFields(_boardFetcher.ElPassantField());
+        const uint32_t enemyCord = SwapColor(movingColor) * BIT_BOARDS_PER_COLOR;
+        const uint64_t enemyRookFigs =
                 _boardFetcher.BitBoard(enemyCord + QUEEN_INDEX) | _boardFetcher.BitBoard(enemyCord + ROOK_INDEX);
-        __uint64_t possiblePawnsToMove = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) & suspectedFields;
+        uint64_t possiblePawnsToMove = _boardFetcher.BitBoard(MapT::GetBoardIndex(0)) & suspectedFields;
 
         GET_PAWN_FIELD(EnemyElPassantMask);
 
         while (possiblePawnsToMove) {
-            const __uint64_t pawnMap = cuda_MaxMsbPossible >> ExtractMsbPos(possiblePawnsToMove);
+            const uint64_t pawnMap = cuda_MaxMsbPossible >> ExtractMsbPos(possiblePawnsToMove);
 
             // checking whether move would affect horizontal line attacks on king
-            const __uint64_t processedPawns = pawnMap | _boardFetcher.ElPassantField();
-            const __uint64_t cleanedFromPawnsMap = fullMap ^ processedPawns;
+            const uint64_t processedPawns = pawnMap | _boardFetcher.ElPassantField();
+            const uint64_t cleanedFromPawnsMap = fullMap ^ processedPawns;
 
-            if (const __uint64_t kingHorizontalLine =
+            if (const uint64_t kingHorizontalLine =
                         RookMap::GetMoves(_boardFetcher.GetKingMsbPos(movingColor),
                                           cleanedFromPawnsMap) & EnemyElPassantMask;
                     (kingHorizontalLine & enemyRookFigs) != 0) {
                 return true;
             }
 
-            const __uint64_t moveMap = MapT::GetElPassantMoveField(_boardFetcher.ElPassantField());
+            const uint64_t moveMap = MapT::GetElPassantMoveField(_boardFetcher.ElPassantField());
 
             // checking whether moving some pawns would undercover king on some line
             if ((processedPawns & pinnedFigMap) != 0) {
@@ -524,16 +524,16 @@ private:
     // TODO: Compare with simple if searching loop
     template<class MapT>
     __device__ bool _processFigMoves(
-            const __uint32_t movingColor, const __uint64_t enemyMap, const __uint64_t allyMap,
-            const __uint64_t pinnedFigMap, const __uint32_t flags,
-            const __uint64_t figureSelector = 0, const __uint64_t allowedMoveSelector = 0
+            const uint32_t movingColor, const uint64_t enemyMap, const uint64_t allyMap,
+            const uint64_t pinnedFigMap, const uint32_t flags,
+            const uint64_t figureSelector = 0, const uint64_t allowedMoveSelector = 0
     ) {
         ASSERT(enemyMap != 0, "Enemy map is empty!");
         ASSERT(allyMap != 0, "Ally map is empty!");
 
-        const __uint64_t fullMap = enemyMap | allyMap;
-        __uint64_t pinnedOnes = pinnedFigMap & _boardFetcher.BitBoard(MapT::GetBoardIndex(movingColor));
-        __uint64_t unpinnedOnes = _boardFetcher.BitBoard(MapT::GetBoardIndex(movingColor)) ^ pinnedOnes;
+        const uint64_t fullMap = enemyMap | allyMap;
+        uint64_t pinnedOnes = pinnedFigMap & _boardFetcher.BitBoard(MapT::GetBoardIndex(movingColor));
+        uint64_t unpinnedOnes = _boardFetcher.BitBoard(MapT::GetBoardIndex(movingColor)) ^ pinnedOnes;
 
         // applying filter if needed
         if (IsFlagOn(flags, SELECT_FIGURES)) {
@@ -546,26 +546,26 @@ private:
         // processing unpinned moves
         while (unpinnedOnes) {
             // processing moves
-            const __uint32_t figPos = ExtractMsbPos(unpinnedOnes);
-            const __uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
+            const uint32_t figPos = ExtractMsbPos(unpinnedOnes);
+            const uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
 
             // selecting allowed moves if in check
-            __uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap;
+            uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap;
 
             if (IsFlagOn(flags, ASSUME_CHECK)) {
                 figMoves &= allowedMoveSelector;
             }
 
             // Performing checks for castlings
-            __uint32_t updatedCastlings = _boardFetcher.Castlings();
+            uint32_t updatedCastlings = _boardFetcher.Castlings();
             if (IsFlagOn(flags, CHECK_CASTLINGS) && !IsFlagOn(flags, ASSUME_CHECK)) {
                 SetBitBoardBit(updatedCastlings, RookMap::GetMatchingCastlingIndex<NUM_BOARDS>(_boardFetcher, figBoard),
                                false);
             }
 
             // preparing moves
-            const __uint64_t attackMoves = figMoves & enemyMap;
-            const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
+            const uint64_t attackMoves = figMoves & enemyMap;
+            const uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
             if (!_processNonAttackingMoves(
@@ -594,14 +594,14 @@ private:
         // Note: corner Rook possibly applicable to castling cannot be pinned
         while (pinnedOnes) {
             // processing moves
-            const __uint32_t figPos = ExtractMsbPos(pinnedOnes);
-            const __uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
-            const __uint64_t allowedTiles = GenerateAllowedTilesForPrecisedPinnedFig(movingColor, figBoard, fullMap);
-            const __uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedTiles;
+            const uint32_t figPos = ExtractMsbPos(pinnedOnes);
+            const uint64_t figBoard = cuda_MaxMsbPossible >> figPos;
+            const uint64_t allowedTiles = GenerateAllowedTilesForPrecisedPinnedFig(movingColor, figBoard, fullMap);
+            const uint64_t figMoves = MapT::GetMoves(figPos, fullMap, enemyMap) & ~allyMap & allowedTiles;
 
             // preparing moves
-            const __uint64_t attackMoves = figMoves & enemyMap;
-            const __uint64_t nonAttackingMoves = figMoves ^ attackMoves;
+            const uint64_t attackMoves = figMoves & enemyMap;
+            const uint64_t nonAttackingMoves = figMoves ^ attackMoves;
 
             // processing move consequences
             if (!_processNonAttackingMoves(
@@ -628,15 +628,15 @@ private:
     }
 
     __device__ bool _processNonAttackingMoves(
-            const __uint32_t movingColor, __uint64_t nonAttackingMoves, const __uint32_t figBoardIndex, const __uint64_t startField,
-            const __uint32_t castlings, const __uint32_t flags
+            const uint32_t movingColor, uint64_t nonAttackingMoves, const uint32_t figBoardIndex, const uint64_t startField,
+            const uint32_t castlings, const uint32_t flags
     ) {
         ASSERT(figBoardIndex < BIT_BOARDS_COUNT, "Invalid figure cuda_Board index!");
 
         while (nonAttackingMoves) {
             // extracting moves
-            const __uint32_t movePos = ExtractMsbPos(nonAttackingMoves);
-            const __uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
+            const uint32_t movePos = ExtractMsbPos(nonAttackingMoves);
+            const uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
 
             cuda_Move mv{};
 
@@ -673,16 +673,16 @@ private:
     }
 
     FAST_DCALL bool _processAttackingMoves(
-            const __uint32_t movingColor, __uint64_t attackingMoves, const __uint32_t figBoardIndex, const __uint64_t startField,
-            const __uint32_t castlings, const bool promotePawns
+            const uint32_t movingColor, uint64_t attackingMoves, const uint32_t figBoardIndex, const uint64_t startField,
+            const uint32_t castlings, const bool promotePawns
     ) {
         ASSERT(figBoardIndex < BIT_BOARDS_COUNT, "Invalid figure cuda_Board index!");
 
         while (attackingMoves) {
             // extracting moves
-            const __uint32_t movePos = ExtractMsbPos(attackingMoves);
-            const __uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
-            const __uint32_t attackedFigBoardIndex =
+            const uint32_t movePos = ExtractMsbPos(attackingMoves);
+            const uint64_t moveBoard = cuda_MaxMsbPossible >> movePos;
+            const uint32_t attackedFigBoardIndex =
                     GetIndexOfContainingBitBoard(moveBoard, SwapColor(movingColor));
 
             cuda_Move mv{};
@@ -710,29 +710,29 @@ private:
     }
 
     __device__ bool
-    _processPlainKingMoves(const __uint32_t movingColor, const __uint64_t blockedFigMap, const __uint64_t allyMap,
-                           const __uint64_t enemyMap) {
+    _processPlainKingMoves(const uint32_t movingColor, const uint64_t blockedFigMap, const uint64_t allyMap,
+                           const uint64_t enemyMap) {
         ASSERT(allyMap != 0, "Ally map is empty!");
         ASSERT(enemyMap != 0, "Enemy map is empty!");
 
         // generating moves
-        const __uint64_t kingMoves = KingMap::GetMoves(_boardFetcher.GetKingMsbPos(movingColor)) &
+        const uint64_t kingMoves = KingMap::GetMoves(_boardFetcher.GetKingMsbPos(movingColor)) &
                                      ~blockedFigMap & ~allyMap;
 
-        __uint64_t attackingMoves = kingMoves & enemyMap;
-        __uint64_t nonAttackingMoves = kingMoves ^ attackingMoves;
+        uint64_t attackingMoves = kingMoves & enemyMap;
+        uint64_t nonAttackingMoves = kingMoves ^ attackingMoves;
 
         // preparing variables
         auto castlings = _boardFetcher.Castlings();
         SetBitBoardBit(castlings, movingColor * CASTLINGS_PER_COLOR + KING_CASTLING_INDEX, false);
         SetBitBoardBit(castlings, movingColor * CASTLINGS_PER_COLOR + QUEEN_CASTLING_INDEX, false);
 
-        const __uint32_t oldKingPos = ExtractMsbPos(_boardFetcher.GetFigBoard(movingColor, KING_INDEX));
+        const uint32_t oldKingPos = ExtractMsbPos(_boardFetcher.GetFigBoard(movingColor, KING_INDEX));
 
         // processing simple non-attacking moves
         while (nonAttackingMoves) {
             // extracting new king position data
-            const __uint32_t newPos = ExtractMsbPos(nonAttackingMoves);
+            const uint32_t newPos = ExtractMsbPos(nonAttackingMoves);
 
             cuda_Move mv{};
 
@@ -755,8 +755,8 @@ private:
         // processing slightly more complicated attacking moves
         while (attackingMoves) {
             // extracting new king position data
-            const __uint32_t newPos = ExtractMsbPos(attackingMoves);
-            const __uint64_t newKingBoard = cuda_MaxMsbPossible >> newPos;
+            const uint32_t newPos = ExtractMsbPos(attackingMoves);
+            const uint64_t newKingBoard = cuda_MaxMsbPossible >> newPos;
 
             cuda_Move mv{};
 
@@ -783,11 +783,11 @@ private:
 
     // TODO: simplify ifs??
     // TODO: cleanup left castling available when rook is dead then propagate no castling checking?
-    FAST_DCALL bool _processKingCastlings(const __uint32_t movingColor, const __uint64_t blockedFigMap, const __uint64_t fullMap) {
+    FAST_DCALL bool _processKingCastlings(const uint32_t movingColor, const uint64_t blockedFigMap, const uint64_t fullMap) {
         ASSERT(fullMap != 0, "Full map is empty!");
 
-        for (__uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i) {
-            if (const __uint32_t castlingIndex = movingColor * CASTLINGS_PER_COLOR + i;
+        for (uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i) {
+            if (const uint32_t castlingIndex = movingColor * CASTLINGS_PER_COLOR + i;
                     _boardFetcher.GetCastlingRight(castlingIndex) &&
                     (CASTLING_ROOK_MAPS[castlingIndex] &
                             _boardFetcher.BitBoard(movingColor * BIT_BOARDS_PER_COLOR + ROOK_INDEX)) !=

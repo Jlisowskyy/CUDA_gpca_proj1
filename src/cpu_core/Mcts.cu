@@ -9,8 +9,8 @@
 #include <numeric>
 
 namespace mcts {
-    std::atomic<__uint32_t> g_ExpandRacesCounter{};
-    std::atomic<__uint64_t> g_SimulationCounter{};
+    std::atomic<uint32_t> g_ExpandRacesCounter{};
+    std::atomic<uint64_t> g_SimulationCounter{};
     std::atomic<double> g_CopyTimes{};
     std::atomic<double> g_KernelTime{};
     std::atomic<double> g_CopyBackTimes{};
@@ -40,7 +40,7 @@ namespace mcts {
             return;
         }
 
-        const __uint32_t result = cpu::SimulateGame(expandedNode->m_board.DumpToExternal());
+        const uint32_t result = cpu::SimulateGame(expandedNode->m_board.DumpToExternal());
         PropagateResult(expandedNode, result);
 
         g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
@@ -102,7 +102,7 @@ namespace mcts {
                root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
     }
 
-    void PropagateResult(MctsNode *const node, const __uint32_t result) {
+    void PropagateResult(MctsNode *const node, const uint32_t result) {
         if (node == nullptr) {
             return;
         }

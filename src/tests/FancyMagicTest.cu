@@ -22,7 +22,7 @@
 
 #include "../ported/CpuTests.h"
 
-__device__ static constexpr __uint32_t TEST_SIZE = 1'000'000;
+__device__ static constexpr uint32_t TEST_SIZE = 1'000'000;
 
 /**
  * @brief CUDA kernel for testing Fancy Magic mapping performance.
@@ -35,14 +35,14 @@ __device__ static constexpr __uint32_t TEST_SIZE = 1'000'000;
  * @param results Array to store the sum of generate bitboards
  */
 template<typename MapT>
-__global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
+__global__ void FancyMagicKernel(const uint64_t *seeds, uint64_t *results) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
-    const __uint64_t seed = seeds[idx];
+    const uint64_t seed = seeds[idx];
 
     unsigned randomPos = idx % 64;
-    __uint64_t board = seed;
+    uint64_t board = seed;
 
-    __uint64_t sum{};
+    uint64_t sum{};
     for (unsigned i = 0; i < TEST_SIZE; ++i) {
         simpleRand(board);
         randomPos = (randomPos + (board & 63)) & 63;
@@ -71,8 +71,8 @@ __global__ void FancyMagicKernel(const __uint64_t *seeds, __uint64_t *results) {
  * @throws std::runtime_error if kernel execution fails
  */
 template<typename MapT>
-void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vector<__uint64_t> &dSeeds,
-                       thrust::device_vector<__uint64_t> &dResults, std::string_view title = "") {
+void PerformTestOnMap_(uint32_t blocks, uint32_t threads, thrust::device_vector<uint64_t> &dSeeds,
+                       thrust::device_vector<uint64_t> &dResults, std::string_view title = "") {
     const double threadsUtilized = blocks * threads;
 
     std::cout << "Starting run for " << title << "..." << std::endl;
@@ -117,14 +117,14 @@ void PerformTestOnMap_(__uint32_t blocks, __uint32_t threads, thrust::device_vec
  * @param threadsAvailable Number of CUDA threads available
  * @param deviceProps CUDA device properties for kernel configuration
  */
-void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void FancyMagicTest_(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     std::cout << "Fancy Magic Test" << std::endl;
     std::cout << "Received " << threadsAvailable << " available threads..." << std::endl;
 
     const auto [blocks, threads] = GetDims(threadsAvailable, deviceProps);
     const auto sizeThreads = static_cast<size_t>(blocks * threads);
 
-    std::vector<__uint64_t> vSeeds{};
+    std::vector<uint64_t> vSeeds{};
     vSeeds.reserve(sizeThreads);
 
     std::mt19937_64 rng{std::random_device{}()};
@@ -132,8 +132,8 @@ void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &devicePr
         vSeeds.push_back(rng());
     }
 
-    thrust::device_vector<__uint64_t> dSeeds(vSeeds);
-    thrust::device_vector<__uint64_t> dResults(sizeThreads, 0);
+    thrust::device_vector<uint64_t> dSeeds(vSeeds);
+    thrust::device_vector<uint64_t> dResults(sizeThreads, 0);
 
     PolluteCache();
     std::cout << std::string(80, '-') << std::endl;
@@ -166,12 +166,12 @@ void FancyMagicTest_(__uint32_t threadsAvailable, const cudaDeviceProp &devicePr
  */
 template<class MapT>
 __global__ void
-AccessMapping(__uint64_t *results, const __uint64_t count, const __uint64_t *fullMaps, const __uint64_t *figureMaps) {
-    __uint64_t moveCount{};
+AccessMapping(uint64_t *results, const uint64_t count, const uint64_t *fullMaps, const uint64_t *figureMaps) {
+    uint64_t moveCount{};
 
-    for (__uint64_t idx = 0; idx < count; ++idx) {
-        const __uint64_t fullMap = fullMaps[idx];
-        __uint64_t figureMap = figureMaps[idx];
+    for (uint64_t idx = 0; idx < count; ++idx) {
+        const uint64_t fullMap = fullMaps[idx];
+        uint64_t figureMap = figureMaps[idx];
 
         while (figureMap != 0) {
             const int msbPos = ExtractMsbPos(figureMap);
@@ -196,14 +196,14 @@ AccessMapping(__uint64_t *results, const __uint64_t count, const __uint64_t *ful
  * @param figureMaps Figure (piece) positions
  * @return std::vector of generated moves
  */
-std::vector<__uint64_t>
-AccessMappingCPU(__uint64_t (*func)(int, __uint64_t), const __uint64_t count, const std::vector<__uint64_t> &fullMaps,
-                 const std::vector<__uint64_t> &figureMaps) {
-    std::vector<__uint64_t> results{};
+std::vector<uint64_t>
+AccessMappingCPU(uint64_t (*func)(int, uint64_t), const uint64_t count, const std::vector<uint64_t> &fullMaps,
+                 const std::vector<uint64_t> &figureMaps) {
+    std::vector<uint64_t> results{};
 
-    for (__uint64_t idx = 0; idx < count; ++idx) {
-        const __uint64_t fullMap = fullMaps[idx];
-        __uint64_t figureMap = figureMaps[idx];
+    for (uint64_t idx = 0; idx < count; ++idx) {
+        const uint64_t fullMap = fullMaps[idx];
+        uint64_t figureMap = figureMaps[idx];
 
         while (figureMap != 0) {
             const int msbPos = cpu::ExtractMsbPosCPU(figureMap);
@@ -231,22 +231,22 @@ AccessMappingCPU(__uint64_t (*func)(int, __uint64_t), const __uint64_t count, co
  * @param title Descriptive name of the mapping being tested
  */
 template<typename MapT>
-void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::MapCorrecntessRecordsPack &records,
+void RunCorrectnessTestOnMap(uint64_t (*func)(int, uint64_t), const cpu::MapCorrecntessRecordsPack &records,
                              const std::string &title) {
     static constexpr int MAX_DISPLAYS = 5;
 
     std::cout << "Running correctness test on << " << title << "..." << std::endl;
 
     auto [recordCount, fullMaps, figureMaps, correctnessMap] = records;
-    thrust::device_vector<__uint64_t> dFullMaps(fullMaps);
-    thrust::device_vector<__uint64_t> dFigureMaps(figureMaps);
+    thrust::device_vector<uint64_t> dFullMaps(fullMaps);
+    thrust::device_vector<uint64_t> dFigureMaps(figureMaps);
 
-    __uint64_t mCount{};
+    uint64_t mCount{};
     for (size_t i = 0; i < recordCount; ++i) {
         mCount += correctnessMap[i].size();
     }
 
-    thrust::device_vector<__uint64_t> dResults(mCount, 0);
+    thrust::device_vector<uint64_t> dResults(mCount, 0);
 
     AccessMapping<MapT><<<1, 1>>>(thrust::raw_pointer_cast(dResults.data()), recordCount,
                                   thrust::raw_pointer_cast(dFullMaps.data()),
@@ -255,7 +255,7 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
 
     const auto cpuResults = AccessMappingCPU(func, recordCount, fullMaps, figureMaps);
 
-    const thrust::host_vector<__uint64_t> hResults = dResults;
+    const thrust::host_vector<uint64_t> hResults = dResults;
 
 
     if (cpuResults.size() != hResults.size()) {
@@ -264,8 +264,8 @@ void RunCorrectnessTestOnMap(__uint64_t (*func)(int, __uint64_t), const cpu::Map
 
     const auto size = std::min(cpuResults.size(), hResults.size());
 
-    __uint32_t displays = 0;
-    __uint64_t errors = 0;
+    uint32_t displays = 0;
+    uint64_t errors = 0;
     for (size_t i = 0; i < size; ++i) {
         if (displays < MAX_DISPLAYS && cpuResults[i] != hResults[i]) {
             std::cerr << "Results mismatch at index " << i << std::endl;
@@ -344,7 +344,7 @@ void FancyMagicTestCorrectness_() {
     }
 }
 
-void FancyMagicTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void FancyMagicTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         std::cout << std::string(80, '-') << std::endl;
         cpu::FancyMagicTest();

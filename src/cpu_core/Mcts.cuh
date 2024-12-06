@@ -17,8 +17,8 @@
 #include <array>
 #include <atomic>
 
-static constexpr __uint32_t MIN_SAMPLES_TO_EXPAND = 16;
-static constexpr __uint32_t MAX_SIMULATION_DEPTH = 100;
+static constexpr uint32_t MIN_SAMPLES_TO_EXPAND = 16;
+static constexpr uint32_t MAX_SIMULATION_DEPTH = 100;
 
 enum class EngineType {
     CPU,
@@ -27,14 +27,14 @@ enum class EngineType {
 };
 
 namespace mcts {
-    template<__uint32_t BATCH_SIZE>
-    using results_t = std::array<__uint32_t, BATCH_SIZE>;
+    template<uint32_t BATCH_SIZE>
+    using results_t = std::array<uint32_t, BATCH_SIZE>;
 
-    template<__uint32_t BATCH_SIZE>
+    template<uint32_t BATCH_SIZE>
     using sim_t = results_t<BATCH_SIZE> (*)(const cuda_PackedBoard<BATCH_SIZE> &, cudaStream_t &);
 
-    extern std::atomic<__uint32_t> g_ExpandRacesCounter;
-    extern std::atomic<__uint64_t> g_SimulationCounter;
+    extern std::atomic<uint32_t> g_ExpandRacesCounter;
+    extern std::atomic<uint64_t> g_SimulationCounter;
     extern std::atomic<double> g_CopyTimes;
     extern std::atomic<double> g_KernelTime;
     extern std::atomic<double> g_CopyBackTimes;
@@ -45,7 +45,7 @@ namespace mcts {
 
     [[nodiscard]] MctsNode *ExpandNode(MctsNode *root);
 
-    void PropagateResult(MctsNode *node, __uint32_t result);
+    void PropagateResult(MctsNode *node, uint32_t result);
 
     template<bool USE_TIMERS = false>
     results_t<EVAL_SPLIT_KERNEL_BOARDS>
@@ -63,13 +63,13 @@ namespace mcts {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStart, stream));
         }
 
-        __uint32_t *dSeeds{};
-        __uint32_t *dResults{};
+        uint32_t *dSeeds{};
+        uint32_t *dResults{};
         cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *dBoards{};
 
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>), stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
 
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
@@ -78,7 +78,7 @@ namespace mcts {
         const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
         assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
                                             cudaMemcpyHostToDevice, stream));
 
         if constexpr (USE_TIMERS) {
@@ -121,7 +121,7 @@ namespace mcts {
         }
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
-                                            sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
                                             stream));
 
         if constexpr (USE_TIMERS) {
@@ -169,14 +169,14 @@ namespace mcts {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStart, stream));
         }
 
-        __uint32_t *dSeeds{};
-        __uint32_t *dResults{};
+        uint32_t *dSeeds{};
+        uint32_t *dResults{};
         cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> *dBoards{};
         BYTE *dBytes{};
 
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>), stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
         CUDA_ASSERT_SUCCESS(
                 cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE * EVAL_PLAIN_KERNEL_BOARDS, stream));
 
@@ -186,7 +186,7 @@ namespace mcts {
         const auto seeds = GenSeeds(EVAL_PLAIN_KERNEL_BOARDS);
         assert(seeds.size() == EVAL_PLAIN_KERNEL_BOARDS);
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
                                             cudaMemcpyHostToDevice, stream));
 
         if constexpr (USE_TIMERS) {
@@ -228,7 +228,7 @@ namespace mcts {
         }
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
-                                            sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
                                             stream));
 
         if constexpr (USE_TIMERS) {
@@ -264,13 +264,13 @@ namespace mcts {
     template<EngineType ENGINE_TYPE, bool USE_TIMERS = false>
     void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
         static_assert(ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1);
-        static constexpr __uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU1 ? EVAL_SPLIT_KERNEL_BOARDS :
+        static constexpr uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU1 ? EVAL_SPLIT_KERNEL_BOARDS :
                                                  EVAL_PLAIN_KERNEL_BOARDS;
 
         cuda_PackedBoard<BATCH_SIZE> batch;
         std::array<MctsNode *, BATCH_SIZE> selectedNodes;
 
-        for (__uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
+        for (uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
             MctsNode *node{};
 
             while (!node) {
@@ -319,7 +319,7 @@ namespace mcts {
         }
 
         assert(results.size() == selectedNodes.size());
-        for (__uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
+        for (uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
             PropagateResult(selectedNodes[idx], results[idx]);
         }
     }

@@ -18,7 +18,7 @@
 
 struct cudaDeviceProp;
 
-using TestFunc = void (*)(__uint32_t, const cudaDeviceProp &deviceProps);
+using TestFunc = void (*)(uint32_t, const cudaDeviceProp &deviceProps);
 
 // ------------------------------
 // Test functions
@@ -35,7 +35,7 @@ using TestFunc = void (*)(__uint32_t, const cudaDeviceProp &deviceProps);
  *
  * @note Includes cache pollution between tests to minimize performance interference
  */
-void FancyMagicTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+void FancyMagicTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
 /**
 * @brief Performs correctness testing of move generation algorithms on the GPU.
@@ -46,7 +46,7 @@ void FancyMagicTest(__uint32_t threadsAvailable, const cudaDeviceProp &devicePro
 * @param threadsAvailable Number of CUDA threads available for the test
 * @param deviceProps CUDA device properties used for kernel launch configuration
 */
-void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+void MoveGenTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
 /**
  * @brief Executes performance benchmarking for move generation on the GPU.
@@ -57,7 +57,7 @@ void MoveGenTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps)
  * @param threadsAvailable Number of CUDA threads available for the test
  * @param deviceProps CUDA device properties used for kernel launch configuration
  */
-void MoveGenPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+void MoveGenPerfTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
 /**
  * @brief Combines correctness and performance testing for move generation.
@@ -68,12 +68,12 @@ void MoveGenPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &devicePr
  * @param threadsAvailable Number of CUDA threads available for the test
  * @param deviceProps CUDA device properties used for kernel launch configuration
  */
-inline void MoveGenCorPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+inline void MoveGenCorPerfTest(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     MoveGenTest(threadsAvailable, deviceProps);
     MoveGenPerfTest(threadsAvailable, deviceProps);
 }
 
-void TestMCTSEngines(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
 // ------------------------------
 // Test map
@@ -157,7 +157,7 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
  *
  * @note Prints diagnostic information about thread and block utilization
  */
-std::tuple<__uint32_t, __uint32_t> GetDims(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+std::tuple<uint32_t, uint32_t> GetDims(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
 /**
  * @brief Loads a chess position database from a predefined file path.
@@ -178,9 +178,9 @@ std::vector<std::string> LoadFenDb();
  * a Mersenne Twister random number generator seeded by std::random_device.
  *
  * @param size Number of random seeds to generate
- * @return std::vector<__uint32_t> containing randomly generated seeds
+ * @return std::vector<uint32_t> containing randomly generated seeds
  */
-std::vector<__uint32_t> GenSeeds(__uint32_t size);
+std::vector<uint32_t> GenSeeds(uint32_t size);
 
 /**
  * @brief Pollutes the CPU and GPU caches to minimize performance interference in benchmarking.
@@ -197,7 +197,7 @@ void PolluteCache();
 // Test constants
 // ------------------------------
 
-static constexpr __uint64_t DEFAULT_TEST_SEED = 0xDEADC0D3;
+static constexpr uint64_t DEFAULT_TEST_SEED = 0xDEADC0D3;
 extern bool G_USE_DEFINED_SEED;
 
 #endif //SRC_CUDATESTS_CUH

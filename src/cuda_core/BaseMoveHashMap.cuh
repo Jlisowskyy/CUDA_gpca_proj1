@@ -4,9 +4,9 @@
 #include "cuda_Array.cuh"
 #include "Helpers.cuh"
 
-__device__ __constant__ static constexpr __uint32_t MASKS_COUNT = 4;
+__device__ __constant__ static constexpr uint32_t MASKS_COUNT = 4;
 
-template<__uint32_t SIZE = 256>
+template<uint32_t SIZE = 256>
 class BaseMoveHashMap final {
 
     // ------------------------------
@@ -19,8 +19,8 @@ public:
 
     constexpr ~BaseMoveHashMap() = default;
 
-    HYBRID constexpr explicit BaseMoveHashMap(const cuda_Array<__uint64_t, MASKS_COUNT> &nMasks, __uint64_t nMagic,
-                                              __uint64_t nShift)
+    HYBRID constexpr explicit BaseMoveHashMap(const cuda_Array<uint64_t, MASKS_COUNT> &nMasks, uint64_t nMagic,
+                                              uint64_t nShift)
             : m_masks(nMasks), m_magic(nMagic), m_shift(nShift),
               m_fullMask(nMasks[0] | nMasks[1] | nMasks[2] | nMasks[3]), m_map{0} {
     }
@@ -37,21 +37,21 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] HYBRID constexpr __uint64_t hashFunc(const __uint64_t val) const {
+    [[nodiscard]] HYBRID constexpr uint64_t hashFunc(const uint64_t val) const {
         return (val * m_magic) >> (64LLU - m_shift);
     }
 
-    [[nodiscard]] HYBRID constexpr const __uint64_t &operator[](const __uint64_t neighbors) const {
+    [[nodiscard]] HYBRID constexpr const uint64_t &operator[](const uint64_t neighbors) const {
         return m_map[hashFunc(neighbors)];
     }
 
-    [[nodiscard]] HYBRID constexpr __uint64_t &operator[](const __uint64_t neighbors) {
+    [[nodiscard]] HYBRID constexpr uint64_t &operator[](const uint64_t neighbors) {
         return m_map[hashFunc(neighbors)];
     }
 
-    [[nodiscard]] HYBRID constexpr __uint64_t getFullMask() const { return m_fullMask; }
+    [[nodiscard]] HYBRID constexpr uint64_t getFullMask() const { return m_fullMask; }
 
-    [[nodiscard]] HYBRID constexpr const cuda_Array<__uint64_t, MASKS_COUNT> &getMasks() const { return m_masks; }
+    [[nodiscard]] HYBRID constexpr const cuda_Array<uint64_t, MASKS_COUNT> &getMasks() const { return m_masks; }
 
     // ------------------------------
     // Class fields
@@ -60,14 +60,14 @@ public:
 protected:
 
     /* Hash function */
-    __uint64_t m_magic{};
-    __uint64_t m_shift{};
-    __uint64_t m_fullMask{};
+    uint64_t m_magic{};
+    uint64_t m_shift{};
+    uint64_t m_fullMask{};
 
     /* Map components */
-    alignas(128) cuda_Array<__uint64_t, MASKS_COUNT> m_masks{};
+    alignas(128) cuda_Array<uint64_t, MASKS_COUNT> m_masks{};
 
-    alignas(128) cuda_Array<__uint64_t, SIZE> m_map{};
+    alignas(128) cuda_Array<uint64_t, SIZE> m_map{};
 };
 
 #endif // HASHMAP_H

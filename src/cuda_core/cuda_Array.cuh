@@ -25,7 +25,7 @@
  * - Support for initializer list construction
  * - constexpr support
  */
-template<class T, __uint32_t SIZE>
+template<class T, uint32_t SIZE>
 class cuda_Array final {
 public:
     // ------------------------------
@@ -54,7 +54,7 @@ public:
      * Copies SIZE elements from the provided pointer into the array
      */
     HYBRID constexpr explicit cuda_Array(T *data) {
-        for (__uint32_t i = 0; i < SIZE; ++i) {
+        for (uint32_t i = 0; i < SIZE; ++i) {
             m_data[i] = data[i];
         }
     }
@@ -67,7 +67,7 @@ public:
      * Creates a deep copy of the input array
      */
     HYBRID constexpr cuda_Array(const cuda_Array &other) {
-        for (__uint32_t i = 0; i < SIZE; ++i) {
+        for (uint32_t i = 0; i < SIZE; ++i) {
             m_data[i] = other.m_data[i];
         }
     }
@@ -80,7 +80,7 @@ public:
      * Moves elements from the source array to this array
      */
     HYBRID constexpr cuda_Array(cuda_Array &&other) noexcept {
-        for (__uint32_t i = 0; i < SIZE; ++i) {
+        for (uint32_t i = 0; i < SIZE; ++i) {
             m_data[i] = other.m_data[i];
         }
     }
@@ -98,7 +98,7 @@ public:
             return *this;
         }
 
-        for (__uint32_t i = 0; i < SIZE; ++i) {
+        for (uint32_t i = 0; i < SIZE; ++i) {
             m_data[i] = other.m_data[i];
         }
 
@@ -118,7 +118,7 @@ public:
             return *this;
         }
 
-        for (__uint32_t i = 0; i < SIZE; ++i) {
+        for (uint32_t i = 0; i < SIZE; ++i) {
             m_data[i] = other.m_data[i];
         }
 
@@ -133,7 +133,7 @@ public:
      * Copies SIZE elements from the provided constant pointer into the array
      */
     HYBRID constexpr explicit cuda_Array(const T *data) {
-        for (__uint32_t i = 0; i < SIZE; ++i) {
+        for (uint32_t i = 0; i < SIZE; ++i) {
             m_data[i] = data[i];
         }
     }
@@ -153,7 +153,7 @@ public:
         }
 
         auto it = init.begin();
-        for (__uint32_t i = 0; i < SIZE; ++i, ++it) {
+        for (uint32_t i = 0; i < SIZE; ++i, ++it) {
             m_data[i] = *it;
         }
     }
@@ -171,7 +171,7 @@ public:
      * Provides bounds-checked mutable access to array elements
      * Triggers an assertion if the index is out of bounds
      */
-    FAST_CALL_ALWAYS constexpr T &operator[](const __uint32_t index) {
+    FAST_CALL_ALWAYS constexpr T &operator[](const uint32_t index) {
         assert(index < SIZE && "OVERFLOW!");
         return m_data[index];
     }
@@ -185,7 +185,7 @@ public:
      * Provides bounds-checked constant access to array elements
      * Triggers an assertion if the index is out of bounds
      */
-    FAST_CALL_ALWAYS constexpr const T &operator[](const __uint32_t index) const {
+    FAST_CALL_ALWAYS constexpr const T &operator[](const uint32_t index) const {
         assert(index < SIZE && "OVERFLOW!");
         return m_data[index];
     }

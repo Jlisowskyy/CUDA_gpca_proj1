@@ -47,7 +47,7 @@ public:
      * @param board Initial game board state
      * @param numWorkers Number of worker threads for tree expansion (default: 1)
      */
-    explicit MctsEngine(const cuda_Board &board, const __uint32_t numWorkers = 1) : m_board(board),
+    explicit MctsEngine(const cuda_Board &board, const uint32_t numWorkers = 1) : m_board(board),
                                                                                     m_numWorkers(numWorkers),
                                                                                     m_pool(numWorkers) {
         cpu::AllocateStacks(numWorkers);
@@ -145,7 +145,7 @@ public:
         }
     }
 
-    [[nodiscard]] static __uint32_t GetPreferredThreadsCount() {
+    [[nodiscard]] static uint32_t GetPreferredThreadsCount() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU1:
                 return std::thread::hardware_concurrency() * 6;
@@ -172,7 +172,7 @@ protected:
      * @param idx Worker thread index
      * @param workspace Pointer to the MctsEngine instance
      */
-    static void _worker(__uint32_t idx, MctsEngine *workspace) {
+    static void _worker(uint32_t idx, MctsEngine *workspace) {
         cudaStream_t stream;
 
         if constexpr (ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0) {
@@ -308,7 +308,7 @@ protected:
     cuda_Board m_board{};
     MctsNode *m_root{};
 
-    __uint32_t m_numWorkers{};
+    uint32_t m_numWorkers{};
     bool m_shouldWork{};
     ThreadPool m_pool;
 };

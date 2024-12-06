@@ -159,19 +159,19 @@ namespace cpu {
         return bd;
     }
 
-    static constexpr __int32_t FIG_VALUES_CPU[Board::BitBoardsCount + 1]{
+    static constexpr int32_t FIG_VALUES_CPU[Board::BitBoardsCount + 1]{
             100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
     };
 
-    __uint32_t SimulateGame(const external_board &board) {
-        static constexpr __uint32_t MAX_DEPTH = 100;
-        static constexpr __uint32_t DRAW = 2;
-        static constexpr __uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
-        static constexpr __uint32_t MATERIAL_ADVANTAGE_TO_WIN = 500;
+    uint32_t SimulateGame(const external_board &board) {
+        static constexpr uint32_t MAX_DEPTH = 100;
+        static constexpr uint32_t DRAW = 2;
+        static constexpr uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
+        static constexpr uint32_t MATERIAL_ADVANTAGE_TO_WIN = 500;
 
-        __uint32_t evalCounters[2]{};
-        __uint32_t seed = std::mt19937{
-                static_cast<__uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
+        uint32_t evalCounters[2]{};
+        uint32_t seed = std::mt19937{
+                static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
 
         st *s;
         const bool stackResult = GlobalStacks.pop(s);
@@ -179,13 +179,13 @@ namespace cpu {
 
         Board bd = TranslateToInternalBoard(board);
         MoveGenerator mech{bd, *s};
-        __uint32_t eval{};
+        uint32_t eval{};
 
-        for (__uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
+        for (uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
             eval += CountOnesInBoard(bd.BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
         }
 
-        for (__uint32_t depth = 0; depth < MAX_DEPTH; ++depth) {
+        for (uint32_t depth = 0; depth < MAX_DEPTH; ++depth) {
             auto moves = mech.GetMovesFast();
 
             if (moves.size == 0) {
@@ -193,7 +193,7 @@ namespace cpu {
                 return mech.IsCheck() ? SwapColor(bd.MovingColor) : DRAW;
             }
 
-            __uint32_t correctedEval = bd.MovingColor == BLACK ? -eval : eval;
+            uint32_t correctedEval = bd.MovingColor == BLACK ? -eval : eval;
             const bool isInWinningRange = correctedEval >= MATERIAL_ADVANTAGE_TO_WIN;
             evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
 
@@ -215,14 +215,14 @@ namespace cpu {
         return DRAW;
     }
 
-    void AllocateStacks(__uint32_t count) {
-        for (__uint32_t i = 0; i < count; ++i) {
+    void AllocateStacks(uint32_t count) {
+        for (uint32_t i = 0; i < count; ++i) {
             GlobalStacks.push(new st{});
         }
     }
 
-    void DeallocStacks(__uint32_t count) {
-        for (__uint32_t i = 0; i < count; ++i) {
+    void DeallocStacks(uint32_t count) {
+        for (uint32_t i = 0; i < count; ++i) {
             st *ptr;
             GlobalStacks.pop(ptr);
             delete ptr;

@@ -116,17 +116,17 @@ private:
     /**
      * @brief Read move thinking time from user
      *
-     * @return __uint32_t Time in milliseconds
+     * @return uint32_t Time in milliseconds
      */
-    [[nodiscard]] static __uint32_t _readSecondsPerMove();
+    [[nodiscard]] static uint32_t _readSecondsPerMove();
 
     /**
      * @brief Prompt user to select playing color
      *
-     * @return __uint32_t Selected color (WHITE or BLACK)
+     * @return uint32_t Selected color (WHITE or BLACK)
      */
 
-    [[nodiscard]] static __uint32_t _readPlayingColor();
+    [[nodiscard]] static uint32_t _readPlayingColor();
 
     // ------------------------------
     // Class fields

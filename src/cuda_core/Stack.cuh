@@ -15,14 +15,14 @@ struct Stack {
     Stack() = delete;
 
     FAST_DCALL_ALWAYS explicit Stack(void *ptr, bool ClearStack = true) :
-            _last(static_cast<__uint32_t *>(ptr)),
+            _last(static_cast<uint32_t *>(ptr)),
             _data(static_cast<ItemT *>(ptr) + 1) {
         if (ClearStack) {
             *_last = 0;
         }
     }
 
-    FAST_DCALL_ALWAYS explicit Stack(ItemT *ptr, __uint32_t *ctrPtr, bool ClearStack = true) :
+    FAST_DCALL_ALWAYS explicit Stack(ItemT *ptr, uint32_t *ctrPtr, bool ClearStack = true) :
             _last(ctrPtr), _data(ptr) {
         if (ClearStack) {
             *_last = 0;
@@ -43,9 +43,9 @@ struct Stack {
     // Class interaction
     // ------------------------------
 
-    template<__uint32_t MAX_ITEMS = UINT32_MAX>
+    template<uint32_t MAX_ITEMS = UINT32_MAX>
     FAST_DCALL_ALWAYS bool Push(const ItemT item) {
-        __uint32_t idx = atomicAdd_block(_last, 1);
+        uint32_t idx = atomicAdd_block(_last, 1);
 
         if (MAX_ITEMS != UINT32_MAX && idx >= MAX_ITEMS) {
             atomicSub_block(_last, 1);
@@ -58,14 +58,14 @@ struct Stack {
 
     FAST_DCALL_ALWAYS void Clear() { *_last = 0; }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS __uint32_t Size() const { return *_last; }
+    [[nodiscard]] FAST_DCALL_ALWAYS uint32_t Size() const { return *_last; }
 
-    FAST_DCALL_ALWAYS const ItemT &operator[](__uint32_t ind) const {
+    FAST_DCALL_ALWAYS const ItemT &operator[](uint32_t ind) const {
         assert(ind < *_last && "STACK OVERFLOW!");
         return _data[ind];
     }
 
-    FAST_DCALL_ALWAYS ItemT &operator[](__uint32_t ind) {
+    FAST_DCALL_ALWAYS ItemT &operator[](uint32_t ind) {
         assert(ind < *_last && "STACK OVERFLOW!");
         return _data[ind];
     }
@@ -77,7 +77,7 @@ struct Stack {
     // ------------------------------
 
 private:
-    __uint32_t *_last;
+    uint32_t *_last;
     ItemT *_data;
 };
 

@@ -22,16 +22,16 @@ static constexpr std::array TestFEN{
         "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
-//static constexpr __uint32_t TEST_TIME = 5000;
-static constexpr __uint32_t TEST_TIME = 1000;
+//static constexpr uint32_t TEST_TIME = 5000;
+static constexpr uint32_t TEST_TIME = 1000;
 
-static void RunProcessingAnim(__uint32_t moveTime) {
-    static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
-    __uint32_t timeLeft = moveTime;
+static void RunProcessingAnim(uint32_t moveTime) {
+    static constexpr uint32_t PROG_BAR_STEP_MS = 50;
+    uint32_t timeLeft = moveTime;
 
     ProgressBar bar(moveTime, 50);
     while (timeLeft) {
-        const __uint32_t curStep = std::min(PROG_BAR_STEP_MS, timeLeft);
+        const uint32_t curStep = std::min(PROG_BAR_STEP_MS, timeLeft);
 
         std::this_thread::sleep_for(std::chrono::milliseconds(curStep));
 
@@ -41,7 +41,7 @@ static void RunProcessingAnim(__uint32_t moveTime) {
 }
 
 template<class ENGINE_T1>
-double RunTestOnEngineOnce(__uint32_t moveTime, const std::string &fen) {
+double RunTestOnEngineOnce(uint32_t moveTime, const std::string &fen) {
 
     /* prepare components */
     cuda_Board board = cuda_Board(cpu::TranslateFromFen(fen));
@@ -57,7 +57,7 @@ double RunTestOnEngineOnce(__uint32_t moveTime, const std::string &fen) {
     [[maybe_unused]] const auto move = engine.MoveSearchWait();
     engine.DisplayResults();
 
-    const __uint64_t simulations = mcts::g_SimulationCounter.load();
+    const uint64_t simulations = mcts::g_SimulationCounter.load();
     const double scoreMS = double(simulations) / double(moveTime);
     const double scoreS = scoreMS * 1000.0;
 
@@ -72,7 +72,7 @@ double RunTestOnEngineOnce(__uint32_t moveTime, const std::string &fen) {
 }
 
 template<class ENGINE_T1>
-std::vector<double> RunTestsGroup(__uint32_t moveTime) {
+std::vector<double> RunTestsGroup(uint32_t moveTime) {
     std::vector<double> rv{};
     for (const std::string &fen: TestFEN) {
         const double result = RunTestOnEngineOnce<ENGINE_T1>(moveTime, fen);
@@ -119,7 +119,7 @@ void TestMCTSEngines_() {
               << std::endl;
 }
 
-void TestMCTSEngines(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         TestMCTSEngines_();
     } catch (const std::exception &e) {
