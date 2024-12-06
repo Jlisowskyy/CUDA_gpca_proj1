@@ -123,9 +123,13 @@ public:
                   << std::endl;
 
         std::cout << "Performance metrics (average):" << std::endl
-                  << "  Copy times:     " << mcts::g_CopyTimes.load() / mcts::g_SimulationCounter.load() << " seconds" << std::endl
-                  << "  Copy back times: " << mcts::g_CopyBackTimes.load() / mcts::g_SimulationCounter.load()<< " seconds" << std::endl
-                  << "  Kernel times:   " << mcts::g_KernelTime.load() / mcts::g_SimulationCounter.load()<< " seconds" << std::endl;
+                << "  Copy times:     " << 1000.0 * mcts::g_CopyTimes.load() / double(mcts::g_SimulationCounter.load())
+                << " milliseconds" << std::endl
+                << "  Copy back times: "
+                << 1000.0 * mcts::g_CopyBackTimes.load() / double(mcts::g_SimulationCounter.load())
+                << " milliseconds" << std::endl
+                << "  Kernel times:   " << 1000.0 * mcts::g_KernelTime.load() / double(mcts::g_SimulationCounter.load())
+                << " milliseconds" << std::endl;
     }
 
     [[nodiscard]] static constexpr const char *GetName() {

@@ -204,7 +204,6 @@ namespace mcts {
         results_t<EVAL_PLAIN_KERNEL_BOARDS> hResults{};
 
         /* Memory preprocessing */
-        float memcpyTime;
         cudaEvent_t memcpyStart, memcpyStop;
         CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStart));
         CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStop));
@@ -231,11 +230,8 @@ namespace mcts {
                                             cudaMemcpyHostToDevice, stream));
 
         CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStop, stream));
-        CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyStop));
-        CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyTime, memcpyStart, memcpyStop));
 
         /* kernel run */
-        float kernelTime;
         cudaEvent_t kernelStart, kernelStop;
         CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStart));
         CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStop));
@@ -246,13 +242,9 @@ namespace mcts {
         );
 
         CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStop, stream));
-        CUDA_ASSERT_SUCCESS(cudaEventSynchronize(kernelStop));
-        CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&kernelTime, kernelStart, kernelStop));
-
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
         /* memory operations cleanup operations */
-        float memcpyBackTime;
         cudaEvent_t memcpyBackStart, memcpyBackStop;
         CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStart));
         CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStop));
@@ -263,15 +255,24 @@ namespace mcts {
                                             stream));
 
         CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStop, stream));
-        CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyBackStop));
-        CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyBackTime, memcpyBackStart, memcpyBackStop));
-
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
         CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBytes, stream));
 
         CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
+
+        CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyBackStop));
+        float memcpyBackTime;
+        CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyBackTime, memcpyBackStart, memcpyBackStop));
+
+        CUDA_ASSERT_SUCCESS(cudaEventSynchronize(kernelStop));
+        float kernelTime;
+        CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&kernelTime, kernelStart, kernelStop));
+
+        CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyStop));
+        float memcpyTime;
+        CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyTime, memcpyStart, memcpyStop));
 
         /* cleanup events */
         CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyStart));
