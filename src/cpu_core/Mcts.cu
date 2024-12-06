@@ -13,14 +13,23 @@ namespace mcts {
     std::atomic<__uint64_t> g_SimulationCounter{};
 
     void ExpandTreeCPU(MctsNode *root) {
-        throw std::runtime_error("NOT IMPLEMENTED");
+        MctsNode *node = SelectNode(root);
+        node = ExpandNode(node);
+
+        if (node == nullptr) {
+
+        }
+
     }
 
     MctsNode *SelectNode(MctsNode *const root) {
         assert(root != nullptr && "NULLPTR NODE DETECTED!");
 
         root->IncNumSamples();
-        if (!root->HasChildrenAssigned()) {
+
+        /* if we have no children return ourselves and let expand fail */
+        /* NOTE: after selection there should be check if return node has children or not! */
+        if (!root->HasChildrenAssigned() || root->GetChildren().empty()) {
             return root;
         }
 
@@ -65,8 +74,7 @@ namespace mcts {
             delete pChildren;
         }
 
-        return root->GetChildren().size() == 0 ? nullptr :
-               root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
+        return root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
     }
 
     void PropagateResult(MctsNode *const node, const __uint32_t result) {

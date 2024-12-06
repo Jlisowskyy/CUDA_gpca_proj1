@@ -22,7 +22,7 @@
 #include <cassert>
 
 static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
-static constexpr __uint32_t NUM_CPU_WORKERS = 128;
+static constexpr __uint32_t NUM_CPU_WORKERS = 256;
 
 void InitializeRookMap() {
     FancyMagicRookMap hostMap{

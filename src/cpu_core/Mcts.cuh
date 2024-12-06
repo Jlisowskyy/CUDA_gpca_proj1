@@ -58,14 +58,14 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
                                             cudaMemcpyHostToDevice, stream));
 
-//        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
-//                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
-//                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
-//        );
-
-        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
+        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
+                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
                 dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
         );
+
+//        EvaluateBoardsSplitKernel<<<1, EVAL_SPLIT_KERNEL_BOARDS * BIT_BOARDS_PER_COLOR, 0, stream>>>(
+//                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
+//        );
 
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
@@ -97,19 +97,31 @@ namespace mcts {
 
             while (!node) {
                 node = SelectNode(root);
-                MctsNode *expandedNode = ExpandNode(node);
 
-                if (!expandedNode) {
-                    /* selected node is a dead end -> prop back and find another one */
+                /* We selected node already extended but without any children roll back */
+                if (node->HasChildrenAssigned()) {
                     PropagateResult(node,
                                     ported_translation::IsCheck(node->m_board) ?
                                     SwapColor(node->m_board.MovingColor) : DRAW
                     );
                     node = nullptr;
-                } else {
-                    /* we have proper node selected continue work ... */
-                    node = expandedNode;
+                    continue;
                 }
+
+                MctsNode *expandedNode = ExpandNode(node);
+
+                if (!expandedNode) {
+                    /* Selected node was not expanded yet, but we found out that it is a dead end indeed */
+                    PropagateResult(node,
+                                    ported_translation::IsCheck(node->m_board) ?
+                                    SwapColor(node->m_board.MovingColor) : DRAW
+                    );
+                    node = nullptr;
+                    continue;
+                }
+
+                /* we have proper node selected continue work ... */
+                node = expandedNode;
             }
 
             selectedNodes[idx] = node;
@@ -125,8 +137,6 @@ namespace mcts {
 
         g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
     }
-
-
 }
 
 #endif //SRC_MCTS_CUH
