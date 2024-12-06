@@ -96,8 +96,8 @@ target_include_directories(src PUBLIC
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/tests/cpu
 )
-set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 89-real 89-virtual)
-#set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 60)
+#set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 60-real 89-virtual)
+set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 60)
 
 #target_compile_definitions(src PRIVATE -DTESTING=\"mcts_perf\")
 target_compile_definitions(src PRIVATE -DAGGRESSIVE_INLINE=1)
