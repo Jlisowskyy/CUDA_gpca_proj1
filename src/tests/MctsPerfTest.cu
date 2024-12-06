@@ -82,9 +82,9 @@ std::vector<double> RunTestsGroup(__uint32_t moveTime) {
 }
 
 void TestMCTSEngines_() {
-    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU1>>(TEST_TIME);
-    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU0>>(TEST_TIME);
-    const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU>>(TEST_TIME);
+    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU1, true>>(TEST_TIME);
+    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU0, true>>(TEST_TIME);
+    const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true>>(TEST_TIME);
 
     // Pretty print results as a table
     std::cout << std::left << std::setw(30) << "FEN Position"

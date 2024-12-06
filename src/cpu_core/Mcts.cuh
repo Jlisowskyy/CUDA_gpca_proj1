@@ -47,13 +47,221 @@ namespace mcts {
 
     void PropagateResult(MctsNode *node, __uint32_t result);
 
+    template<bool USE_TIMERS = false>
     results_t<EVAL_SPLIT_KERNEL_BOARDS>
-    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream);
+    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
+        results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
 
+        /* Memory preprocessing */
+
+        float memcpyTime;
+        cudaEvent_t memcpyStart, memcpyStop;
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStart));
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStop));
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStart, stream));
+        }
+
+        __uint32_t *dSeeds{};
+        __uint32_t *dResults{};
+        cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *dBoards{};
+
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>), stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
+
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
+                                            cudaMemcpyHostToDevice, stream));
+
+        const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
+        assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
+                                            cudaMemcpyHostToDevice, stream));
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStop, stream));
+            CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyStop));
+            CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyTime, memcpyStart, memcpyStop));
+        }
+
+        /* kernel run */
+        float kernelTime;
+        cudaEvent_t kernelStart, kernelStop;
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStart));
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStop));
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStart, stream));
+        }
+
+        EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
+                                                                          BIT_BOARDS_PER_COLOR, 0, stream>>>(
+                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
+        );
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStop, stream));
+            CUDA_ASSERT_SUCCESS(cudaEventSynchronize(kernelStop));
+            CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&kernelTime, kernelStart, kernelStop));
+        }
+
+        CUDA_ASSERT_SUCCESS(cudaGetLastError());
+
+        /* memory operations cleanup operations */
+        float memcpyBackTime;
+        cudaEvent_t memcpyBackStart, memcpyBackStop;
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStart));
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStop));
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStart, stream));
+        }
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
+                                            sizeof(__uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            stream));
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStop, stream));
+            CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyBackStop));
+            CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyBackTime, memcpyBackStart, memcpyBackStop));
+        }
+
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
+
+        CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
+
+        /* cleanup events */
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyStart));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyStop));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(kernelStart));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(kernelStop));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyBackStart));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyBackStop));
+
+            g_KernelTime.fetch_add(double(kernelTime));
+            g_CopyTimes.fetch_add(double(memcpyTime));
+            g_CopyBackTimes.fetch_add(double(memcpyBackTime));
+        }
+
+        return hResults;
+    }
+
+    template<bool USE_TIMERS = false>
     results_t<EVAL_PLAIN_KERNEL_BOARDS>
-    SimulatePlain(const cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> &boards, cudaStream_t &stream);
+    SimulatePlain(const cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
+        results_t<EVAL_PLAIN_KERNEL_BOARDS> hResults{};
 
-    template<EngineType ENGINE_TYPE>
+        /* Memory preprocessing */
+        float memcpyTime;
+        cudaEvent_t memcpyStart, memcpyStop;
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStart));
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStop));
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStart, stream));
+        }
+
+        __uint32_t *dSeeds{};
+        __uint32_t *dResults{};
+        cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> *dBoards{};
+        BYTE *dBytes{};
+
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>), stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
+        CUDA_ASSERT_SUCCESS(
+                cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE * EVAL_PLAIN_KERNEL_BOARDS, stream));
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>),
+                                            cudaMemcpyHostToDevice, stream));
+
+        const auto seeds = GenSeeds(EVAL_PLAIN_KERNEL_BOARDS);
+        assert(seeds.size() == EVAL_PLAIN_KERNEL_BOARDS);
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
+                                            cudaMemcpyHostToDevice, stream));
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStop, stream));
+            CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyStop));
+            CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyTime, memcpyStart, memcpyStop));
+        }
+
+        /* kernel run */
+        float kernelTime;
+        cudaEvent_t kernelStart, kernelStop;
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStart));
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStop));
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStart, stream));
+        }
+
+        EvaluateBoardsPlainKernel<EVAL_PLAIN_KERNEL_BOARDS><<<1, EVAL_PLAIN_KERNEL_BOARDS, 0, stream>>>(
+                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, dBytes
+        );
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStop, stream));
+            CUDA_ASSERT_SUCCESS(cudaEventSynchronize(kernelStop));
+            CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&kernelTime, kernelStart, kernelStop));
+        }
+
+        CUDA_ASSERT_SUCCESS(cudaGetLastError());
+
+        /* memory operations cleanup operations */
+        float memcpyBackTime;
+        cudaEvent_t memcpyBackStart, memcpyBackStop;
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStart));
+            CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStop));
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStart, stream));
+        }
+
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
+                                            sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+                                            stream));
+
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStop, stream));
+            CUDA_ASSERT_SUCCESS(cudaEventSynchronize(memcpyBackStop));
+            CUDA_ASSERT_SUCCESS(cudaEventElapsedTime(&memcpyBackTime, memcpyBackStart, memcpyBackStop));
+        }
+
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dSeeds, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoards, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dResults, stream));
+        CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBytes, stream));
+
+        CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
+
+        /* cleanup events */
+        if constexpr (USE_TIMERS) {
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyStart));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyStop));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(kernelStart));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(kernelStop));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyBackStart));
+            CUDA_ASSERT_SUCCESS(cudaEventDestroy(memcpyBackStop));
+
+            g_KernelTime.fetch_add(double(kernelTime));
+            g_CopyTimes.fetch_add(double(memcpyTime));
+            g_CopyBackTimes.fetch_add(double(memcpyBackTime));
+        }
+
+        return hResults;
+    }
+
+    template<EngineType ENGINE_TYPE, bool USE_TIMERS = false>
     void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
         static_assert(ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1);
         static constexpr __uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU1 ? EVAL_SPLIT_KERNEL_BOARDS :
@@ -103,10 +311,10 @@ namespace mcts {
         results_t<BATCH_SIZE> results;
 
         if constexpr (ENGINE_TYPE == EngineType::GPU1) {
-            results = SimulateSplit(batch, stream);
+            results = SimulateSplit<USE_TIMERS>(batch, stream);
             g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
         } else {
-            results = SimulatePlain(batch, stream);
+            results = SimulatePlain<USE_TIMERS>(batch, stream);
             g_SimulationCounter.fetch_add(EVAL_PLAIN_KERNEL_BOARDS, std::memory_order::relaxed);
         }
 

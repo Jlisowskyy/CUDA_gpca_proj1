@@ -28,7 +28,7 @@
  * @tparam BATCH_SIZE Number of simulations to play in single batch
  * @tparam ENGINE_TYPE Specifies whether to use CPU or GPU expansion strategy
  */
-template<EngineType ENGINE_TYPE = EngineType::GPU1>
+template<EngineType ENGINE_TYPE = EngineType::GPU1, bool USE_TIMERS = false>
 class MctsEngine {
 public:
     // ------------------------------
@@ -182,7 +182,7 @@ protected:
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
             if constexpr (ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0) {
-                mcts::ExpandTreeGPU<ENGINE_TYPE>(workspace->m_root, stream);
+                mcts::ExpandTreeGPU<ENGINE_TYPE, USE_TIMERS>(workspace->m_root, stream);
             } else if constexpr (ENGINE_TYPE == EngineType::CPU) {
                 mcts::ExpandTreeCPU(workspace->m_root);
             } else {
