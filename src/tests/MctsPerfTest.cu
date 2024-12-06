@@ -22,7 +22,8 @@ static constexpr std::array TestFEN{
         "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
-static constexpr __uint32_t TEST_TIME = 5000;
+//static constexpr __uint32_t TEST_TIME = 5000;
+static constexpr __uint32_t TEST_TIME = 1000;
 
 static void RunProcessingAnim(__uint32_t moveTime) {
     static constexpr __uint32_t PROG_BAR_STEP_MS = 50;

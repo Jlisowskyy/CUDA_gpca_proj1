@@ -99,7 +99,7 @@ target_include_directories(src PUBLIC
 set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 89-real 89-virtual)
 #set_property(TARGET src PROPERTY CUDA_ARCHITECTURES 60)
 
-target_compile_definitions(src PRIVATE -DTESTING=\"mcts_perf\")
+#target_compile_definitions(src PRIVATE -DTESTING=\"mcts_perf\")
 target_compile_definitions(src PRIVATE -DAGGRESSIVE_INLINE=1)
 #target_compile_definitions(src PRIVATE -DWRITE_OUT=1)
 

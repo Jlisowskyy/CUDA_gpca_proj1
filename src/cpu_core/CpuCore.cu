@@ -341,7 +341,8 @@ void CpuCore::_runCVC(__uint32_t moveTime) {
     ENGINE_T1 engine0{board, ENGINE_T1::GetPreferredThreadsCount()};
     ENGINE_T2 engine1{board, ENGINE_T2::GetPreferredThreadsCount()};
 
-    __uint32_t engineIdx = 0;
+    /* Pick randomly who should begin */
+    __uint32_t engineIdx = std::mt19937(std::chrono::steady_clock::now().time_since_epoch().count())() % 2;
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {

@@ -132,12 +132,12 @@ public:
         }
     }
 
-    [[nodiscard]] static constexpr __uint32_t GetPreferredThreadsCount() {
+    [[nodiscard]] static __uint32_t GetPreferredThreadsCount() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU1:
-                return 128;
+                return std::thread::hardware_concurrency() * 6;
             case EngineType::GPU0:
-                return 128;
+                return std::thread::hardware_concurrency() * 6;
             case EngineType::CPU:
                 return 1;
             default:
