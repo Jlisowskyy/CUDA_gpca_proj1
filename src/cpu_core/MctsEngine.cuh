@@ -220,8 +220,13 @@ protected:
         if (newParent) {
             newParent->m_parent = nullptr;
 
-            assert(std::remove(m_root->GetChildren().begin(), m_root->GetChildren().end(), newParent) !=
-                   m_root->GetChildren().end() && "FAILED TO REMOVE NEW PARENT FROM OLD ONE");
+            for (auto &child: m_root->GetChildren()) {
+                if (child != newParent) {
+                    delete child;
+                }
+
+                child = nullptr;
+            }
         }
 
         delete m_root;
