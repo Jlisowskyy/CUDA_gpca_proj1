@@ -162,7 +162,7 @@ protected:
     static void _worker(__uint32_t idx, MctsEngine *workspace) {
         cudaStream_t stream;
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU0) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
             CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
         }
 
@@ -177,7 +177,7 @@ protected:
             }
         }
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU0) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
             CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
         }
 

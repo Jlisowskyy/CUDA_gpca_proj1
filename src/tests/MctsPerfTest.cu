@@ -75,15 +75,15 @@ void RunTestsGroup(__uint32_t moveTime) {
 }
 
 void TestMCTSEngines_() {
+    RunTestsGroup<MctsEngine<EngineType::GPU1>>(TEST_TIME);
     RunTestsGroup<MctsEngine<EngineType::CPU>>(TEST_TIME);
     RunTestsGroup<MctsEngine<EngineType::GPU0>>(TEST_TIME);
-    RunTestsGroup<MctsEngine<EngineType::GPU1>>(TEST_TIME);
 }
 
 void TestMCTSEngines(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
     try {
         TestMCTSEngines_();
     } catch (const std::exception &e) {
-        std::cerr << "Fancy Magic Test failed with exception: " << e.what() << std::endl;
+        std::cerr << "MCTS Test failed with exception: " << e.what() << std::endl;
     }
 }
