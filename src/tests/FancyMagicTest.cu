@@ -320,8 +320,8 @@ cpu::MapCorrecntessRecordsPack TryReadingFilePath(const std::string &defaultPath
  * using predefined test data files.
  */
 void FancyMagicTestCorrectness_() {
-    static constexpr std::string_view BISHOP_PATH = "../test_data/corr2";
-    static constexpr std::string_view ROOK_PATH = "../test_data/corr4";
+    static constexpr std::string_view BISHOP_PATH = "./test_data/corr2";
+    static constexpr std::string_view ROOK_PATH = "./test_data/corr4";
 
     try {
         const auto records = TryReadingFilePath(std::string(BISHOP_PATH), " for the BishopMap");
