@@ -23,7 +23,7 @@ static constexpr unsigned TEST_SIZE = 1'000'000;
  *
  * @param state Reference to the random state, which is modified in-place
  */
-uint64_t simpleRand(uint64_t &state) {
+static uint64_t simpleRand(uint64_t &state) {
     state ^= state << 13;
     state ^= state >> 7;
     state ^= state << 17;

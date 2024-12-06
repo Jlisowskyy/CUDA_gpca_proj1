@@ -18,7 +18,7 @@
  *
  * @param state Reference to the random state, which is modified in-place
  */
-void simpleRand(uint32_t &state) {
+static void simpleRand(uint32_t &state) {
     state ^= state << 13;
     state ^= state >> 7;
     state ^= state << 17;
