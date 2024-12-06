@@ -21,6 +21,7 @@ namespace mcts {
                             ported_translation::IsCheck(node->m_board) ?
                             SwapColor(node->m_board.MovingColor) : DRAW
             );
+            g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
             return;
         }
 
@@ -32,11 +33,14 @@ namespace mcts {
                             ported_translation::IsCheck(node->m_board) ?
                             SwapColor(node->m_board.MovingColor) : DRAW
             );
+            g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
             return;
         }
 
         const __uint32_t result = cpu::SimulateGame(expandedNode->m_board.DumpToExternal());
         PropagateResult(expandedNode, result);
+
+        g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
     }
 
     MctsNode *SelectNode(MctsNode *const root) {

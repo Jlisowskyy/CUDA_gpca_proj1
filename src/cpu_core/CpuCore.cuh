@@ -63,6 +63,20 @@ public:
     void runCVC(__uint32_t moveTime);
 
     /**
+     * @brief Runs a Computer vs Computer (CVC) game mode (BEST GPU VS CPU)
+     *
+     * @param moveTime Maximum thinking time for each engine move in milliseconds
+     */
+    void runCVC1(__uint32_t moveTime);
+
+    /**
+     * @brief Runs a Computer vs Computer (CVC) game mode (GPU0 VS GPU1)
+     *
+     * @param moveTime Maximum thinking time for each engine move in milliseconds
+     */
+    void runCVC2(__uint32_t moveTime);
+
+    /**
      * @brief Runs a Player vs Computer (PVC) game mode
      *
      * @param moveTime Maximum thinking time for the computer's moves
@@ -154,6 +168,9 @@ private:
      * Blocks execution until "stop" command is received
      */
     static void _waitForInfiniteStop(MctsEngine <DEFAULT_MCTS_BATCH_SIZE> &engine);
+
+    template<class ENGINE_T1, class ENGINE_T2>
+    void _runCVC(__uint32_t moveTime);
 
     // ------------------------------
     // Class fields

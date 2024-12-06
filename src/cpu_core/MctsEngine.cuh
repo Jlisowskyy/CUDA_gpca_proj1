@@ -23,7 +23,8 @@ static constexpr __uint32_t DEFAULT_MCTS_BATCH_SIZE = EVAL_SPLIT_KERNEL_BOARDS;
 
 enum class EngineType {
     CPU,
-    GPU,
+    GPU0,
+    GPU1,
 };
 
 
@@ -36,7 +37,7 @@ enum class EngineType {
  * @tparam BATCH_SIZE Number of simulations to play in single batch
  * @tparam ENGINE_TYPE Specifies whether to use CPU or GPU expansion strategy
  */
-template<__uint32_t BATCH_SIZE, EngineType ENGINE_TYPE = EngineType::GPU>
+template<__uint32_t BATCH_SIZE, EngineType ENGINE_TYPE = EngineType::GPU0>
 class MctsEngine {
 public:
     // ------------------------------
@@ -124,6 +125,19 @@ public:
                   mcts::g_ExpandRacesCounter.load() << std::endl;
     }
 
+    const char *GetName() const {
+        switch (ENGINE_TYPE) {
+            case EngineType::GPU0:
+                return "GPU0";
+            case EngineType::GPU1:
+                return "GPU1";
+            case EngineType::CPU:
+                return "CPU";
+            default:
+                std::abort();
+        }
+    }
+
     // ------------------------------
     // Class implementation
     // ------------------------------
@@ -141,20 +155,20 @@ protected:
     static void _worker(__uint32_t idx, MctsEngine *workspace) {
         cudaStream_t stream;
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU0) {
             CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
         }
 
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
-            if constexpr (ENGINE_TYPE == EngineType::GPU) {
+            if constexpr (ENGINE_TYPE == EngineType::GPU0) {
                 mcts::ExpandTreeGPU<BATCH_SIZE>(workspace->m_root, stream);
             } else {
                 mcts::ExpandTreeCPU(workspace->m_root);
             }
         }
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU0) {
             CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
         }
 

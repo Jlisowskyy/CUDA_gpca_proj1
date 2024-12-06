@@ -96,7 +96,7 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
     m_core->setBoard(m_board);
 
     switch (gameType) {
-        case RC_GameTypeLod::COMPUTER_VS_COMPUTER:
+        case RC_GameTypeLod::COMPUTER_VS_COMPUTER_BEST_GPU:
             m_core->runCVC(_readSecondsPerMove());
             break;
         case RC_GameTypeLod::PLAYER_VS_COMPUTER:
@@ -108,6 +108,13 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
         case RC_GameTypeLod::INFINITE:
             m_core->runInfinite();
             break;
+        case RC_GameTypeLod::COMPUTER_VS_COMPUTER_CPU_VS_BEST_GPU:
+            m_core->runCVC1(_readSecondsPerMove());
+            break;
+        case RC_GameTypeLod::COMPUTER_VS_COMPUTER_GPU0_VS_GPU1:
+            m_core->runCVC2(_readSecondsPerMove());
+
+            break;
         default:
             assert(false && "Invalid game type provided!");
     }
@@ -116,18 +123,22 @@ void Cli::_runGame(Cli::RC_GameTypeLod gameType) {
 Cli::RC_GameTypeLod Cli::_loadGameType() const {
     static std::unordered_map<std::string, RC_GameTypeLod> inputMap{
             {"exit",     RC_GameTypeLod::EXIT},
-            {"cvc",      RC_GameTypeLod::COMPUTER_VS_COMPUTER},
+            {"cvc",  RC_GameTypeLod::COMPUTER_VS_COMPUTER_BEST_GPU},
             {"pvc",      RC_GameTypeLod::PLAYER_VS_COMPUTER},
             {"test",     RC_GameTypeLod::TEST},
             {"infinite", RC_GameTypeLod::INFINITE},
+            {"cvc1", RC_GameTypeLod::COMPUTER_VS_COMPUTER_CPU_VS_BEST_GPU},
+            {"cvc2", RC_GameTypeLod::COMPUTER_VS_COMPUTER_GPU0_VS_GPU1}
     };
 
     static std::unordered_map<RC_GameTypeLod, std::string_view> messages{
-            {RC_GameTypeLod::EXIT,                 "Exiting game!"},
-            {RC_GameTypeLod::COMPUTER_VS_COMPUTER, "Computer vs Computer game started!"},
-            {RC_GameTypeLod::PLAYER_VS_COMPUTER,   "Player vs Computer game started!"},
-            {RC_GameTypeLod::TEST,                 "Entering dev tes mode!"},
-            {RC_GameTypeLod::INFINITE,             "Starting infinite search. Type \"stop\" to end the program"},
+            {RC_GameTypeLod::EXIT,                                 "Exiting game!"},
+            {RC_GameTypeLod::COMPUTER_VS_COMPUTER_BEST_GPU,        "Computer vs Computer game started!"},
+            {RC_GameTypeLod::PLAYER_VS_COMPUTER,                   "Player vs Computer game started!"},
+            {RC_GameTypeLod::TEST,                                 "Entering dev tes mode!"},
+            {RC_GameTypeLod::INFINITE,                             "Starting infinite search. Type \"stop\" to end the program"},
+            {RC_GameTypeLod::COMPUTER_VS_COMPUTER_GPU0_VS_GPU1,    "Computer vs Computer game started!"},
+            {RC_GameTypeLod::COMPUTER_VS_COMPUTER_CPU_VS_BEST_GPU, "Computer vs Computer game started!"}
     };
 
     std::string input;
@@ -148,10 +159,12 @@ Cli::RC_GameTypeLod Cli::_loadGameType() const {
 void Cli::_displayGameTypeMessage() {
     static constexpr std::string_view gameTypeMsg = R"(
 Choose game type:
-- 'cvc' for Computer vs Computer
-- 'pvc' for Player vs Computer
+- 'cvc'      for Computer vs Computer (Best GPU vs Best GPU)
+- 'cvc1'     for Computer vs Computer (Best GPU vs CPU)
+- 'cvc2'     for Computer vs Computer (GPU0 (BEST) vs GPU1)
+- 'pvc'      for Player vs Computer
 - 'infinite' for infinite search on given position
-- 'test' to enter test suite
+- 'test'     to enter test suite
 
 Please provide input:)";
 

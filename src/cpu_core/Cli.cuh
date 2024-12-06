@@ -41,12 +41,14 @@ public:
      * @brief Return codes for game type selection
      */
     enum class RC_GameTypeLod {
-        COMPUTER_VS_COMPUTER,
+        COMPUTER_VS_COMPUTER_BEST_GPU,
         PLAYER_VS_COMPUTER,
         FAILURE,
         TEST,
         EXIT,
         INFINITE,
+        COMPUTER_VS_COMPUTER_CPU_VS_BEST_GPU,
+        COMPUTER_VS_COMPUTER_GPU0_VS_GPU1,
     };
 
     // ------------------------------

@@ -105,6 +105,7 @@ namespace mcts {
                                     SwapColor(node->m_board.MovingColor) : DRAW
                     );
                     node = nullptr;
+                    g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
                     continue;
                 }
 
@@ -117,6 +118,7 @@ namespace mcts {
                                     SwapColor(node->m_board.MovingColor) : DRAW
                     );
                     node = nullptr;
+                    g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
                     continue;
                 }
 

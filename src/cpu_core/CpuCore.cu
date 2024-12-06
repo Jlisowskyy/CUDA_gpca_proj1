@@ -22,7 +22,7 @@
 #include <cassert>
 
 static constexpr __uint32_t PROG_BAR_STEP_MS = 50;
-static constexpr __uint32_t NUM_CPU_WORKERS = 256;
+static constexpr __uint32_t NUM_CPU_WORKERS = 128;
 
 void InitializeRookMap() {
     FancyMagicRookMap hostMap{
@@ -37,59 +37,8 @@ CpuCore::~CpuCore() {
 }
 
 void CpuCore::runCVC(const __uint32_t moveTime) {
-    /* prepare components */
-    cuda_Board board = *m_board;
-
-    std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine0{board, NUM_CPU_WORKERS};
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> engine1{board, NUM_CPU_WORKERS};
-
-    MctsEngine<DEFAULT_MCTS_BATCH_SIZE> *engines[]{&engine0, &engine1};
-    __uint32_t engineIdx = 0;
-
-    /* Run in loop until moves are exhausted */
-    while (!moves.empty()) {
-        std::cout << '\n';
-        cpu::DisplayBoard(board.DumpToExternal());
-
-        auto &engine = *engines[engineIdx];
-
-        std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
-
-        engine.MoveSearchStart();
-        _runProcessingAnim(moveTime);
-        const auto pickedMove = engine.MoveSearchWait();
-
-        ClearLines(28);
-
-        std::cout << "[ ENGINE " << engineIdx << " ] ";
-        engine.DisplayResults();
-
-        assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
-
-        cuda_Move::MakeMove(pickedMove, board);
-        engine0.ApplyMove(pickedMove);
-        engine1.ApplyMove(pickedMove);
-
-        /* TODO: fallback when move gen failed? */
-        moves = ported_translation::GenMoves(board);
-
-        engineIdx ^= 1;
-    }
-
-    /* Decide who won the game */
-    if (ported_translation::IsCheck(board)) {
-        const __uint32_t winningColor = SwapColor(board.MovingColor);
-        const std::string winningColorStr = winningColor == WHITE ? "WHITE" : "BLACK";
-
-        std::cout << std::string(80, '-') << std::endl << std::endl;
-        std::cout << std::string(25, ' ') << "GAME WON BY " << winningColorStr << std::endl;
-        std::cout << std::endl << std::string(80, '-') << std::endl;
-    } else {
-        std::cout << std::string(80, '-') << std::endl << std::endl;
-        std::cout << std::string(35, ' ') << "DRAW" << std::endl;
-        std::cout << std::endl << std::string(80, '-') << std::endl;
-    }
+    _runCVC<MctsEngine<DEFAULT_MCTS_BATCH_SIZE, EngineType::GPU0>,
+            MctsEngine<DEFAULT_MCTS_BATCH_SIZE, EngineType::GPU0>>(moveTime);
 }
 
 void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
@@ -370,4 +319,82 @@ void CpuCore::_waitForInfiniteStop(MctsEngine<DEFAULT_MCTS_BATCH_SIZE> &engine) 
 
     runThread = false;
     moveSyncThread.Wait();
+}
+
+void CpuCore::runCVC1(__uint32_t moveTime) {
+
+}
+
+void CpuCore::runCVC2(__uint32_t moveTime) {
+
+}
+
+template<class ENGINE_T1, class ENGINE_T2>
+void CpuCore::_runCVC(__uint32_t moveTime) {
+    /* prepare components */
+    cuda_Board board = *m_board;
+
+    std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
+    ENGINE_T1 engine0{board, NUM_CPU_WORKERS};
+    ENGINE_T2 engine1{board, NUM_CPU_WORKERS};
+
+    __uint32_t engineIdx = 0;
+
+    /* Run in loop until moves are exhausted */
+    while (!moves.empty()) {
+        std::cout << '\n';
+        cpu::DisplayBoard(board.DumpToExternal());
+
+        std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
+
+        if (engineIdx == 0) {
+            engine0.MoveSearchStart();
+        } else {
+            engine1.MoveSearchStart();
+        }
+
+        _runProcessingAnim(moveTime);
+        cuda_Move pickedMove;
+
+        if (engineIdx == 0) {
+            pickedMove = engine0.MoveSearchWait();
+        } else {
+            pickedMove = engine1.MoveSearchWait();
+        }
+
+        ClearLines(28);
+
+        std::cout << "[ ENGINE: " << (engineIdx == 0 ? engine0.GetName() : engine1.GetName()) << " ] ";
+
+        if (engineIdx == 0) {
+            engine0.DisplayResults();
+        } else {
+            engine1.DisplayResults();
+        }
+
+        assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
+
+        cuda_Move::MakeMove(pickedMove, board);
+        engine0.ApplyMove(pickedMove);
+        engine1.ApplyMove(pickedMove);
+
+        /* TODO: fallback when move gen failed? */
+        moves = ported_translation::GenMoves(board);
+
+        engineIdx ^= 1;
+    }
+
+    /* Decide who won the game */
+    if (ported_translation::IsCheck(board)) {
+        const __uint32_t winningColor = SwapColor(board.MovingColor);
+        const std::string winningColorStr = winningColor == WHITE ? "WHITE" : "BLACK";
+
+        std::cout << std::string(80, '-') << std::endl << std::endl;
+        std::cout << std::string(25, ' ') << "GAME WON BY " << winningColorStr << std::endl;
+        std::cout << std::endl << std::string(80, '-') << std::endl;
+    } else {
+        std::cout << std::string(80, '-') << std::endl << std::endl;
+        std::cout << std::string(35, ' ') << "DRAW" << std::endl;
+        std::cout << std::endl << std::string(80, '-') << std::endl;
+    }
 }
