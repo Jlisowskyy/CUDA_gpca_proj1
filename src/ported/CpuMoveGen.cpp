@@ -9,6 +9,21 @@
 #include "../../engine/include/MoveGeneration/MoveGenerator.h"
 #include "../../engine/include/BitOperations.h"
 
+#include <random>
+
+/**
+ * @brief Simple pseudo-random number generator with XOR-shift algorithm.
+ *
+ * Modifies the input state using bitwise XOR operations to generate the next random value.
+ *
+ * @param state Reference to the random state, which is modified in-place
+ */
+void simpleRand(uint32_t &state) {
+    state ^= state << 13;
+    state ^= state >> 7;
+    state ^= state << 17;
+}
+
 
 namespace cpu {
     uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap) {
@@ -59,7 +74,49 @@ namespace cpu {
         return bd;
     }
 
+    static constexpr __int32_t FIG_VALUES_CPU[Board::BitBoardsCount + 1]{
+            100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+    };
+
     __uint32_t SimulateGame(const external_board &board) {
-        return 0;
+        static constexpr __uint32_t MAX_DEPTH = 100;
+        static constexpr __uint32_t DRAW = 2;
+        static constexpr __uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
+        static constexpr __uint32_t MATERIAL_ADVANTAGE_TO_WIN = 500;
+
+        __uint32_t evalCounters[2]{};
+        __uint32_t seed = std::mt19937{
+                static_cast<__uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
+        Stack<Move, DEFAULT_STACK_SIZE> s;
+
+        Board bd = TranslateToInternalBoard(board);
+        MoveGenerator mech{bd, s};
+        __uint32_t eval{};
+
+        for (__uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
+            eval += CountOnesInBoard(bd.BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
+        }
+
+        for (__uint32_t depth = 0; depth < MAX_DEPTH; ++depth) {
+            auto moves = mech.GetMovesFast();
+
+            if (moves.size == 0) {
+                return mech.IsCheck() ? SwapColor(bd.MovingColor) : DRAW;
+            }
+
+            __uint32_t correctedEval = bd.MovingColor == BLACK ? -eval : eval;
+            const bool isInWinningRange = correctedEval >= MATERIAL_ADVANTAGE_TO_WIN;
+            evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
+
+            if (evalCounters[bd.MovingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
+                return bd.MovingColor;
+            }
+
+            const auto nextMove = moves[seed % moves.size];
+            Move::MakeMove(nextMove, bd);
+            simpleRand(seed);
+        }
+
+        return DRAW;
     }
 }
