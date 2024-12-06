@@ -22,8 +22,8 @@ static constexpr __uint32_t MAX_SIMULATION_DEPTH = 100;
 
 enum class EngineType {
     CPU,
-    GPU0,
     GPU1,
+    GPU0,
 };
 
 namespace mcts {
@@ -52,8 +52,8 @@ namespace mcts {
 
     template<EngineType ENGINE_TYPE>
     void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
-        static_assert(ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0);
-        static constexpr __uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0 ? EVAL_SPLIT_KERNEL_BOARDS :
+        static_assert(ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1);
+        static constexpr __uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU1 ? EVAL_SPLIT_KERNEL_BOARDS :
                                                  EVAL_PLAIN_KERNEL_BOARDS;
 
         cuda_PackedBoard<BATCH_SIZE> batch;
@@ -99,7 +99,7 @@ namespace mcts {
 
         results_t<BATCH_SIZE> results;
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU0) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU1) {
             results = SimulateSplit(batch, stream);
             g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
         } else {

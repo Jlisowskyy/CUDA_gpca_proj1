@@ -28,7 +28,7 @@
  * @tparam BATCH_SIZE Number of simulations to play in single batch
  * @tparam ENGINE_TYPE Specifies whether to use CPU or GPU expansion strategy
  */
-template<EngineType ENGINE_TYPE = EngineType::GPU0>
+template<EngineType ENGINE_TYPE = EngineType::GPU1>
 class MctsEngine {
 public:
     // ------------------------------
@@ -121,9 +121,9 @@ public:
 
     [[nodiscard]] static constexpr const char *GetName() {
         switch (ENGINE_TYPE) {
-            case EngineType::GPU0:
-                return "GPU0";
             case EngineType::GPU1:
+                return "GPU0";
+            case EngineType::GPU0:
                 return "GPU1";
             case EngineType::CPU:
                 return "CPU";
@@ -134,9 +134,9 @@ public:
 
     [[nodiscard]] static constexpr __uint32_t GetPreferredThreadsCount() {
         switch (ENGINE_TYPE) {
-            case EngineType::GPU0:
-                return 128;
             case EngineType::GPU1:
+                return 128;
+            case EngineType::GPU0:
                 return 128;
             case EngineType::CPU:
                 return 1;
@@ -162,13 +162,13 @@ protected:
     static void _worker(__uint32_t idx, MctsEngine *workspace) {
         cudaStream_t stream;
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0) {
             CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
         }
 
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
-            if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
+            if constexpr (ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0) {
                 mcts::ExpandTreeGPU<ENGINE_TYPE>(workspace->m_root, stream);
             } else if constexpr (ENGINE_TYPE == EngineType::CPU) {
                 mcts::ExpandTreeCPU(workspace->m_root);
@@ -177,7 +177,7 @@ protected:
             }
         }
 
-        if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
+        if constexpr (ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0) {
             CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
         }
 

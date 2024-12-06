@@ -163,7 +163,8 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBoards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>), stream));
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(__uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
-        CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE, stream));
+        CUDA_ASSERT_SUCCESS(
+                cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE * EVAL_PLAIN_KERNEL_BOARDS, stream));
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>),
                                             cudaMemcpyHostToDevice, stream));
 

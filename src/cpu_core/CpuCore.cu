@@ -40,7 +40,7 @@ CpuCore::~CpuCore() {
 }
 
 void CpuCore::runCVC(const __uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::GPU0>>(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU1>>(moveTime);
 }
 
 void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
@@ -48,7 +48,7 @@ void CpuCore::runPVC(const __uint32_t moveTime, const __uint32_t playerColor) {
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU1> engine{board, NUM_CPU_WORKERS};
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
@@ -272,7 +272,7 @@ void CpuCore::_runProcessingAnim(__uint32_t moveTime) {
 
 void CpuCore::runInfinite() {
     cuda_Board board = *m_board;
-    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU1> engine{board, NUM_CPU_WORKERS};
 
     auto t1 = std::chrono::steady_clock::now();
     engine.MoveSearchStart();
@@ -286,7 +286,7 @@ void CpuCore::runInfinite() {
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
-void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU0> &engine) {
+void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU1> &engine) {
     static constexpr __uint32_t SYNC_INTERVAL = 500;
 
     std::string input{};
@@ -324,12 +324,12 @@ void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU0> &engine) {
 }
 
 void CpuCore::runCVC1(__uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::CPU>>(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::CPU>>(moveTime);
 
 }
 
 void CpuCore::runCVC2(__uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::GPU1>>(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU0>>(moveTime);
 }
 
 template<class ENGINE_T1, class ENGINE_T2>
