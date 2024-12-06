@@ -24,6 +24,10 @@ static void simpleRand(uint32_t &state) {
     state ^= state << 17;
 }
 
+using st = Stack<Move, DEFAULT_STACK_SIZE>;
+
+st DefaultStack{};
+st *StackArr{};
 
 namespace cpu {
     uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap) {
@@ -41,7 +45,7 @@ namespace cpu {
     std::vector<external_move> GenerateMoves(const external_board &board) {
         Board bd = TranslateToInternalBoard(board);
 
-        Stack<Move, DEFAULT_STACK_SIZE> s;
+        st s;
         MoveGenerator mech{bd, s};
         auto moves = mech.GetMovesFast();
 
@@ -78,7 +82,7 @@ namespace cpu {
             100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
     };
 
-    __uint32_t SimulateGame(const external_board &board) {
+    __uint32_t SimulateGame(__uint32_t index, const external_board &board) {
         static constexpr __uint32_t MAX_DEPTH = 100;
         static constexpr __uint32_t DRAW = 2;
         static constexpr __uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
@@ -87,10 +91,9 @@ namespace cpu {
         __uint32_t evalCounters[2]{};
         __uint32_t seed = std::mt19937{
                 static_cast<__uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
-        Stack<Move, DEFAULT_STACK_SIZE> s;
 
         Board bd = TranslateToInternalBoard(board);
-        MoveGenerator mech{bd, s};
+        MoveGenerator mech{bd, StackArr[index]};
         __uint32_t eval{};
 
         for (__uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
@@ -109,14 +112,26 @@ namespace cpu {
             evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
 
             if (evalCounters[bd.MovingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
+                StackArr[index].PopAggregate(moves);
                 return bd.MovingColor;
             }
 
             const auto nextMove = moves[seed % moves.size];
+            StackArr[index].PopAggregate(moves);
+
             Move::MakeMove(nextMove, bd);
             simpleRand(seed);
         }
 
         return DRAW;
+    }
+
+    void AllocateStacks(__uint32_t count) {
+        StackArr = new st[count]{};
+    }
+
+    void DeallocStacks() {
+        delete StackArr;
+        StackArr = nullptr;
     }
 }

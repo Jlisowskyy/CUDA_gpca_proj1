@@ -49,10 +49,18 @@ public:
      */
     explicit MctsEngine(const cuda_Board &board, const __uint32_t numWorkers = 1) : m_board(board),
                                                                                     m_numWorkers(numWorkers),
-                                                                                    m_pool(numWorkers) {}
+                                                                                    m_pool(numWorkers) {
+        if constexpr (ENGINE_TYPE == EngineType::CPU) {
+            cpu::AllocateStacks(numWorkers);
+        }
+    }
 
     ~MctsEngine() {
         delete m_root;
+
+        if constexpr (ENGINE_TYPE == EngineType::CPU) {
+            cpu::DeallocStacks();
+        }
     }
 
     // ------------------------------
@@ -168,7 +176,7 @@ protected:
             if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
                 mcts::ExpandTreeGPU<ENGINE_TYPE>(workspace->m_root, stream);
             } else if constexpr (ENGINE_TYPE == EngineType::CPU) {
-                mcts::ExpandTreeCPU(workspace->m_root);
+                mcts::ExpandTreeCPU(idx, workspace->m_root);
             } else {
                 std::abort();
             }

@@ -72,7 +72,18 @@ namespace cpu {
      */
     [[nodiscard]] bool IsCheck(const external_board &board);
 
-    [[nodiscard]] __uint32_t SimulateGame(const external_board &board);
+    /**
+     * @brief ONLY ONE ENGINE IN A TIME CAN USE THIS FUNCTION
+     *
+     * @param index
+     * @param board
+     * @return
+     */
+    [[nodiscard]] __uint32_t SimulateGame(__uint32_t index, const external_board &board);
+
+    void AllocateStacks(__uint32_t count);
+
+    void DeallocStacks();
 }
 
 #endif //SRC_CPUMOVEGEN_H
