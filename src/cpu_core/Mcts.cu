@@ -65,7 +65,8 @@ namespace mcts {
             delete pChildren;
         }
 
-        return root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
+        return root->GetChildren().size() == 0 ? nullptr :
+               root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
     }
 
     void PropagateResult(MctsNode *const node, const __uint32_t result) {

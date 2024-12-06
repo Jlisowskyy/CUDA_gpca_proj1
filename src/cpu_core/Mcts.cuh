@@ -10,6 +10,7 @@
 #include "../tests/CudaTests.cuh"
 
 #include "../cuda_core/ComputeKernels.cuh"
+#include "cpu_MoveGen.cuh"
 
 #include <cuda_runtime.h>
 
@@ -91,8 +92,25 @@ namespace mcts {
         std::array<MctsNode *, BATCH_SIZE> selectedNodes;
 
         for (__uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
-            auto node = SelectNode(root);
-            node = ExpandNode(node);
+            MctsNode *node{};
+
+
+            while (!node) {
+                node = SelectNode(root);
+                MctsNode *expandedNode = ExpandNode(node);
+
+                if (!expandedNode) {
+                    /* selected node is a dead end -> prop back and find another one */
+                    PropagateResult(node,
+                                    ported_translation::IsCheck(node->m_board) ?
+                                    SwapColor(node->m_board.MovingColor) : DRAW
+                    );
+                    node = nullptr;
+                } else {
+                    /* we have proper node selected continue work ... */
+                    node = expandedNode;
+                }
+            }
 
             selectedNodes[idx] = node;
             batch.saveBoard(idx, node->m_board);

@@ -71,7 +71,7 @@ public:
      *
      * @return number of samples simulated or being worked on
      */
-    [[nodiscard]] __uint32_t GetNumSamples() const {
+    [[nodiscard]] __uint64_t GetNumSamples() const {
         return m_numSamples.load();
     }
 
@@ -110,7 +110,7 @@ public:
         m_scores[resultIdx].fetch_add(1, std::memory_order_relaxed);
     }
 
-    [[nodiscard]] __uint32_t GetScore(const __uint32_t idx) const {
+    [[nodiscard]] __uint64_t GetScore(const __uint32_t idx) const {
         assert(idx < 3 && "DETECTED WRONG RESULT IDX");
 
         return m_scores[idx].load();
@@ -138,17 +138,17 @@ public:
      *
      * @return double UCB score for this node
      */
-    [[nodiscard]] double CalculateUCB() {
+    [[nodiscard]] double CalculateUCB() const {
         assert(m_parent != nullptr && "MCTS NODE UCB: FAILED NO PARENT");
 
-        if (m_numSamples == 0) {
+        if (GetNumSamples() == 0) {
             return std::numeric_limits<double>::max();
         }
 
         const double averageScore = CalculateWinRate();
         const __uint64_t parentNumSamples = m_parent->GetNumSamples();
 
-        return averageScore + UCB_COEF * std::sqrt(std::log(parentNumSamples) / m_numSamples);
+        return averageScore + UCB_COEF * std::sqrt(std::log(parentNumSamples) / double(GetNumSamples()));
     }
 
     /**
@@ -182,8 +182,8 @@ public:
 
 private:
     std::atomic<std::vector<MctsNode *> *> m_children{};
-    std::atomic<__uint32_t> m_scores[NUM_EVAL_RESULTS]{};
-    std::atomic<__uint32_t> m_numSamples{};
+    std::atomic<__uint64_t> m_scores[NUM_EVAL_RESULTS]{};
+    std::atomic<__uint64_t> m_numSamples{};
 };
 
 #endif //SRC_MCTSNODE_CUH
