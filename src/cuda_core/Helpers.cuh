@@ -17,7 +17,6 @@ using int16_t  = __int16_t;
 using int32_t  = __int32_t;
 using int64_t  = __int64_t;
 
-
 #endif
 
 void AssertSuccess(cudaError_t error, const char *file, int line);

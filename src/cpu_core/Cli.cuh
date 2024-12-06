@@ -10,6 +10,8 @@ class CpuCore;
 
 struct cuda_Board;
 
+#include "../cuda_core/Helpers.cuh"
+
 /**
  * @class Cli
  * @brief Command-line interface for managing chess game interactions
