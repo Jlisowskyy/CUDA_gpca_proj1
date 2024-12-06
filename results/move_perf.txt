@@ -1,0 +1,26 @@
+Enter test code: move_perf
+Loaded 100000 positions
+MoveGen Performance Test
+--------------------------------------------------------------------------------
+Running MoveGen V1 Performance Test on GPU
+Test on GPU took: 0.086254295s / 86.254295ms
+Reached board generation score: 163831.84164916078 per ms, 163831841.64916077 per s
+Reached move generation score: 5451466.202349692 per ms, 5451466202.349691 per s
+Total boards evaluated: 14131200
+Total moves generated: 470212374
+Polluting caches...
+--------------------------------------------------------------------------------
+Running MoveGen V2 Performance Test on GPU
+Test on GPU took: 0.046422751s / 46.422751ms
+Reached board generation score: 303299.5610277383 per ms, 303299561.02773833 per s
+Reached move generation score: 3008463.5010105283 per ms, 3008463501.010528 per s
+Total boards evaluated: 14080000
+Total moves generated: 139661152
+Polluting caches...
+--------------------------------------------------------------------------------
+Running Move Generation Performance Test on the CPU!
+Test on GPU took: 0.343831805s / 343.831805ms
+Reached board generation score: 40551.7575664648 per ms, 40551757.566464804 per s
+Reached move generation score: 1367698.1976696427 per ms, 1367698197.6696427 per s
+Total boards evaluated: 13942984
+Total moves generated: 470258140

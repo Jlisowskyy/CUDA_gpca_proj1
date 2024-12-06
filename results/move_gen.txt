@@ -1,0 +1,26 @@
+MoveGen Test
+Extending thread stack size to 16384...
+Testing moves of position: rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+Test passed for position: rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8
+================================================================================
+Testing plain move gen:
+Starting position comparison test for move gen...
+Testing move gen with specialized positions
+Testing move gen with whole fen db...
+[####################################################################################################] 100%
+TEST FINISHED
+--------------------------------------------------------------------------------
+[####################################################################################################] 100%
+TEST FINISHED
+================================================================================
+Testing split move gen:
+Starting position comparison test for move gen...
+Testing move gen with specialized positions
+Testing move gen with whole fen db...
+[####################################################################################################] 100%
+TEST FINISHED
+--------------------------------------------------------------------------------
+[####################################################################################################] 100%
+TEST FINISHED
+================================================================================
+Reverting thread stack size to 1024...

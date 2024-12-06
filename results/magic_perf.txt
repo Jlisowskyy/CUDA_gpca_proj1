@@ -1,0 +1,55 @@
+Enter test code: magic_test
+--------------------------------------------------------------------------------
+Running fancy magic BishopMap test on the CPU!
+Fancy Magic Test for BishopMap took 0.008130202 seconds, 8.130201999999999 milliseconds,
+Average performance was:
+reads per second: 2459963479.3821855
+reads per millisecond: 2459963.4793821853
+Control sum of the results: 12605465368130516667
+--------------------------------------------------------------------------------
+Running fancy magic RookMap test on the CPU!
+Fancy Magic Test for RookMap took 0.003121468 seconds, 3.121468 milliseconds,
+Average performance was:
+reads per second: 6407241720.88261
+reads per millisecond: 6407241.72088261
+Control sum of the results: 12186598883912136095
+--------------------------------------------------------------------------------
+Fancy Magic Test
+Received 70656 available threads...
+Utilizing 92 blocks...
+Utilizing 768 threads per block...
+Totally utilizing 70656 / 70656 threads...
+Polluting caches...
+--------------------------------------------------------------------------------
+Starting run for RookMap...
+Fancy Magic Test for RookMap took 1.94217905 seconds, 1942.17905 milliseconds,
+Average performance was:
+reads per second: 36379756027.128395
+reads per millisecond: 36379756.0271284
+Control sum of the results: 70656000000
+Polluting caches...
+--------------------------------------------------------------------------------
+Starting run for BishopMap...
+Fancy Magic Test for BishopMap took 1.174697779 seconds, 1174.6977789999999 milliseconds,
+Average performance was:
+reads per second: 60148236647.0023
+reads per millisecond: 60148236.6470023
+Control sum of the results: 70656000000
+Polluting caches...
+--------------------------------------------------------------------------------
+Starting run for RookMapRuntime...
+Fancy Magic Test for RookMapRuntime took 1.554922239 seconds, 1554.922239 milliseconds,
+Average performance was:
+reads per second: 45440214454.35125
+reads per millisecond: 45440214.45435125
+Control sum of the results: 70656000000
+Polluting caches...
+--------------------------------------------------------------------------------
+Starting run for BishopMapRuntime...
+Fancy Magic Test for BishopMapRuntime took 1.786833401 seconds, 1786.833401 milliseconds,
+Average performance was:
+reads per second: 39542578485.748825
+reads per millisecond: 39542578.48574882
+Control sum of the results: 70656000000
+Polluting caches...
+Fancy Magic Test finished!
