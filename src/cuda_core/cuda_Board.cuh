@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 3/4/24.
-//
-
 #ifndef CUDA_BOARD_CUH
 #define CUDA_BOARD_CUH
 

@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 2/14/24.
-//
-
 #ifndef BLACKPAWNMAP_H
 #define BLACKPAWNMAP_H
 

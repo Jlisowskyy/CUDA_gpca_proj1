@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 3/7/24.
-//
-
 #ifndef STACK_H
 #define STACK_H
 

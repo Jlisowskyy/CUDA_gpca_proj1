@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 12/30/23.
-//
-
 #ifndef KINGMAP_H
 #define KINGMAP_H
 

@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 12/31/23.
-//
-
 #ifndef PAWNMAP_H
 #define PAWNMAP_H
 

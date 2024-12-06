@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 16/11/24.
-//
-
 #ifndef SRC_CUDA_ARRAY_CUH
 #define SRC_CUDA_ARRAY_CUH
 

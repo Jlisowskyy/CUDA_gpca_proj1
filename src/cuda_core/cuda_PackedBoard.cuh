@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 30/11/24.
-//
-
 #ifndef SRC_CUDA_PACKEDBOARD_H
 #define SRC_CUDA_PACKEDBOARD_H
 

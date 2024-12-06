@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 12/29/23.
-//
-
 #ifndef HASHMAP_H
 #define HASHMAP_H
 

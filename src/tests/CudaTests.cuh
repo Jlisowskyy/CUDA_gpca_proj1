@@ -73,6 +73,8 @@ inline void MoveGenCorPerfTest(__uint32_t threadsAvailable, const cudaDeviceProp
     MoveGenPerfTest(threadsAvailable, deviceProps);
 }
 
+void TestMCTSEngines(__uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+
 // ------------------------------
 // Test map
 // ------------------------------
@@ -124,9 +126,17 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
         {
                 "move_gen_perf",
                 std::make_tuple(
-                        "MoveGen PerfCor Test",
+                        "MoveGen Performance and Correctness Test",
                         "Tests first the correctness of the move generation and performance after it",
                         &MoveGenCorPerfTest
+                )
+        },
+        {
+                "mcts_perf",
+                std::make_tuple(
+                        "Mcts Engine Performance Test",
+                        "Tests number of simulation played inside MCTS search of various implementations",
+                        &TestMCTSEngines
                 )
         },
 };
@@ -182,5 +192,12 @@ std::vector<__uint32_t> GenSeeds(__uint32_t size);
  * @note Uses a predefined number of rounds and data size to ensure thorough cache pollution.
  */
 void PolluteCache();
+
+// ------------------------------
+// Test constants
+// ------------------------------
+
+static constexpr __uint64_t DEFAULT_TEST_SEED = 0xDEADC0D3;
+extern bool G_USE_DEFINED_SEED;
 
 #endif //SRC_CUDATESTS_CUH

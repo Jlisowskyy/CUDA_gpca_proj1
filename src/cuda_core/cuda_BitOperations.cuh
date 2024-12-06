@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 12/29/23.
-//
-
 #ifndef CUDA_BIT_OPERATIONS_H
 #define CUDA_BIT_OPERATIONS_H
 

@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 16/11/24.
-//
-
 #ifndef SRC_ROOKMAPGENERATOR_CUH
 #define SRC_ROOKMAPGENERATOR_CUH
 

@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 15/11/24.
-//
-
 #include "Helpers.cuh"
 #include "cuda_Board.cuh"
 

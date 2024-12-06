@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 28/11/24.
-//
-
 #include "ComputeKernels.cuh"
 
 __global__ void

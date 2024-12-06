@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 3/4/24.
-//
-
 #ifndef CUDA_MOVE_CUH
 #define CUDA_MOVE_CUH
 

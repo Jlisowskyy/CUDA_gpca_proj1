@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 15/11/24.
-//
-
 #ifndef SRC_HELPERS_CUH
 #define SRC_HELPERS_CUH
 

@@ -91,7 +91,8 @@ namespace cpu {
         Board bd = TranslateToInternalBoard(board);
 
         st *s;
-        assert(GlobalStacks.pop(s));
+        const bool stackResult = GlobalStacks.pop(s);
+        assert(stackResult);
 
         MoveGenerator mech{bd, *s};
         auto moves = mech.GetMovesFast();
@@ -142,7 +143,8 @@ namespace cpu {
                 static_cast<__uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
 
         st *s;
-        assert(GlobalStacks.pop(s));
+        const bool stackResult = GlobalStacks.pop(s);
+        assert(stackResult);
 
         Board bd = TranslateToInternalBoard(board);
         MoveGenerator mech{bd, *s};

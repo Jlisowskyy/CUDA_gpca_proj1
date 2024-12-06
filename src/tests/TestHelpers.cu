@@ -14,6 +14,8 @@
 
 #include <thrust/device_vector.h>
 
+bool G_USE_DEFINED_SEED = false;
+
 void PolluteCache() {
     static constexpr __uint32_t POLLUTE_SIZE = 1'000'000'0;
     static constexpr __uint32_t ROUNDS = 50;
@@ -52,7 +54,7 @@ std::vector<__uint32_t> GenSeeds(const __uint32_t size) {
     std::vector<__uint32_t> seeds{};
     seeds.reserve(size);
 
-    std::mt19937 rng{std::random_device{}()};
+    std::mt19937 rng{G_USE_DEFINED_SEED ? DEFAULT_TEST_SEED : std::random_device{}()};
     for (__uint32_t i = 0; i < size; ++i) {
         seeds.push_back(rng());
     }

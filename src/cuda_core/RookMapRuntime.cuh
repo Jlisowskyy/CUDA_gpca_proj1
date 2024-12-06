@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 18/11/24.
-//
-
 #ifndef SRC_ROOKMAPRUNTIME_CUH
 #define SRC_ROOKMAPRUNTIME_CUH
 

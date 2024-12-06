@@ -1,7 +1,3 @@
-//
-// Created by Jlisowskyy on 3/4/24.
-//
-
 #ifndef MOVEGENERATOR_CUH
 #define MOVEGENERATOR_CUH
 
