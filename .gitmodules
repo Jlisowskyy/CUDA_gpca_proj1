@@ -4,3 +4,6 @@
 [submodule "utils"]
 	path = utils
 	url = https://github.com/Jlisowskyy/Checkmate-Chariot-Utils
+[submodule "src/ported/engine/Checkmate-Chariot"]
+	path = src/ported/engine/Checkmate-Chariot
+	url = git@github.com:Jlisowskyy/Checkmate-Chariot.git
