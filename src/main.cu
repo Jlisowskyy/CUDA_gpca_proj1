@@ -7,7 +7,7 @@
 #include "cpu_core/Utils.cuh"
 
 #include "tests/CudaTests.cuh"
-#include "CpuUtils.h"
+#include "ported/CpuUtils.h"
 
 #include <string>
 #include <iostream>

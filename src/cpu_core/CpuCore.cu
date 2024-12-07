@@ -10,7 +10,7 @@
 #include "Utils.cuh"
 #include "MctsEngine.cuh"
 #include "cpu_MoveGen.cuh"
-#include "CpuUtils.h"
+#include "../ported/CpuUtils.h"
 #include "ProgressBar.cuh"
 
 #include <cuda_runtime.h>

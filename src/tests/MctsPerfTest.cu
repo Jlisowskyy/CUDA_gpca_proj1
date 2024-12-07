@@ -6,7 +6,7 @@
 
 #include "../cuda_core/cuda_Board.cuh"
 #include "../cuda_core/cuda_Board.cuh"
-#include "cpu_core/ProgressBar.cuh"
+#include "../cpu_core/ProgressBar.cuh"
 #include "../cpu_core/Mcts.cuh"
 #include "../ported/CpuUtils.h"
 #include "../cpu_core/MctsEngine.cuh"
