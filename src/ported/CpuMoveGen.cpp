@@ -4,10 +4,10 @@
 
 #include "CpuMoveGen.h"
 
-#include "../../engine/include/MoveGeneration/BishopMap.h"
-#include "../../engine/include/MoveGeneration/RookMap.h"
-#include "../../engine/include/MoveGeneration/MoveGenerator.h"
-#include "../../engine/include/BitOperations.h"
+#include "engine/Checkmate-Chariot/include/MoveGeneration/BishopMap.h"
+#include "engine/Checkmate-Chariot/include/MoveGeneration/RookMap.h"
+#include "engine/Checkmate-Chariot/include/MoveGeneration/MoveGenerator.h"
+#include "engine/Checkmate-Chariot/include/BitOperations.h"
 
 #include <random>
 #include <atomic>

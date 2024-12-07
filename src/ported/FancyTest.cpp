@@ -9,10 +9,10 @@
 #include <thread>
 #include <format>
 
-#include "../../engine/include/MoveGeneration/BishopMap.h"
-#include "../../engine/include/MoveGeneration/RookMap.h"
-#include "../../engine/include/TestsAndDebugging/MapCorrectnessTest.h"
-#include "../../engine/include/TestsAndDebugging/MapPerformanceTest.h"
+#include "engine/Checkmate-Chariot/include/MoveGeneration/BishopMap.h"
+#include "engine/Checkmate-Chariot/include/MoveGeneration/RookMap.h"
+#include "engine/Checkmate-Chariot/include/TestsAndDebugging/MapCorrectnessTest.h"
+#include "engine/Checkmate-Chariot/include/TestsAndDebugging/MapPerformanceTest.h"
 
 static constexpr unsigned TEST_SIZE = 1'000'000;
 

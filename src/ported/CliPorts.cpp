@@ -5,8 +5,8 @@
 #include "CpuUtils.h"
 #include "CpuMoveGen.h"
 
-#include "../../engine/include/Interface/FenTranslator.h"
-#include "../../engine/include/ParseTools.h"
+#include "engine/Checkmate-Chariot/include/Interface/FenTranslator.h"
+#include "engine/Checkmate-Chariot/include/ParseTools.h"
 
 namespace cpu {
     external_board TranslateFromFen(const std::string &fen) {

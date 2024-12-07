@@ -4,8 +4,8 @@
 
 #include "CpuTests.h"
 
-#include "../../engine/include/MoveGeneration/MoveGenerator.h"
-#include "../../engine/include/Interface/FenTranslator.h"
+#include "engine/Checkmate-Chariot/include/MoveGeneration/MoveGenerator.h"
+#include "engine/Checkmate-Chariot/include/Interface/FenTranslator.h"
 
 #include <fstream>
 #include <iostream>

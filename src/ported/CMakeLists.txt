@@ -3,9 +3,9 @@ project(CheckmateChariotLib CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
-file(GLOB_RECURSE CXX_SOURCES
-        "${CMAKE_CURRENT_SOURCE_DIR}/engine/include/*.h"
-        "${CMAKE_CURRENT_SOURCE_DIR}/engine/src/*.cpp"
+file(GLOB CXX_SOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/engine/Checkmate-Chariot/include/*.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/engine/Checkmate-Chariot/src/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/*.h"
 )
