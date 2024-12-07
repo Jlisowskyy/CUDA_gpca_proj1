@@ -1,21 +1,6 @@
 cmake_minimum_required(VERSION 3.29)
 project(src CUDA CXX C)
 
-# MSVC Specific Checks
-if(MSVC)
-    message(STATUS "Compiling with MSVC")
-
-    # Ensure C++20 support
-    if(MSVC_VERSION LESS 1920)
-        message(FATAL_ERROR "MSVC version must be 2019 (v16.0) or later for full C++20 support")
-    endif()
-
-    add_compile_options(/W3)
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")  # Enable exception handling
-endif()
-
 set(CMAKE_CUDA_STANDARD 20)
 set(CMAKE_CXX_STANDARD 20)
 
