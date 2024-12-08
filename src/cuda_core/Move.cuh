@@ -36,6 +36,7 @@
 __device__ __constant__ static constexpr uint16_t PromoFlag = 0b1000;
 __device__ __constant__ static constexpr uint16_t CaptureFlag = 0b100;
 __device__ __constant__ static constexpr uint16_t CastlingFlag = 0b10;
+static constexpr uint16_t CastlingFlagCPU = 0b10;
 __device__ __constant__ static constexpr uint16_t QueenFlag = 0;
 __device__ __constant__ static constexpr uint16_t RookFlag = 0b1;
 __device__ __constant__ static constexpr uint16_t BishopFlag = 0b10;
@@ -43,12 +44,14 @@ __device__ __constant__ static constexpr uint16_t KnightFlag = 0b11;
 __device__ __constant__ static constexpr uint16_t PromoSpecBits = 0b11;
 
 __device__ __constant__ static constexpr uint16_t MoveTypeBits = 0xF << 12;
+static constexpr uint16_t MoveTypeBitsCPU = 0xF << 12;
 __device__ __constant__ static constexpr uint16_t Bit6 = 0b111111;
 __device__ __constant__ static constexpr uint16_t Bit4 = 0b1111;
 __device__ __constant__ static constexpr uint16_t Bit3 = 0b111;
 __device__ __constant__ static constexpr uint16_t PromoBit = PromoFlag << 12;
 __device__ __constant__ static constexpr uint16_t CaptureBit = CaptureFlag << 12;
 __device__ __constant__ static constexpr uint16_t CastlingBits = CastlingFlag << 12;
+static constexpr uint16_t CastlingBitsCPU = CastlingFlagCPU << 12;
 
 class cuda_Move;
 
@@ -136,6 +139,8 @@ struct cuda_PackedMove final {
     [[nodiscard]] FAST_CALL_ALWAYS  bool IsPromo() const { return (_packedMove & PromoBit) != 0; }
 
     [[nodiscard]] FAST_DCALL_ALWAYS  bool IsCastling() const { return (_packedMove & MoveTypeBits) == CastlingBits; }
+
+    [[nodiscard]] bool IsCastlingCPU() const { return (_packedMove & MoveTypeBitsCPU) == CastlingBitsCPU; }
 
     FAST_DCALL_ALWAYS void SetMoveType(const uint16_t MoveType) { _packedMove |= MoveType << 12; }
 
@@ -285,7 +290,7 @@ public:
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) | newKingPos, boardIndex);
 
         /* Update material value */
-        fetcher.MaterialEval() += FIG_VALUES[mv.GetKilledBoardIndex()];
+        fetcher.MaterialEval() -= !mv.GetPackedMove().IsCastling() * FIG_VALUES[mv.GetKilledBoardIndex()];
 
         fetcher.ChangePlayingColor();
     }
@@ -315,7 +320,7 @@ public:
 
         bd.ChangePlayingColor();
 
-        bd.MaterialEval -= FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
+        bd.MaterialEval -= !mv.GetPackedMove().IsCastlingCPU() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsAttackingMove() const { return _packedMove.IsCapture(); }
@@ -353,7 +358,7 @@ public:
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) ^ newKingPos, boardIndex);
 
         /* Update material value */
-        fetcher.MaterialEval() -= FIG_VALUES[mv.GetKilledBoardIndex()];
+        fetcher.MaterialEval() += !mv.GetPackedMove().IsCastling() * FIG_VALUES[mv.GetKilledBoardIndex()];
     }
 
     static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
@@ -381,7 +386,7 @@ public:
         const uint64_t newKingPos = move_CastlingNewKingPosCPU[mv.GetCastlingTypeCPU()];
         bd.BitBoards[boardIndex] ^= newKingPos;
 
-        bd.MaterialEval += FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
+        bd.MaterialEval += !mv.GetPackedMove().IsCastlingCPU() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
     }
 
     FAST_DCALL_ALWAYS void SetStartField(const uint16_t startField) { _packedMove.SetStartField(startField); }

@@ -41,7 +41,7 @@ CpuCore::~CpuCore() {
 }
 
 void CpuCore::runCVC(const uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU1> >(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::GPU0> >(moveTime);
 }
 
 void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
@@ -49,7 +49,7 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
-    MctsEngine<EngineType::GPU1> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
     uint32_t numMoves{};
 
     /* Run in loop until moves are exhausted */
@@ -277,7 +277,7 @@ void CpuCore::_runProcessingAnim(const uint32_t moveTime) {
 
 void CpuCore::runInfinite() {
     cuda_Board board = *m_board;
-    MctsEngine<EngineType::GPU1> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
 
     auto t1 = std::chrono::steady_clock::now();
     engine.MoveSearchStart();
@@ -295,7 +295,7 @@ void CpuCore::runInfinite() {
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
-void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU1> &engine) {
+void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU0> &engine) {
     static constexpr uint32_t SYNC_INTERVAL = 500;
 
     std::string input{};
@@ -333,11 +333,11 @@ void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU1> &engine) {
 }
 
 void CpuCore::runCVC1(const uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::CPU> >(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::CPU> >(moveTime);
 }
 
 void CpuCore::runCVC2(const uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU0> >(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::GPU1> >(moveTime);
 }
 
 template<class ENGINE_T1, class ENGINE_T2>

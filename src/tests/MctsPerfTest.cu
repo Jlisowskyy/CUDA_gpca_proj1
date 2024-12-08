@@ -76,14 +76,15 @@ std::vector<double> RunTestsGroup(uint32_t moveTime) {
     std::vector<double> rv{};
     for (const std::string &fen: TestFEN) {
         const double result = RunTestOnEngineOnce<ENGINE_T1>(moveTime, fen);
+        PolluteCache();
         rv.push_back(result);
     }
     return rv;
 }
 
 void TestMCTSEngines_() {
-    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU1, true>>(TEST_TIME);
-    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU0, true>>(TEST_TIME);
+    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true>>(TEST_TIME);
+    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true>>(TEST_TIME);
     const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true>>(TEST_TIME);
 
     // Pretty print results as a table
