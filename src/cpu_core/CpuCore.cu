@@ -75,7 +75,9 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
             _runProcessingAnim(moveTime);
             pickedMove = engine.MoveSearchWait();
 
+#ifdef WRITE_DOT
             engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
+#endif
 
             ClearLines(28);
             engine.DisplayResults();
@@ -285,7 +287,9 @@ void CpuCore::runInfinite() {
     const auto proposedMove = engine.MoveSearchWait();
     auto t2 = std::chrono::steady_clock::now();
 
+#ifdef WRITE_DOT
     engine.DumpTreeToDOTFile("tree_out_infinite.dot");
+#endif
 
     std::cout << "Engine deduced move: " << proposedMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
@@ -379,10 +383,16 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
 
         if (engineIdx == 0) {
             engine0.DisplayResults();
+
+#ifdef WRITE_DOT
             engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
+#endif
         } else {
             engine1.DisplayResults();
+
+#ifdef WRITE_DOT
             engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
+#endif
         }
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");

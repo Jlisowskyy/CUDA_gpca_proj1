@@ -69,3 +69,6 @@ target_compile_definitions(CudaEngine PRIVATE -DAGGRESSIVE_INLINE=1)
 
 # Enable extensive stdout logging
 # target_compile_definitions(CudaEngine PRIVATE -DWRITE_OUT=1)
+
+# Enable to save DOT files for graph visualization each engine iteration
+ target_compile_definitions(CudaEngine PRIVATE -DWRITE_DOT=1)

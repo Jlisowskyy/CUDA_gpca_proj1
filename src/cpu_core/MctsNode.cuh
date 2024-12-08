@@ -16,6 +16,7 @@
 #include <iostream>
 #include <functional>
 #include <iomanip>
+#include <memory>
 
 static constexpr double UCB_COEF = 2.0;
 
@@ -198,6 +199,8 @@ public:
      * @param filename - name of file to dump tree to
      */
     void DumpTreeToDotFormat(const std::string &filename) {
+        static constexpr uint64_t BUFF_SIZE = 512;
+
         std::ofstream dotFile(filename);
         if (!dotFile.is_open()) {
             std::cout << "Failed to open file for tree dump" << std::endl;
@@ -208,24 +211,38 @@ public:
         dotFile << "    node [style=filled];\n";
 
         size_t nodeCounter = 0;
+        auto label = new char[BUFF_SIZE];
 
         std::function<void(const MctsNode *, size_t)> traverseNode =
                 [&](const MctsNode *currentNode, const size_t parentId) {
-            if (!currentNode) return;
+            if (!currentNode) {
+                return;
+            }
 
             const size_t currentNodeId = nodeCounter++;
 
             /* preventing usage of std::format due to GIANT compatibility issues */
-            char label[128];
-            snprintf(label, sizeof(label),
-                     "Move: %s\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f",
-                     currentNode->m_move.GetPackedMove().GetLongAlgebraicNotation().c_str(),
-                     currentNode->GetNumSamples(),
-                     currentNode->GetScore(WHITE),
-                     currentNode->GetScore(BLACK),
-                     currentNode->GetScore(DRAW),
-                     currentNode->CalculateWinRate(),
-                     currentNode->CalculateUCB());
+            if (currentNode->m_parent) {
+                snprintf(label, BUFF_SIZE,
+                         "Move: %s\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f",
+                         currentNode->m_move.GetPackedMove().GetLongAlgebraicNotation().c_str(),
+                         currentNode->GetNumSamples(),
+                         currentNode->GetScore(WHITE),
+                         currentNode->GetScore(BLACK),
+                         currentNode->GetScore(DRAW),
+                         currentNode->GetNumSamples() == 0 ? 0 : currentNode->CalculateWinRate(),
+                         currentNode->CalculateUCB()
+                );
+            } else {
+                snprintf(label, sizeof(label),
+                         "PARENT node - no move\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\n",
+                         currentNode->GetNumSamples(),
+                         currentNode->GetScore(WHITE),
+                         currentNode->GetScore(BLACK),
+                         currentNode->GetScore(DRAW),
+                         currentNode->GetNumSamples() == 0 ? 0 : currentNode->CalculateWinRate()
+                );
+            }
 
             dotFile << "    node" << currentNodeId << " [label=\"" << label
                     << "\", fillcolor=\"#6fc787\"];\n";
@@ -234,19 +251,22 @@ public:
                 dotFile << "    node" << parentId << " -> node" << currentNodeId << ";\n";
             }
 
-            if (!HasChildrenAssigned()) {
+            if (!currentNode->HasChildrenAssigned()) {
                 return;
             }
 
-            for (const auto &child: GetChildren()) {
+            for (const auto &child: currentNode->GetChildren()) {
                 traverseNode(child, currentNodeId);
             }
         };
 
+        traverseNode(this, SIZE_MAX);
+
+        delete label;
         dotFile << "}\n";
         dotFile.close();
     }
-    
+
     // ------------------------------
     // Class fields
     // ------------------------------
