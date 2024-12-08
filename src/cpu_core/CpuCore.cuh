@@ -167,7 +167,7 @@ private:
      *
      * Blocks execution until "stop" command is received
      */
-    static void _waitForInfiniteStop(MctsEngine <EngineType::GPU1> &engine);
+    static void _waitForInfiniteStop(const MctsEngine <EngineType::GPU1> &engine);
 
     template<class ENGINE_T1, class ENGINE_T2>
     void _runCVC(uint32_t moveTime);

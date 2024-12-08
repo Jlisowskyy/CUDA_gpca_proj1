@@ -48,8 +48,8 @@ public:
      * @param numWorkers Number of worker threads for tree expansion (default: 1)
      */
     explicit MctsEngine(const cuda_Board &board, const uint32_t numWorkers = 1) : m_board(board),
-                                                                                    m_numWorkers(numWorkers),
-                                                                                    m_pool(numWorkers) {
+        m_numWorkers(numWorkers),
+        m_pool(numWorkers) {
         cpu::AllocateStacks(numWorkers);
     }
 
@@ -110,17 +110,27 @@ public:
         _adaptTree(move);
     }
 
+    /**
+     * @brief Retruns the current best move according to the search tree
+     *
+     * @return Current best move
+     */
     [[nodiscard]] cuda_Move GetCurrentBestMove() const {
         return _pickMove();
     }
 
+    /**
+     * @brief Displays the results of the search process
+     *
+     * Outputs the best move found by the search algorithm and performance metrics
+     */
     void DisplayResults() {
         const auto pickedMove = GetCurrentBestMove();
 
         std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
-                  << " with total: " << mcts::g_SimulationCounter.load()
-                  << " simulations made and total expansion races: " << mcts::g_ExpandRacesCounter.load()
-                  << std::endl;
+                << " with total: " << mcts::g_SimulationCounter.load()
+                << " simulations made and total expansion races: " << mcts::g_ExpandRacesCounter.load()
+                << std::endl;
 
         std::cout << "Performance metrics (average):" << std::endl
                 << "  Copy times:     " << 1000.0 * mcts::g_CopyTimes.load() / double(mcts::g_SimulationCounter.load())
@@ -132,6 +142,11 @@ public:
                 << " milliseconds" << std::endl;
     }
 
+    /**
+     * @brief Returns string representing the name of the engine, used in various logging functions
+     *
+     * @return Name of the engine
+     */
     [[nodiscard]] static constexpr const char *GetName() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU1:
@@ -145,6 +160,12 @@ public:
         }
     }
 
+    /**
+     * @brief Returns the number of threads to use for tree expansion, based on the engine type, picked for
+     * bets performance, with exception for CPU which is always 1 (task requirements)
+     *
+     * @return Number of threads to use for tree expansion, based on the engine type
+     */
     [[nodiscard]] static uint32_t GetPreferredThreadsCount() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU1:
@@ -158,11 +179,23 @@ public:
         }
     }
 
+    /**
+     * @brief Prepare graphical representation of the tree in DOT format
+     *
+     * @param filename - name of file to dump tree to
+     */
+    void DumpTreeToDOTFile(const std::string &filename) const {
+        if (!m_root) {
+            return;
+        }
+
+        m_root->DumpTreeToDotFormat(filename);
+    }
+
     // ------------------------------
     // Class implementation
     // ------------------------------
 protected:
-
     /**
      * @brief Worker thread function for tree expansion
      *

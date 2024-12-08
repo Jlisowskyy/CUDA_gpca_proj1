@@ -24,7 +24,7 @@ public:
      * @param total Total number of steps in the task
      * @param width Width of the progress bar in console characters
      */
-    ProgressBar(uint32_t total, uint32_t width) : m_total(total), m_current(0), m_width(width),
+    ProgressBar(const uint32_t total, const uint32_t width) : m_total(total), m_current(0), m_width(width),
                                                       m_numCharacters(0) {}
 
     // ------------------------------
@@ -36,7 +36,7 @@ public:
      *
      * @note from this moment all writes to stdout should be done through progress bar
      */
-    void Start() {
+    void Start() const {
         _clearLine();
         _redrawBar();
     }
@@ -46,7 +46,7 @@ public:
      *
      * @param increment Number of steps to advance (default 1)
      */
-    void Increment(uint32_t increment = 1) {
+    void Increment(const uint32_t increment = 1) {
         std::lock_guard<std::mutex> lock(m_mutex);
 
         m_current += increment;

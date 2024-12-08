@@ -12,6 +12,10 @@
 #include <algorithm>
 #include <atomic>
 #include <numeric>
+#include <fstream>
+#include <iostream>
+#include <functional>
+#include <iomanip>
 
 static constexpr double UCB_COEF = 2.0;
 
@@ -39,7 +43,8 @@ public:
      *
      * @param board Initial game board configuration
      */
-    explicit MctsNode(const cuda_Board &board) : m_board(board) {}
+    explicit MctsNode(const cuda_Board &board) : m_board(board) {
+    }
 
     /**
      * @brief Construct a child node from a parent and move
@@ -80,6 +85,14 @@ public:
         m_numSamples.fetch_add(1, std::memory_order_relaxed);
     }
 
+    /**
+     * @brief Perform compare and swap operation on children vector pointer, returns false when assignment failed
+     *
+     * @param children - pointer to vector of child nodes
+     * @return bool - true if assignment was successful
+     *
+     * @note children pointer is expected to be allocated on heap, if failed nothing is done with the pointer
+     */
     [[nodiscard("DATA LEAK POSSIBLE")]] bool SetChildren(std::vector<MctsNode *> *children) {
         assert(children != nullptr && "MCTS NODE: DETECTEC NULLPTR CHILDREN");
 
@@ -87,10 +100,22 @@ public:
         return m_children.compare_exchange_strong(expected, children);
     }
 
+    /**
+     * @brief Checks if children are assigned to this node
+     *
+     * @return bool - true if children are assigned
+     */
     [[nodiscard]] bool HasChildrenAssigned() const {
         return m_children.load() != nullptr;
     }
 
+    /**
+     * @brief Get children of this node
+     *
+     * @return vector of child nodes
+     *
+     * @note before calling this method, make sure that children are assigned
+     */
     [[nodiscard]] std::vector<MctsNode *> &GetChildren() const {
         assert(m_children.load() != nullptr && "MCTS NODE: DETECTED READ OF CHILDREN WITHOUT ASSIGNMENT!");
         return *m_children.load();
@@ -108,6 +133,12 @@ public:
         m_scores[resultIdx].fetch_add(1, std::memory_order_relaxed);
     }
 
+    /**
+     * @brief Get score of given result, performed atomically
+     *
+     * @param idx index of result to get
+     * @return uint64_t score of given result
+     */
     [[nodiscard]] uint64_t GetScore(const uint32_t idx) const {
         assert(idx < 3 && "DETECTED WRONG RESULT IDX");
 
@@ -161,18 +192,65 @@ public:
         return double(score) / double(GetNumSamples());
     }
 
-    // ------------------------------
-    // Class implementation
-    // ------------------------------
-private:
+    /**
+     * @brief Prepare graphical representation of the tree in DOT format
+     *
+     * @param filename - name of file to dump tree to
+     */
+    void DumpTreeToDotFormat(const std::string &filename) {
+        std::ofstream dotFile(filename);
+        if (!dotFile.is_open()) {
+            std::cout << "Failed to open file for tree dump" << std::endl;
+            return;
+        }
 
+        dotFile << "digraph OctTree {\n";
+        dotFile << "    node [style=filled];\n";
 
+        size_t nodeCounter = 0;
 
+        std::function<void(const MctsNode *, size_t)> traverseNode =
+                [&](const MctsNode *currentNode, const size_t parentId) {
+            if (!currentNode) return;
+
+            const size_t currentNodeId = nodeCounter++;
+
+            /* preventing usage of std::format due to GIANT compatibility issues */
+            char label[128];
+            snprintf(label, sizeof(label),
+                     "Move: %s\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f",
+                     currentNode->m_move.GetPackedMove().GetLongAlgebraicNotation().c_str(),
+                     currentNode->GetNumSamples(),
+                     currentNode->GetScore(WHITE),
+                     currentNode->GetScore(BLACK),
+                     currentNode->GetScore(DRAW),
+                     currentNode->CalculateWinRate(),
+                     currentNode->CalculateUCB());
+
+            dotFile << "    node" << currentNodeId << " [label=\"" << label
+                    << "\", fillcolor=\"#6fc787\"];\n";
+
+            if (parentId != SIZE_MAX) {
+                dotFile << "    node" << parentId << " -> node" << currentNodeId << ";\n";
+            }
+
+            if (!HasChildrenAssigned()) {
+                return;
+            }
+
+            for (const auto &child: GetChildren()) {
+                traverseNode(child, currentNodeId);
+            }
+        };
+
+        dotFile << "}\n";
+        dotFile.close();
+    }
+    
     // ------------------------------
     // Class fields
     // ------------------------------
 public:
-
     MctsNode *m_parent{};
 
     cuda_Move m_move{};

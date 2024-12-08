@@ -26,7 +26,8 @@ static constexpr uint32_t NUM_CPU_WORKERS = 128;
 
 void InitializeRookMap() {
     FancyMagicRookMap hostMap{
-            false}; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
+        false
+    }; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
     CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
 
     cpu::AllocateStacks(5);
@@ -40,7 +41,7 @@ CpuCore::~CpuCore() {
 }
 
 void CpuCore::runCVC(const uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU1>>(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU1> >(moveTime);
 }
 
 void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
@@ -49,6 +50,7 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
     MctsEngine<EngineType::GPU1> engine{board, NUM_CPU_WORKERS};
+    uint32_t numMoves{};
 
     /* Run in loop until moves are exhausted */
     while (!moves.empty()) {
@@ -64,7 +66,7 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
             ClearLines(26);
 
             std::cout << "Player picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
-                      << std::endl;
+                    << std::endl;
         } else {
             std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
@@ -72,6 +74,8 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
             engine.MoveSearchStart();
             _runProcessingAnim(moveTime);
             pickedMove = engine.MoveSearchWait();
+
+            engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
 
             ClearLines(28);
             engine.DisplayResults();
@@ -129,7 +133,6 @@ cuda_Move CpuCore::_readPlayerMove(const std::vector<cuda_Move> &correctMoves) {
                 break;
             }
         }
-
     } while (!isValid);
 
     /* clean our mess from the console */
@@ -250,13 +253,13 @@ void CpuCore::setBoard(cuda_Board *board) {
 }
 
 bool CpuCore::_validateMove(const std::vector<cuda_Move> &validMoves, const cuda_Move move) {
-    return std::any_of(validMoves.begin(), validMoves.end(),
-                       [&](const cuda_Move &m) {
-                           return m.GetPackedMove() == move.GetPackedMove();
-                       });
+    return std::ranges::any_of(validMoves,
+                               [&](const cuda_Move &m) {
+                                   return m.GetPackedMove() == move.GetPackedMove();
+                               });
 }
 
-void CpuCore::_runProcessingAnim(uint32_t moveTime) {
+void CpuCore::_runProcessingAnim(const uint32_t moveTime) {
     uint32_t timeLeft = moveTime;
 
     ProgressBar bar(moveTime, 50);
@@ -282,11 +285,13 @@ void CpuCore::runInfinite() {
     const auto proposedMove = engine.MoveSearchWait();
     auto t2 = std::chrono::steady_clock::now();
 
+    engine.DumpTreeToDOTFile("tree_out_infinite.dot");
+
     std::cout << "Engine deduced move: " << proposedMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
-void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU1> &engine) {
+void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU1> &engine) {
     static constexpr uint32_t SYNC_INTERVAL = 500;
 
     std::string input{};
@@ -307,7 +312,7 @@ void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU1> &engine) {
             timePassedMS += SYNC_INTERVAL;
 
             std::cout << "[ " << double(timePassedMS) / 1'000.0 << " ] Currently considered move: " <<
-                      engine.GetCurrentBestMove().GetPackedMove().GetLongAlgebraicNotation() << std::endl;
+                    engine.GetCurrentBestMove().GetPackedMove().GetLongAlgebraicNotation() << std::endl;
         }
     });
 
@@ -323,23 +328,23 @@ void CpuCore::_waitForInfiniteStop(MctsEngine<EngineType::GPU1> &engine) {
     moveSyncThread.Wait();
 }
 
-void CpuCore::runCVC1(uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::CPU>>(moveTime);
-
+void CpuCore::runCVC1(const uint32_t moveTime) {
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::CPU> >(moveTime);
 }
 
-void CpuCore::runCVC2(uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU0>>(moveTime);
+void CpuCore::runCVC2(const uint32_t moveTime) {
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::GPU0> >(moveTime);
 }
 
 template<class ENGINE_T1, class ENGINE_T2>
-void CpuCore::_runCVC(uint32_t moveTime) {
+void CpuCore::_runCVC(const uint32_t moveTime) {
     /* prepare components */
     cuda_Board board = *m_board;
 
     std::vector<cuda_Move> moves = ported_translation::GenMoves(board);
     ENGINE_T1 engine0{board, ENGINE_T1::GetPreferredThreadsCount()};
     ENGINE_T2 engine1{board, ENGINE_T2::GetPreferredThreadsCount()};
+    uint32_t numMoves{};
 
     /* Pick randomly who should begin */
     uint32_t engineIdx = std::mt19937(std::chrono::steady_clock::now().time_since_epoch().count())() % 2;
@@ -369,13 +374,15 @@ void CpuCore::_runCVC(uint32_t moveTime) {
         ClearLines(28);
 
         std::cout << "[ " << engineIdx << " | ENGINE: "
-                  << (engineIdx == 0 ? ENGINE_T1::GetName() : ENGINE_T2::GetName())
-                  << " ] ";
+                << (engineIdx == 0 ? ENGINE_T1::GetName() : ENGINE_T2::GetName())
+                << " ] ";
 
         if (engineIdx == 0) {
             engine0.DisplayResults();
+            engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
         } else {
             engine1.DisplayResults();
+            engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
         }
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
