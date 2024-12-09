@@ -1,7 +1,8 @@
 #include "ComputeKernels.cuh"
 
 __global__ void
-SimulateGamesKernel(DefaultPackedBoardT *boards, const uint32_t *seeds, uint64_t *results, cuda_Move *moves, int maxDepth) {
+SimulateGamesKernel(DefaultPackedBoardT *boards, const uint32_t *seeds, uint64_t *results, cuda_Move *moves,
+                    int maxDepth) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t seed = seeds[idx];
 
@@ -41,10 +42,11 @@ SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const uint32_t *seeds
     __shared__ stub stacks[SINGLE_BATCH_BOARD_SIZE][SPLIT_MAX_STACK_MOVES];
 
     uint32_t seed = seeds[CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x)];
-    while (maxDepth --> 0) {
+    while (maxDepth-- > 0) {
         __syncthreads();
 
-        Stack<cuda_Move> stack((cuda_Move*)stacks[CalcResourceIdx(threadIdx.x)], counters + CalcResourceIdx(threadIdx.x), false);
+        Stack<cuda_Move> stack((cuda_Move *) stacks[CalcResourceIdx(threadIdx.x)],
+                               counters + CalcResourceIdx(threadIdx.x), false);
 
         if (CalcFigIdx(threadIdx.x) == 0) {
             stack.Clear();
@@ -52,7 +54,9 @@ SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const uint32_t *seeds
 
         __syncthreads();
 
-        MoveGenerator<PACKED_BOARD_DEFAULT_SIZE, SPLIT_MAX_STACK_MOVES> mGen{(*boards)[CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x)], stack};
+        MoveGenerator<PACKED_BOARD_DEFAULT_SIZE, SPLIT_MAX_STACK_MOVES> mGen{
+            (*boards)[CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x)], stack
+        };
         mGen.GetMovesSplit(CalcFigIdx(threadIdx.x));
         __syncthreads();
 
@@ -102,15 +106,15 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
     const uint32_t figIdx = CalcFigIdx(threadIdx.x);
     const uint32_t resourceIdx = CalcResourceIdx(threadIdx.x);
 
-    if (figIdx== 0) {
+    if (figIdx == 0) {
         evalCounters[resourceIdx][1] = 0;
         evalCounters[resourceIdx][0] = 0;
     }
 
     uint32_t seed = seeds[boardIdx];
 
-    while (maxDepth --> 0) {
-        Stack<cuda_Move> stack((cuda_Move*)(stacks + resourceIdx), counters + resourceIdx, false);
+    while (maxDepth-- > 0) {
+        Stack<cuda_Move> stack((cuda_Move *) (stacks + resourceIdx), counters + resourceIdx, false);
 
         if (figIdx == 0) {
             stack.Clear();
@@ -131,6 +135,13 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
             return;
         }
 
+        if ((*boards)[boardIdx].HalfMoves() >= HALF_MOVES_TO_DRAW) {
+            if (figIdx == 0) {
+                results[boardIdx] = DRAW;
+            }
+            return;
+        }
+
         if (figIdx == 0) {
             const auto nextMove = stack[seed % stack.Size()];
             cuda_Move::MakeMove<EVAL_SPLIT_KERNEL_BOARDS>(nextMove, (*boards)[boardIdx]);
@@ -140,7 +151,7 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
             eval = movingColor == BLACK ? -eval : eval;
             const bool isInWinningRange = eval >= MATERIAL_ADVANTAGE_TO_WIN;
 
-            evalCounters[resourceIdx][movingColor] = isInWinningRange ? evalCounters[resourceIdx][movingColor] + 1: 0;
+            evalCounters[resourceIdx][movingColor] = isInWinningRange ? evalCounters[resourceIdx][movingColor] + 1 : 0;
         }
 
         __syncthreads();
@@ -161,4 +172,3 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
         results[boardIdx] = DRAW;
     }
 }
-

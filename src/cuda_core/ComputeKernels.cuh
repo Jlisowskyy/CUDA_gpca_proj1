@@ -11,7 +11,6 @@
 #include <thrust/tuple.h>
 
 
-
 static constexpr uint32_t SINGLE_THREAD_SINGLE_GAME_BATCH_SIZE = 384;
 static constexpr uint32_t SINGLE_THREAD_SINGLE_GAME_STACK_SIZE = DEFAULT_STACK_SIZE;
 
@@ -27,6 +26,7 @@ static constexpr uint32_t SPLIT_MAX_STACK_MOVES = 80;
 
 static __device__ __constant__ constexpr uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 6;
 static __device__ __constant__ constexpr uint32_t MATERIAL_ADVANTAGE_TO_WIN = 900;
+static __device__ __constant__ constexpr uint32_t HALF_MOVES_TO_DRAW = 50;
 
 // --------------------------------
 // Compute kernels components
@@ -86,11 +86,11 @@ static constexpr uint32_t EVAL_PLAIN_KERNEL_BOARDS = 384 / 2;
 
 template<uint32_t SIZE_BOARDS>
 __global__ void EvaluateBoardsPlainKernel(
-        cuda_PackedBoard<SIZE_BOARDS> *boards,
-        const uint32_t *seeds,
-        uint32_t *results,
-        int32_t maxDepth,
-        BYTE *workMem) {
+    cuda_PackedBoard<SIZE_BOARDS> *boards,
+    const uint32_t *seeds,
+    uint32_t *results,
+    int32_t maxDepth,
+    BYTE *workMem) {
     const unsigned idx = blockIdx.x * blockDim.x + threadIdx.x;
     uint32_t seed = seeds[idx];
 
@@ -119,22 +119,27 @@ __global__ void EvaluateBoardsPlainKernel(
             return;
         }
 
-        /* Check if board is enough rounds in winning position to assume that's a win */
-        int32_t eval = (*boards)[idx].MaterialEval();
-        eval = movingColor == BLACK ? -eval : eval;
-        const bool isInWinningRange = eval >= MATERIAL_ADVANTAGE_TO_WIN;
-
-        evalCounters[threadIdx.x][movingColor] = isInWinningRange ? evalCounters[threadIdx.x][movingColor] + 1: 0;
-
-        /* ASSUME win and die */
-        if (evalCounters[threadIdx.x][movingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-            results[idx] = movingColor;
+        if ((*boards)[idx].HalfMoves() >= HALF_MOVES_TO_DRAW) {
+            results[idx] = DRAW;
             return;
         }
 
         /* Apply random generated move */
         const auto nextMove = stack[seed % stack.Size()];
         cuda_Move::MakeMove<SIZE_BOARDS>(nextMove, (*boards)[idx]);
+
+        /* Check if board is enough rounds in winning position to assume that's a win */
+        int32_t eval = (*boards)[idx].MaterialEval();
+        eval = movingColor == BLACK ? -eval : eval;
+        const bool isInWinningRange = eval >= MATERIAL_ADVANTAGE_TO_WIN;
+
+        evalCounters[threadIdx.x][movingColor] = isInWinningRange ? evalCounters[threadIdx.x][movingColor] + 1 : 0;
+
+        /* ASSUME win and die */
+        if (evalCounters[threadIdx.x][movingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
+            results[idx] = movingColor;
+            return;
+        }
 
         /* shuffle the seed */
         simpleRand(seed);
@@ -155,11 +160,11 @@ static constexpr uint32_t EVAL_SPLIT_KERNEL_BOARDS = 32;
 #endif
 
 __global__ void EvaluateBoardsSplitKernel(
-        cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *boards,
-        const uint32_t *seeds,
-        uint32_t *results,
-        int32_t maxDepth,
-        [[maybe_unused]] BYTE *workMem);
+    cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> *boards,
+    const uint32_t *seeds,
+    uint32_t *results,
+    int32_t maxDepth,
+    [[maybe_unused]] BYTE *workMem);
 
 
 #endif //SRC_COMPUTEKERNELS_CUH
