@@ -124,10 +124,11 @@ public:
      *
      * Outputs the best move found by the search algorithm and performance metrics
      */
-    void DisplayResults() {
+    void DisplayResults(uint32_t moveNum) const {
         const auto pickedMove = GetCurrentBestMove();
 
-        std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotationCPU()
+        std::cout << "[ " << moveNum << " ] " << "Engine picked move: " << pickedMove.GetPackedMove().
+                GetLongAlgebraicNotationCPU()
                 << " with total: " << mcts::g_SimulationCounter.load()
                 << " simulations made and total expansion races: " << mcts::g_ExpandRacesCounter.load()
                 << std::endl;

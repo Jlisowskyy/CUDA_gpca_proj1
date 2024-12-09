@@ -63,7 +63,7 @@ FAST_CALL_ALWAYS std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
 #ifdef NDEBUG
 
 #define ASSERT_EVAL(a, b)
-#define ASSERT_EVAL_DEV(a, b)
+#define ASSERT_EVAL_DEV(a, b, c)
 
 #else
 

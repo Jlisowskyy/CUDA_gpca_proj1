@@ -78,11 +78,12 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
 
 #ifdef WRITE_DOT
             engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
-            engine.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves++) + ".dot");
+            engine.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
 #endif
 
             ClearLines(28);
-            engine.DisplayResults();
+            engine.DisplayResults(numMoves);
+            ++numMoves;
         }
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");
@@ -390,14 +391,14 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
 
 #ifdef WRITE_DOT
             engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
-            engine0.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves++) + ".dot");
+            engine0.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
 #endif
         } else {
             engine1.DisplayResults();
 
 #ifdef WRITE_DOT
             engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
-            engine1.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves++) + ".dot");
+            engine1.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
 #endif
         }
 
@@ -411,6 +412,7 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
         moves = ported_translation::GenMoves(board);
 
         engineIdx ^= 1;
+        ++numMoves;
     }
 
     /* Decide who won the game */

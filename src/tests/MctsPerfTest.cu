@@ -55,7 +55,7 @@ double RunTestOnEngineOnce(uint32_t moveTime, const std::string &fen) {
     engine.MoveSearchStart();
     RunProcessingAnim(moveTime);
     [[maybe_unused]] const auto move = engine.MoveSearchWait();
-    engine.DisplayResults();
+    engine.DisplayResults(0);
 
     const uint64_t simulations = mcts::g_SimulationCounter.load();
     const double scoreMS = double(simulations) / double(moveTime);
