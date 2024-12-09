@@ -127,7 +127,7 @@ public:
     void DisplayResults() {
         const auto pickedMove = GetCurrentBestMove();
 
-        std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
+        std::cout << "Engine picked move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotationCPU()
                 << " with total: " << mcts::g_SimulationCounter.load()
                 << " simulations made and total expansion races: " << mcts::g_ExpandRacesCounter.load()
                 << std::endl;
@@ -190,6 +190,14 @@ public:
         }
 
         m_root->DumpTreeToDotFormat(filename);
+    }
+
+    void DumpHeadTreeToDOTFile(const std::string &filename) const {
+        if (!m_root) {
+            return;
+        }
+
+        m_root->DumpTreeToDotFormat(filename, 1);
     }
 
     // ------------------------------

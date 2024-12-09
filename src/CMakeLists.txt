@@ -65,10 +65,10 @@ endif ()
 target_compile_definitions(CudaEngine PRIVATE -DAGGRESSIVE_INLINE=1)
 
 # Autostarts given test without CLI
-# target_compile_definitions(CudaEngine PRIVATE -DTESTING=\"mcts_perf\")
+ target_compile_definitions(CudaEngine PRIVATE -DTESTING=\"move_gen\")
 
 # Enable extensive stdout logging
 # target_compile_definitions(CudaEngine PRIVATE -DWRITE_OUT=1)
 
 # Enable to save DOT files for graph visualization each engine iteration
- target_compile_definitions(CudaEngine PRIVATE -DWRITE_DOT=1)
+# target_compile_definitions(CudaEngine PRIVATE -DWRITE_DOT=1)

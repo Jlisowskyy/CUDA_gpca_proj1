@@ -110,9 +110,7 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
     uint32_t seed = seeds[boardIdx];
 
     while (maxDepth --> 0) {
-        __syncthreads();
-
-        Stack<cuda_Move> stack((cuda_Move*)stacks[resourceIdx], counters + resourceIdx, false);
+        Stack<cuda_Move> stack((cuda_Move*)(stacks + resourceIdx), counters + resourceIdx, false);
 
         if (figIdx == 0) {
             stack.Clear();
@@ -124,18 +122,19 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
         mGen.GetMovesSplit(figIdx);
         __syncthreads();
 
-        const uint32_t movingColor = boards->operator[](boardIdx).MovingColor();
+        const uint32_t movingColor = (*boards)[boardIdx].MovingColor();
         if (stack.Size() == 0) {
             if (figIdx == 0) {
                 /* We reached end of moves decide about the label and die */
                 results[boardIdx] = mGen.EvalBoardsNoMoves(movingColor);
-                return;
-            } else {
-                return;
             }
+            return;
         }
 
         if (figIdx == 0) {
+            const auto nextMove = stack[seed % stack.Size()];
+            cuda_Move::MakeMove<EVAL_SPLIT_KERNEL_BOARDS>(nextMove, (*boards)[boardIdx]);
+
             /* Check if board is enough rounds in winning position to assume that's a win */
             int32_t eval = (*boards)[boardIdx].MaterialEval();
             eval = movingColor == BLACK ? -eval : eval;
@@ -153,11 +152,6 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
             }
 
             return;
-        }
-
-        if (figIdx == 0) {
-            const auto nextMove = stack[seed % stack.Size()];
-            cuda_Move::MakeMove<EVAL_SPLIT_KERNEL_BOARDS>(nextMove, (*boards)[boardIdx]);
         }
 
         simpleRand(seed);

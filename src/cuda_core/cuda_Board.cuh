@@ -175,7 +175,7 @@ public:
     [[nodiscard]] int32_t EvaluateMaterial() const {
         int32_t eval{};
 
-        for (uint32_t bIdx = 0; bIdx < BIT_BOARDS_GUARDED_COUNT; ++bIdx) {
+        for (uint32_t bIdx = 0; bIdx < BIT_BOARDS_COUNT; ++bIdx) {
             eval += std::popcount(BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
         }
 

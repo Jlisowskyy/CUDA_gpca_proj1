@@ -55,17 +55,42 @@ static constexpr uint16_t CastlingBitsCPU = CastlingFlagCPU << 12;
 
 class cuda_Move;
 
-inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
+FAST_CALL_ALWAYS std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
     const uint32_t boardPos = ConvertToReversedPos(boardPosMsb);
     return {static_cast<char>('a' + (boardPos % 8)), static_cast<char>('1' + (boardPos / 8))};
 }
+
+#ifdef NDEBUG
+
+#define ASSERT_EVAL(a, b)
+#define ASSERT_EVAL_DEV(a, b)
+
+#else
+
+#define ASSERT_EVAL_DEV(expected, actual, mv)  \
+{ \
+    if (expected != actual) { \
+        printLock(); \
+        printf("Expected: %d, Actual: %d on move: %u\n", expected, actual, mv); \
+        assert(false); \
+    }  \
+}
+#define ASSERT_EVAL(expected, actual)  \
+{ \
+    if (expected != actual) { \
+        printf("Expected: %d, Actual: %d\n", expected, actual); \
+        assert(false); \
+    }  \
+}
+#endif
 
 struct cuda_PackedMove final {
     // ------------------------------
     // Class creation
     // ------------------------------
 
-    FAST_CALL explicit cuda_PackedMove(const uint16_t packedMove) : _packedMove(packedMove) {}
+    FAST_CALL explicit cuda_PackedMove(const uint16_t packedMove) : _packedMove(packedMove) {
+    }
 
     cuda_PackedMove() = default;
 
@@ -83,7 +108,7 @@ struct cuda_PackedMove final {
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] std::string GetLongAlgebraicNotation() const {
+    [[nodiscard]] std::string GetLongAlgebraicNotationCPU() const {
         static constexpr char PromoFigs[] = {'q', 'r', 'b', 'n'};
         std::string rv;
 
@@ -94,8 +119,9 @@ struct cuda_PackedMove final {
         rv += c3;
         rv += c4;
 
-        if (IsPromo())
+        if (IsPromo()) {
             rv += PromoFigs[GetMoveType() & PromoSpecBits];
+        }
 
         return rv;
     }
@@ -132,13 +158,13 @@ struct cuda_PackedMove final {
 
     [[nodiscard]] FAST_CALL_ALWAYS bool IsEmpty() const { return _packedMove == 0; }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS  bool IsQuiet() const { return (_packedMove & MoveTypeBits) == 0; }
+    [[nodiscard]] FAST_DCALL_ALWAYS bool IsQuiet() const { return (_packedMove & MoveTypeBits) == 0; }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS  bool IsCapture() const { return (_packedMove & CaptureBit) != 0; }
+    [[nodiscard]] FAST_CALL_ALWAYS bool IsCapture() const { return (_packedMove & CaptureBit) != 0; }
 
-    [[nodiscard]] FAST_CALL_ALWAYS  bool IsPromo() const { return (_packedMove & PromoBit) != 0; }
+    [[nodiscard]] FAST_CALL_ALWAYS bool IsPromo() const { return (_packedMove & PromoBit) != 0; }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS  bool IsCastling() const { return (_packedMove & MoveTypeBits) == CastlingBits; }
+    [[nodiscard]] FAST_DCALL_ALWAYS bool IsCastling() const { return (_packedMove & MoveTypeBits) == CastlingBits; }
 
     [[nodiscard]] bool IsCastlingCPU() const { return (_packedMove & MoveTypeBitsCPU) == CastlingBitsCPU; }
 
@@ -157,14 +183,13 @@ struct cuda_PackedMove final {
         return !IsEmpty() && GetTargetFieldCPU() != GetStartFieldCPU();
     }
 
-    [[nodiscard]] uint16_t Dump() const { return _packedMove; }
+    [[nodiscard]] FAST_CALL_ALWAYS uint16_t Dump() const { return _packedMove; }
 
     // ------------------------------
     // Class fields
     // ------------------------------
 
 private:
-
     friend cuda_Move;
 
     uint16_t _packedMove{};
@@ -177,15 +202,15 @@ struct VolatileBoardData {
     VolatileBoardData() = delete;
 
     FAST_CALL explicit VolatileBoardData(const cuda_Board &bd)
-            : Castlings(bd.Castlings), OldElPassant(bd.ElPassantField) {
+        : Castlings(bd.Castlings), OldElPassant(bd.ElPassantField) {
     }
 
     FAST_CALL explicit VolatileBoardData(uint32_t c, uint64_t ep)
-            : Castlings(c), OldElPassant(ep) {
+        : Castlings(c), OldElPassant(ep) {
     }
 
     FAST_CALL explicit VolatileBoardData(const _fetcher_t &fetcher)
-            : Castlings(fetcher.Castlings()), OldElPassant(fetcher.ElPassantField()) {
+        : Castlings(fetcher.Castlings()), OldElPassant(fetcher.ElPassantField()) {
     }
 
     const uint32_t Castlings;
@@ -193,35 +218,37 @@ struct VolatileBoardData {
 };
 
 __device__ __constant__ static constexpr uint32_t move_CastlingIdxArr[5]{
-        SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
+    SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
 };
 
 __device__ __constant__ static constexpr uint64_t move_CastlingNewKingPos[5]{
-        1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
-        CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
+    1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
+    CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
 
 static constexpr uint32_t move_CastlingIdxArrCPU[5]{
-        SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
+    SENTINEL_BOARD_INDEX, W_ROOK_INDEX, W_ROOK_INDEX, B_ROOK_INDEX, B_ROOK_INDEX
 };
 
 static constexpr uint64_t move_CastlingNewKingPosCPU[5]{
-        1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
-        CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
+    1LLU, CASTLING_NEW_ROOK_MAPS[0], CASTLING_NEW_ROOK_MAPS[1],
+    CASTLING_NEW_ROOK_MAPS[2], CASTLING_NEW_ROOK_MAPS[3]
 };
 
 
 class cuda_Move final {
 public:
-// ------------------------------
-// Class creation
-// ------------------------------
+    // ------------------------------
+    // Class creation
+    // ------------------------------
 
     // This construction does not initialize crucial fields what must be done
-    FAST_DCALL_ALWAYS explicit cuda_Move(const cuda_PackedMove mv) : _packedMove(mv) {}
+    FAST_DCALL_ALWAYS explicit cuda_Move(const cuda_PackedMove mv) : _packedMove(mv) {
+    }
 
     explicit cuda_Move(cpu::external_move eMove) : _packedMove(eMove[0]), _packedIndexes(eMove[1]),
-                                                   _packedMisc(eMove[2]) {}
+                                                   _packedMisc(eMove[2]) {
+    }
 
     cuda_Move() = default;
 
@@ -235,9 +262,9 @@ public:
 
     cuda_Move &operator=(cuda_Move &&other) = default;
 
-// ------------------------------
-// Class interaction
-// ------------------------------
+    // ------------------------------
+    // Class interaction
+    // ------------------------------
 
     FAST_DCALL_ALWAYS friend bool operator==(const cuda_Move a, const cuda_Move b) {
         return a._packedMove == b._packedMove;
@@ -290,9 +317,12 @@ public:
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) | newKingPos, boardIndex);
 
         /* Update material value */
-        fetcher.MaterialEval() -= !mv.GetPackedMove().IsCastling() * FIG_VALUES[mv.GetKilledBoardIndex()];
+        fetcher.MaterialEval() -= mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
+        fetcher.MaterialEval() += FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
 
         fetcher.ChangePlayingColor();
+
+        ASSERT_EVAL_DEV(fetcher.EvaluateMaterial(), fetcher.MaterialEval(), mv.GetPackedMove().Dump());
     }
 
     static void MakeMove(const cuda_Move mv, cuda_Board &bd) {
@@ -320,15 +350,19 @@ public:
 
         bd.ChangePlayingColor();
 
-        bd.MaterialEval -= !mv.GetPackedMove().IsCastlingCPU() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
+        bd.MaterialEval -= mv.IsAttackingMove() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
+        bd.MaterialEval += FIG_VALUES_CPU[mv.GetTargetBoardIndexCPU()] - FIG_VALUES_CPU[mv.GetStartBoardIndexCPU()];
+
+        ASSERT_EVAL(bd.EvaluateMaterial(), bd.MaterialEval);
     }
 
-    [[nodiscard]] FAST_DCALL_ALWAYS bool IsAttackingMove() const { return _packedMove.IsCapture(); }
+    [[nodiscard]] FAST_CALL_ALWAYS bool IsAttackingMove() const { return _packedMove.IsCapture(); }
 
     [[nodiscard]] FAST_DCALL_ALWAYS bool IsEmpty() const { return _packedMove.IsEmpty(); }
 
     template<uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
-    FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher, const VolatileBoardData &data) {
+    FAST_DCALL_ALWAYS static void UnmakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher,
+                                             const VolatileBoardData &data) {
         assert(mv.IsOkayMove() && "Given move is not valid!");
 
         fetcher.ChangePlayingColor();
@@ -358,7 +392,11 @@ public:
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) ^ newKingPos, boardIndex);
 
         /* Update material value */
-        fetcher.MaterialEval() += !mv.GetPackedMove().IsCastling() * FIG_VALUES[mv.GetKilledBoardIndex()];
+        fetcher.MaterialEval() += mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
+        fetcher.MaterialEval() -= FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
+
+
+        ASSERT_EVAL_DEV(fetcher.EvaluateMaterial(), fetcher.MaterialEval(), mv.GetPackedMove().Dump());
     }
 
     static void UnmakeMove(const cuda_Move mv, cuda_Board &bd, const VolatileBoardData &data) {
@@ -386,7 +424,10 @@ public:
         const uint64_t newKingPos = move_CastlingNewKingPosCPU[mv.GetCastlingTypeCPU()];
         bd.BitBoards[boardIndex] ^= newKingPos;
 
-        bd.MaterialEval += !mv.GetPackedMove().IsCastlingCPU() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
+        bd.MaterialEval += mv.IsAttackingMove() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
+        bd.MaterialEval -= FIG_VALUES_CPU[mv.GetTargetBoardIndexCPU()] - FIG_VALUES_CPU[mv.GetStartBoardIndexCPU()];
+
+        ASSERT_EVAL(bd.EvaluateMaterial(), bd.MaterialEval);
     }
 
     FAST_DCALL_ALWAYS void SetStartField(const uint16_t startField) { _packedMove.SetStartField(startField); }
@@ -528,16 +569,15 @@ public:
 
     [[nodiscard]] uint16_t GetPackedMisc() const { return _packedMisc; }
 
-// ------------------------------
-// Private class methods
-// ------------------------------
+    // ------------------------------
+    // Private class methods
+    // ------------------------------
 
-// ------------------------------
-// Class fields
-// ------------------------------
+    // ------------------------------
+    // Class fields
+    // ------------------------------
 
 private:
-
     cuda_PackedMove _packedMove{};
     uint16_t _packedIndexes{};
     uint16_t _packedMisc{};

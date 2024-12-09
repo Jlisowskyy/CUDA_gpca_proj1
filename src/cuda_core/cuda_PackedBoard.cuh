@@ -15,10 +15,12 @@ struct alignas(128) cuda_PackedBoard {
     // ------------------------------
 
     struct BoardFetcher {
+
         BoardFetcher() = default;
 
         HYBRID explicit BoardFetcher(uint32_t idx, cuda_PackedBoard *__restrict__ packedBoard) : _idx(idx),
-                                                                                      _packedBoard(packedBoard) {}
+            _packedBoard(packedBoard) {
+        }
 
         // ------------------------------
         // Getters
@@ -40,11 +42,11 @@ struct alignas(128) cuda_PackedBoard {
             return _packedBoard->Castlings[_idx];
         }
 
-        [[nodiscard]] FAST_CALL_ALWAYS constexpr int32_t &MaterialEval() {
+        [[nodiscard]] FAST_DCALL_ALWAYS constexpr int32_t &MaterialEval() {
             return _packedBoard->MaterialEval[_idx];
         }
 
-        [[nodiscard]] FAST_CALL_ALWAYS constexpr const int32_t &MaterialEval() const {
+        [[nodiscard]] FAST_DCALL_ALWAYS constexpr const int32_t &MaterialEval() const {
             return _packedBoard->MaterialEval[_idx];
         }
 
@@ -102,6 +104,17 @@ struct alignas(128) cuda_PackedBoard {
         [[nodiscard]] FAST_CALL_ALWAYS constexpr bool GetCastlingRight(uint32_t castlingIndex) const {
             return Castlings() & (cuda_MinMsbPossible << castlingIndex);
         }
+
+        [[nodiscard]] int32_t FAST_DCALL_ALWAYS EvaluateMaterial() const {
+            int32_t eval{};
+
+            for (uint32_t bIdx = 0; bIdx < BIT_BOARDS_COUNT; ++bIdx) {
+                eval += CountOnesInBoard(BitBoard(bIdx)) * FIG_VALUES[bIdx];
+            }
+
+            return eval;
+        }
+
 
         // ------------------------------
         // Class fields

@@ -47,7 +47,6 @@ class MoveGenerator : ChessMechanics<NUM_BOARDS> {
     using ChessMechanics<NUM_BOARDS>::GetFullBitMap;
     using ChessMechanics<NUM_BOARDS>::GenerateAllowedTilesForPrecisedPinnedFig;
     using ChessMechanics<NUM_BOARDS>::GetIndexOfContainingBitBoard;
-    using ChessMechanics<NUM_BOARDS>::GetBlockedFieldBitMapSplit;
     using ChessMechanics<NUM_BOARDS>::GetAllowedTilesWhenCheckedByNonSliding;
 
     using _fetcher_t = cuda_PackedBoard<NUM_BOARDS>::BoardFetcher;

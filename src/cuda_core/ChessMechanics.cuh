@@ -151,14 +151,6 @@ struct ChessMechanics {
         return col * BIT_BOARDS_PER_COLOR + rv;
     }
 
-    /*      IMPORTANT NOTES:
-    *  BlockedFieldsMap - indicates whether some field could be attacked by enemy figures in their next round.
-    *  During generation process there are check test performed with counting, what yields 3 code branches inside main
-    *  generation code. Map is mainly used when king is moving, allowing to simply predict whether king should
-    *  move to that tile or not.
-    *
-    */
-
     // [blockedFigMap, checksCount, checkType]
     [[nodiscard]] __device__ thrust::tuple<uint64_t, uint8_t, bool>
     GetBlockedFieldBitMap(const uint32_t movingColor, const uint64_t fullMap) const {
@@ -229,94 +221,6 @@ struct ChessMechanics {
         return {blockedMap, checksCount, wasCheckedBySimple};
     }
 
-    // [blockedFigMap, checksCount, checkType]
-    [[nodiscard]] __device__ thrust::tuple<uint64_t, uint8_t, bool>
-    GetBlockedFieldBitMapSplit(const uint32_t movingColor, const uint64_t fullMap, const uint32_t figIdx) const {
-        ASSERT(fullMap != 0, "Full map is empty!");
-
-        const uint32_t enemyFigInd = SwapColor(movingColor) * BIT_BOARDS_PER_COLOR;
-        const uint32_t allyKingShift = ConvertToReversedPos(_boardFetcher.GetKingMsbPos(movingColor));
-        const uint64_t allyKingMap = cuda_MinMsbPossible << allyKingShift;
-
-        // Specific figure processing
-        switch (figIdx) {
-            case PAWN_INDEX: {
-                // Pawns attacks generation.
-                const uint64_t pawnsMap = _boardFetcher.BitBoard(enemyFigInd + PAWN_INDEX);
-                const uint64_t pawnBlockedMap =
-                        SwapColor(movingColor) == WHITE ? WhitePawnMap::GetAttackFields(pawnsMap)
-                                                               : BlackPawnMap::GetAttackFields(pawnsMap);
-
-                const bool wasCheckedByPawnFlag = pawnBlockedMap & allyKingMap;
-
-                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), wasCheckedByPawnFlag);
-                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), pawnBlockedMap);
-                atomicAdd_block((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByPawnFlag);
-            }
-                break;
-            case KNIGHT_INDEX: {
-                // Knight attacks generation.
-                const uint64_t knightBlockedMap = _blockIterativeGenerator(
-                        _boardFetcher.BitBoard(enemyFigInd + KNIGHT_INDEX),
-                        [=](const int pos) {
-                            return KnightMap::GetMoves(pos);
-                        }
-                );
-
-                const bool wasCheckedByKnightFlag = knightBlockedMap & allyKingMap;
-
-                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), wasCheckedByKnightFlag);
-                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), knightBlockedMap);
-                atomicAdd_block((unsigned int *) &(_moveGenData->wasCheckedBySimple), wasCheckedByKnightFlag);
-            }
-                break;
-            case BISHOP_INDEX: {
-                // Bishop attacks generation.
-                const uint64_t bishopBlockedMap = _blockIterativeGenerator(
-                        _boardFetcher.BitBoard(enemyFigInd + BISHOP_INDEX) |
-                        _boardFetcher.BitBoard(enemyFigInd + QUEEN_INDEX),
-                        [=](const int pos) {
-                            return BishopMap::GetMoves(pos, fullMap ^ allyKingMap);
-                        }
-                );
-
-                // = 1 or 0 depending on whether hits or not
-                const uint8_t wasCheckedByBishopFlag = (bishopBlockedMap & allyKingMap) >> allyKingShift;
-
-                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), wasCheckedByBishopFlag);
-                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), bishopBlockedMap);
-            }
-                break;
-            case ROOK_INDEX: {
-                // Rook attacks generation. Needs special treatment to correctly detect double check, especially with pawn promotion
-                const auto [rookBlockedMap, checkCountRook] = _getRookBlockedMap(
-                        _boardFetcher.BitBoard(enemyFigInd + ROOK_INDEX) |
-                        _boardFetcher.BitBoard(enemyFigInd + QUEEN_INDEX),
-                        fullMap ^ allyKingMap,
-                        allyKingMap
-                );
-
-                atomicAdd_block((unsigned int *) &(_moveGenData->checksCount), checkCountRook);
-                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), rookBlockedMap);
-            }
-                break;
-            case QUEEN_INDEX:
-                break;
-            case KING_INDEX: {
-                const uint64_t kingMap = KingMap::GetMoves(
-                        _boardFetcher.GetKingMsbPos(SwapColor(movingColor)));
-                atomicOr_block((unsigned long long int *) &(_moveGenData->blockedMap), kingMap);
-            }
-                break;
-            default:
-                ASSERT(false, "Shit happens");
-        }
-
-        __syncthreads();
-        return {_moveGenData->blockedMap, (uint8_t) _moveGenData->checksCount,
-                (bool) _moveGenData->wasCheckedBySimple};
-    }
-
     [[nodiscard]] FAST_DCALL uint64_t
     GenerateAllowedTilesForPrecisedPinnedFig(const uint32_t movingColor, const uint64_t figBoard,
                                              const uint64_t fullMap) const {
@@ -372,13 +276,6 @@ struct ChessMechanics {
     // ------------------------------
 
 private:
-
-    /*  Function collects information used inside the SEE algorithm it contains:
-     *  - attackersBitBoard - contains every type of figure that in current state of the board could attack given field
-     *  - fullMap - contains every figure on the board
-     *  - xrayMap - contains every figure that attack could be potentially unlocked after other figures move,
-     *              that is: queens, bishops, rooks and pawns
-     * */
 
     FAST_DCALL thrust::pair<uint64_t, uint8_t>
     _getRookBlockedMap(uint64_t rookMap, const uint64_t fullMapWoutKing, const uint64_t kingMap) const {

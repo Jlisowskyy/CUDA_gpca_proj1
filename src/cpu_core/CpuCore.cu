@@ -58,14 +58,15 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
 
         std::cout << '\n';
         cpu::DisplayBoard(board.DumpToExternal());
+        std::cout << "Material eval: " << board.MaterialEval << std::endl;
 
         /* pick next move */
         if (board.MovingColor == playerColor) {
             pickedMove = _readPlayerMove(moves);
 
-            ClearLines(26);
+            ClearLines(27);
 
-            std::cout << "Player picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotation()
+            std::cout << "Player picked next move: " << pickedMove.GetPackedMove().GetLongAlgebraicNotationCPU()
                     << std::endl;
         } else {
             std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
@@ -76,7 +77,8 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
             pickedMove = engine.MoveSearchWait();
 
 #ifdef WRITE_DOT
-            engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
+            engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
+            engine.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves++) + ".dot");
 #endif
 
             ClearLines(28);
@@ -129,7 +131,7 @@ cuda_Move CpuCore::_readPlayerMove(const std::vector<cuda_Move> &correctMoves) {
 
         /* Check if this is a legal move */
         for (const auto &move: correctMoves) {
-            if (move.GetPackedMove().GetLongAlgebraicNotation() == input) {
+            if (move.GetPackedMove().GetLongAlgebraicNotationCPU() == input) {
                 outMove = move;
                 isValid = true;
                 break;
@@ -289,9 +291,10 @@ void CpuCore::runInfinite() {
 
 #ifdef WRITE_DOT
     engine.DumpTreeToDOTFile("tree_out_infinite.dot");
+    engine.DumpHeadTreeToDOTFile("tree_head_out_infinite.dot");
 #endif
 
-    std::cout << "Engine deduced move: " << proposedMove.GetPackedMove().GetLongAlgebraicNotation() << std::endl;
+    std::cout << "Engine deduced move: " << proposedMove.GetPackedMove().GetLongAlgebraicNotationCPU() << std::endl;
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
@@ -316,7 +319,7 @@ void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU0> &engine) {
             timePassedMS += SYNC_INTERVAL;
 
             std::cout << "[ " << double(timePassedMS) / 1'000.0 << " ] Currently considered move: " <<
-                    engine.GetCurrentBestMove().GetPackedMove().GetLongAlgebraicNotation() << std::endl;
+                    engine.GetCurrentBestMove().GetPackedMove().GetLongAlgebraicNotationCPU() << std::endl;
         }
     });
 
@@ -357,6 +360,7 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
     while (!moves.empty()) {
         std::cout << '\n';
         cpu::DisplayBoard(board.DumpToExternal());
+        std::cout << "Material eval: " << board.MaterialEval << std::endl;
 
         std::cout << "Engine will be thinking for " << moveTime << " milliseconds!" << std::endl;
 
@@ -375,7 +379,7 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
             pickedMove = engine1.MoveSearchWait();
         }
 
-        ClearLines(28);
+        // ClearLines(29);
 
         std::cout << "[ " << engineIdx << " | ENGINE: "
                 << (engineIdx == 0 ? ENGINE_T1::GetName() : ENGINE_T2::GetName())
@@ -385,13 +389,15 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
             engine0.DisplayResults();
 
 #ifdef WRITE_DOT
-            engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
+            engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
+            engine0.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves++) + ".dot");
 #endif
         } else {
             engine1.DisplayResults();
 
 #ifdef WRITE_DOT
-            engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves++) + ".dot");
+            engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
+            engine1.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves++) + ".dot");
 #endif
         }
 

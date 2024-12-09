@@ -189,7 +189,7 @@ public:
     [[nodiscard]] double CalculateWinRate() const {
         assert(GetNumSamples() != 0 && "CALLED CALC WIN RATE WITHOUT ANY SAMPLES!");
 
-        const uint64_t score = GetScore(m_board.MovingColor) + (GetScore(DRAW) + 1) / 2;
+        const uint64_t score = GetScore(SwapColor(m_board.MovingColor)) + (GetScore(DRAW) + 1) / 2;
         return double(score) / double(GetNumSamples());
     }
 
@@ -198,7 +198,7 @@ public:
      *
      * @param filename - name of file to dump tree to
      */
-    void DumpTreeToDotFormat(const std::string &filename) {
+    void DumpTreeToDotFormat(const std::string &filename, uint32_t maxDep = 10) {
         static constexpr uint64_t BUFF_SIZE = 512;
 
         std::ofstream dotFile(filename);
@@ -213,9 +213,9 @@ public:
         size_t nodeCounter = 0;
         auto label = new char[BUFF_SIZE];
 
-        std::function<void(const MctsNode *, size_t)> traverseNode =
-                [&](const MctsNode *currentNode, const size_t parentId) {
-            if (!currentNode) {
+        std::function<void(const MctsNode *, size_t, uint32_t)> traverseNode =
+                [&](const MctsNode *currentNode, const size_t parentId, uint32_t depth) {
+            if (!currentNode || depth > maxDep) {
                 return;
             }
 
@@ -225,16 +225,18 @@ public:
             if (currentNode->m_parent) {
                 snprintf(label, BUFF_SIZE,
                          "Move: %s\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f",
-                         currentNode->m_move.GetPackedMove().GetLongAlgebraicNotation().c_str(),
+                         currentNode->m_move.GetPackedMove().GetLongAlgebraicNotationCPU().c_str(),
                          currentNode->GetNumSamples(),
                          currentNode->GetScore(WHITE),
                          currentNode->GetScore(BLACK),
                          currentNode->GetScore(DRAW),
                          currentNode->GetNumSamples() == 0 ? 0 : currentNode->CalculateWinRate(),
-                         currentNode->CalculateUCB()
+                         currentNode->CalculateUCB() == std::numeric_limits<double>::max()
+                             ? 0
+                             : currentNode->CalculateUCB()
                 );
             } else {
-                snprintf(label, sizeof(label),
+                snprintf(label, BUFF_SIZE,
                          "PARENT node - no move\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\n",
                          currentNode->GetNumSamples(),
                          currentNode->GetScore(WHITE),
@@ -256,11 +258,11 @@ public:
             }
 
             for (const auto &child: currentNode->GetChildren()) {
-                traverseNode(child, currentNodeId);
+                traverseNode(child, currentNodeId, depth + 1);
             }
         };
 
-        traverseNode(this, SIZE_MAX);
+        traverseNode(this, SIZE_MAX, 0);
 
         delete label;
         dotFile << "}\n";
