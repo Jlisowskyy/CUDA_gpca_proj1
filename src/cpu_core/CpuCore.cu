@@ -12,6 +12,7 @@
 #include "cpu_MoveGen.cuh"
 #include "../ported/CpuUtils.h"
 #include "ProgressBar.cuh"
+#include "GlobalState.cuh"
 
 #include <cuda_runtime.h>
 
@@ -20,6 +21,7 @@
 #include <string_view>
 #include <string>
 #include <cassert>
+#include <complex>
 
 static constexpr uint32_t PROG_BAR_STEP_MS = 50;
 static constexpr uint32_t NUM_CPU_WORKERS = 128;
@@ -76,10 +78,10 @@ void CpuCore::runPVC(const uint32_t moveTime, const uint32_t playerColor) {
             _runProcessingAnim(moveTime);
             pickedMove = engine.MoveSearchWait();
 
-#ifdef WRITE_DOT
-            engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
-            engine.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
-#endif
+            if (g_GlobalState.WriteDotFiles) {
+                engine.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
+                engine.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
+            }
 
             ClearLines(28);
             engine.DisplayResults(numMoves);
@@ -159,6 +161,14 @@ void CpuCore::init() {
     m_deviceProps = deviceProps;
 
     InitializeRookMap();
+}
+
+void CpuCore::parseFlags(const int argc, const char **argv) {
+    for (int idx = 1; idx < argc; ++idx) {
+        if (const auto it = g_GlobalStateCommands.find(std::string(argv[idx])); it != g_GlobalStateCommands.end()) {
+            it->second();
+        }
+    }
 }
 
 std::tuple<int, int, cudaDeviceProp *> CpuCore::_pickGpu() {
@@ -290,10 +300,10 @@ void CpuCore::runInfinite() {
     const auto proposedMove = engine.MoveSearchWait();
     auto t2 = std::chrono::steady_clock::now();
 
-#ifdef WRITE_DOT
-    engine.DumpTreeToDOTFile("tree_out_infinite.dot");
-    engine.DumpHeadTreeToDOTFile("tree_head_out_infinite.dot");
-#endif
+    if (g_GlobalState.WriteDotFiles) {
+        engine.DumpTreeToDOTFile("tree_out_infinite.dot");
+        engine.DumpHeadTreeToDOTFile("tree_head_out_infinite.dot");
+    }
 
     std::cout << "Engine deduced move: " << proposedMove.GetPackedMove().GetLongAlgebraicNotationCPU() << std::endl;
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
@@ -387,19 +397,19 @@ void CpuCore::_runCVC(const uint32_t moveTime) {
                 << " ] ";
 
         if (engineIdx == 0) {
-            engine0.DisplayResults();
+            engine0.DisplayResults(numMoves);
 
-#ifdef WRITE_DOT
-            engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
-            engine0.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
-#endif
+            if (g_GlobalState.WriteDotFiles) {
+                engine0.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
+                engine0.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
+            }
         } else {
-            engine1.DisplayResults();
+            engine1.DisplayResults(numMoves);
 
-#ifdef WRITE_DOT
-            engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
-            engine1.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
-#endif
+            if (g_GlobalState.WriteDotFiles) {
+                engine1.DumpTreeToDOTFile(std::string("tree_out_") + std::to_string(numMoves) + ".dot");
+                engine1.DumpHeadTreeToDOTFile(std::string("tree_head_out_") + std::to_string(numMoves) + ".dot");
+            }
         }
 
         assert(pickedMove.IsOkayMoveCPU() && "CPUCORE RECEIVED MALFUNCTIONING MOVE!");

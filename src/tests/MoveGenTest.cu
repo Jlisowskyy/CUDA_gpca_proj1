@@ -33,19 +33,21 @@
 #include <vector>
 #include <map>
 
+#include "../cpu_core/GlobalState.cuh"
+
 using u16d = std::bitset<16>;
 
 static constexpr std::array TestFEN{
-        "3r2k1/B7/4q3/1R4P1/1P3r2/8/2P2P1p/R4K2 w - - 0 49",
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-        "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-        "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
-        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-        "3rr1k1/1pq2pp1/p2nb2p/2pp4/6PR/2PBPN2/PPQ2PP1/K2R4 b - - 0 20",
-        "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
+    "3r2k1/B7/4q3/1R4P1/1P3r2/8/2P2P1p/R4K2 w - - 0 49",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1",
+    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+    "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
+    "3rr1k1/1pq2pp1/p2nb2p/2pp4/6PR/2PBPN2/PPQ2PP1/K2R4 b - - 0 20",
+    "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
 /* This position will always be evaluated as first shot during each test run to simplify position debugging */
@@ -76,29 +78,7 @@ static constexpr uint32_t TEST_DEPTH = 4;
         progBar->WriteLine(msg);          \
     } else {                              \
         std::cout << msg << std::endl;    \
-    }                                     \
-
-
-/**
- * @brief Compile-time flag to control verbose output during testing
- *
- * When set to true, enables detailed logging and output
- * for move generation tests. Controlled via compile-time
- * definition to allow for zero-overhead logging control.
- *
- * - If defined with WRITE_OUT: Verbose logging is enabled
- * - If not defined: Minimal logging is used
- */
-#ifdef WRITE_OUT
-
-static constexpr bool WRITE_OUT = true;
-
-#else
-
-static constexpr bool WRITE_OUT = false;
-
-#endif
-
+    }
 /* THREAD POOL SIZE FOR TESTS */
 static constexpr uint32_t NUM_TEST_THREADS = 64;
 
@@ -121,7 +101,7 @@ void __global__ GetGPUMovesKernel(SmallPackedBoardT *board, cuda_Move *outMoves,
 
     __shared__ stub sharedStack[DEFAULT_STACK_SIZE];
     __shared__ uint32_t counter;
-    Stack<cuda_Move> stack((cuda_Move*)sharedStack, &counter);
+    Stack<cuda_Move> stack((cuda_Move *) sharedStack, &counter);
 
     MoveGenerator<1> gen{(*board)[0], stack};
 
@@ -299,7 +279,7 @@ std::vector<cuda_Move> GenerateMovesByKernel(FuncT func, const cuda_Board &board
     CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dMoves, sizeof(cuda_Move) * DEFAULT_STACK_SIZE, stream));
     CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dCount, sizeof(int), stream));
     CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoard, packedBoard,
-                                        sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice, stream));
+        sizeof(SmallPackedBoardT), cudaMemcpyHostToDevice, stream));
     func(dBoard, dMoves, dCount, &stream);
 
     std::vector<cuda_Move> cudaMoves(DEFAULT_STACK_SIZE);
@@ -308,9 +288,9 @@ std::vector<cuda_Move> GenerateMovesByKernel(FuncT func, const cuda_Board &board
     CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
 
     CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(cudaMoves.data(), dMoves,
-                                        sizeof(cuda_Move) * DEFAULT_STACK_SIZE, cudaMemcpyDeviceToHost, stream));
+        sizeof(cuda_Move) * DEFAULT_STACK_SIZE, cudaMemcpyDeviceToHost, stream));
     CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(&hCount, dCount,
-                                        sizeof(int), cudaMemcpyDeviceToHost, stream));
+        sizeof(int), cudaMemcpyDeviceToHost, stream));
     CUDA_ASSERT_SUCCESS(cudaStreamSynchronize(stream));
 
     CUDA_ASSERT_SUCCESS(cudaFreeAsync(dBoard, stream));
@@ -407,11 +387,10 @@ bool TestMoveCount(FuncT func,
  * Returns an empty string if moves match, otherwise returns error details.
  */
 std::string ValidateMoves(const std::string &fen,
-                   const std::vector<cpu::external_move> &cMoves,
-                   const std::vector<cuda_Move> &hMoves,
-                   ProgressBar *progBar = nullptr,
-                   bool writeToOut = false) {
-
+                          const std::vector<cpu::external_move> &cMoves,
+                          const std::vector<cuda_Move> &hMoves,
+                          ProgressBar *progBar = nullptr,
+                          bool writeToOut = false) {
     if (cMoves.size() != hMoves.size()) {
         const auto msg = std::format("GPU move gen failed: Moves count mismatch: {} != {}", cMoves.size(),
                                      hMoves.size());
@@ -460,11 +439,11 @@ std::string ValidateMoves(const std::string &fen,
 
         if (gpuMove.GetPackedIndexes() != (PackedIndexesMask & CPUmove[1])) {
             const auto msg = std::format(
-                    "GPU move gen failed: Indexes mismatch device: {} != host {}\nDevice: {}\nHost: {}",
-                    u16d(gpuMove.GetPackedIndexes()).to_string(),
-                    u16d(CPUmove[1]).to_string(),
-                    gpuMove.GetPackedMove().GetLongAlgebraicNotationCPU(),
-                    convertedCPUMove.GetLongAlgebraicNotationCPU());
+                "GPU move gen failed: Indexes mismatch device: {} != host {}\nDevice: {}\nHost: {}",
+                u16d(gpuMove.GetPackedIndexes()).to_string(),
+                u16d(CPUmove[1]).to_string(),
+                gpuMove.GetPackedMove().GetLongAlgebraicNotationCPU(),
+                convertedCPUMove.GetLongAlgebraicNotationCPU());
             DUMP_MSG(msg)
 
             invalidMove = convertedCPUMove.GetLongAlgebraicNotationCPU();
@@ -473,11 +452,11 @@ std::string ValidateMoves(const std::string &fen,
 
         if (gpuMove.GetPackedMisc() != CPUmove[2]) {
             const auto msg = std::format(
-                    "GPU move gen failed: Misc mismatch device: {} != host: {}\nDevice: {}\nHost: {}",
-                    u16d(gpuMove.GetPackedMisc()).to_string(),
-                    u16d(CPUmove[2]).to_string(),
-                    gpuMove.GetPackedMove().GetLongAlgebraicNotationCPU(),
-                    convertedCPUMove.GetLongAlgebraicNotationCPU()
+                "GPU move gen failed: Misc mismatch device: {} != host: {}\nDevice: {}\nHost: {}",
+                u16d(gpuMove.GetPackedMisc()).to_string(),
+                u16d(CPUmove[2]).to_string(),
+                gpuMove.GetPackedMove().GetLongAlgebraicNotationCPU(),
+                convertedCPUMove.GetLongAlgebraicNotationCPU()
             );
 
             DUMP_MSG(msg)
@@ -551,7 +530,6 @@ std::string FindWrongPathRecursive(FuncT funcGen,
                                    int depth,
                                    ProgressBar *progBar = nullptr,
                                    bool writeToOut = false) {
-
     const auto cudaMoves = GenerateMovesByKernel(funcGen, board);
     const auto cpuMoves = cpu::GenerateMoves(board.DumpToExternal());
 
@@ -606,8 +584,7 @@ std::string FindWrongPathRecursive(FuncT funcGen,
  */
 template<class FuncT>
 std::string TestSinglePositionOutput(FuncT func, const std::string &fen, ProgressBar *progBar = nullptr,
-                              bool writeToOut = false) {
-
+                                     bool writeToOut = false) {
     /* welcome message */
     if (writeToOut) {
         const auto msg = std::format("Testing moves of position: {}", fen);
@@ -648,7 +625,7 @@ void RunSinglePosTest(FuncT func) {
 
     progBar.WriteLine("Testing move gen with specialized positions");
     for (const auto &fen: TestFEN) {
-        TestSinglePositionOutput(func, fen, &progBar, WRITE_OUT);
+        TestSinglePositionOutput(func, fen, &progBar, g_GlobalState.WriteExtensiveInfo);
         progBar.Increment();
     }
 
@@ -657,12 +634,12 @@ void RunSinglePosTest(FuncT func) {
     progBar.WriteLine("Testing move gen with whole fen db...");
 
     threadPool.RunThreads(
-            [&](const uint32_t tid) {
-                for (uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
-                    TestSinglePositionOutput(func, fens[idx], &progBar, WRITE_OUT);
-                    progBar.Increment();
-                }
+        [&](const uint32_t tid) {
+            for (uint32_t idx = tid; idx < fens.size(); idx += NUM_TEST_THREADS) {
+                TestSinglePositionOutput(func, fens[idx], &progBar, g_GlobalState.WriteExtensiveInfo);
+                progBar.Increment();
             }
+        }
     );
 
     threadPool.Wait();
@@ -695,13 +672,14 @@ void RunDepthPosTest(FuncT funcCount, FuncT1 funcGen) {
     progBar.Start();
 
     for (auto fen: TestFEN) {
-        if (!TestMoveCount(funcCount, fen, TEST_DEPTH, &progBar, WRITE_OUT)) {
+        if (!TestMoveCount(funcCount, fen, TEST_DEPTH, &progBar, g_GlobalState.WriteExtensiveInfo)) {
             progBar.WriteLine(std::string(80, '-'));
 
             const auto externalBoard = cpu::TranslateFromFen(std::string(fen));
             cuda_Board board(externalBoard);
 
-            const std::string result = FindWrongPathRecursive(funcGen, board, TEST_DEPTH, &progBar, WRITE_OUT);
+            const std::string result = FindWrongPathRecursive(funcGen, board, TEST_DEPTH, &progBar,
+                                                              g_GlobalState.WriteExtensiveInfo);
 
             if (result.empty()) {
                 const std::string msg = std::format("Failed to find malfunctioning move on fen: {}", fen);
@@ -750,7 +728,7 @@ void MoveGenTest_([[maybe_unused]] uint32_t threadsAvailable, [[maybe_unused]] c
     const std::string result = TestSinglePositionOutput(RunBaseKernel, MAIN_TEST_FEN, nullptr, true);
 
     if (!result.empty()) {
-        std::cout << "[ CRITICAL ERROR ] FIRST POSITION CHECK FAILED: " + result  << std::endl;
+        std::cout << "[ CRITICAL ERROR ] FIRST POSITION CHECK FAILED: " + result << std::endl;
         exit(1);
     }
 

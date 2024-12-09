@@ -73,5 +73,6 @@ namespace cpu {
     void DisplayBoard(const external_board &board) {
         Board bd = TranslateToInternalBoard(board);
         DisplayBoard(bd);
+        std::cout << "Position: " << FenTranslator::Translate(bd) << std::endl;
     }
 }

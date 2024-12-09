@@ -19,6 +19,8 @@
 #include <thread>
 #include <iostream>
 
+#include "GlobalState.cuh"
+
 /**
  * @brief Monte Carlo Tree Search (MCTS) Engine template class for game AI
  *
@@ -236,9 +238,9 @@ protected:
             CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
         }
 
-#ifdef WRITE_OUT
-        std::cout << "worker with id " << idx << " died..." << std::endl;
-#endif
+        if (g_GlobalState.WriteExtensiveInfo) {
+            std::cout << "worker with id " << idx << " died..." << std::endl;
+        }
     }
 
     /**
@@ -335,10 +337,10 @@ protected:
             }
         }
 
-#ifdef WRITE_OUT
-        std::cout << "PICKED MOVE: " << bestMove.GetPackedMove().GetLongAlgebraicNotation() << " with winrate: "
-                  << bestWinRate << std::endl;
-#endif
+        if (g_GlobalState.WriteExtensiveInfo) {
+            std::cout << "PICKED MOVE: " << bestMove.GetPackedMove().GetLongAlgebraicNotationCPU() << " with winrate: "
+                    << bestWinRate << std::endl;
+        }
 
         return bestMove;
     }

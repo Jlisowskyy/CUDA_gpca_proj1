@@ -55,7 +55,7 @@ static constexpr uint16_t CastlingBitsCPU = CastlingFlagCPU << 12;
 
 class cuda_Move;
 
-FAST_CALL_ALWAYS std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
+inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
     const uint32_t boardPos = ConvertToReversedPos(boardPosMsb);
     return {static_cast<char>('a' + (boardPos % 8)), static_cast<char>('1' + (boardPos / 8))};
 }

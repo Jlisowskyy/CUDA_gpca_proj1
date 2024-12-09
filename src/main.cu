@@ -12,29 +12,30 @@
 #include <string>
 #include <iostream>
 
-int main() {
+#include "cpu_core/GlobalState.cuh"
+
+int main(const int argc, const char *argv[]) {
+    CpuCore::parseFlags(argc, argv);
 
     InitializeConsole();
+
     CpuCore core{};
     core.init();
 
-#ifdef TESTING
+    if (g_GlobalState.RunTestsOnStart) {
+        if (g_CudaTestsMap.contains(g_GlobalState.TestName)) {
+            const auto &[_, __, testFunc] = g_CudaTestsMap.at(g_GlobalState.TestName);
+            testFunc(core.getDeviceThreads(), core.getDeviceProps());
+        } else {
+            std::cerr << "Test not found" << std::endl;
+            return 1;
+        }
 
-    const std::string test = TESTING;
-
-    if (CudaTestsMap.find(test) != CudaTestsMap.end()) {
-        const auto &[_, __, testFunc] = CudaTestsMap.at(test);
-        testFunc(core.getDeviceThreads(), core.getDeviceProps());
-    } else {
-        std::cerr << "Test not found" << std::endl;
+        return 0;
     }
-
-#else
 
     Cli cli{&core};
     cli.run();
-
-#endif
 
     return 0;
 }

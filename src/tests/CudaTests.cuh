@@ -98,7 +98,7 @@ void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProp
  * - "magic_test" runs FancyMagicTest()
  * - "move_gen" runs MoveGenTest()
  */
-static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> CudaTestsMap = {
+static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> g_CudaTestsMap = {
         {
                 "magic_test",
                 std::make_tuple(

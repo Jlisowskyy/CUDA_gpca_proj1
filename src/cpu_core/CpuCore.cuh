@@ -33,7 +33,6 @@ class CpuCore final {
     // Class creation
     // ------------------------------
 public:
-
     /**
      * @brief Default constructor for CpuCore
      *
@@ -113,11 +112,18 @@ public:
         return *m_deviceProps;
     }
 
+    /**
+     * @brief Parses command line flags to set up the g_GlobalState object which steers execution
+     *
+     * @param argc - number of arguments
+     * @param argv - arguments
+     */
+    static void parseFlags(int argc, const char **argv);
+
     // ------------------------------
     // Class private methods
     // ------------------------------
 private:
-
     /**
      * @brief Selects the best available CUDA-capable GPU device, based on the number of available threads
      *
@@ -142,7 +148,7 @@ private:
      * @param correctMoves Vector of legal moves for validation
      * @return cuda_Move Selected and validated player move
      */
-    [[nodiscard]] static cuda_Move _readPlayerMove(const std::vector<cuda_Move>& correctMoves);
+    [[nodiscard]] static cuda_Move _readPlayerMove(const std::vector<cuda_Move> &correctMoves);
 
     /**
      * @brief Validates if a move is legal
@@ -151,7 +157,7 @@ private:
      * @param move Move to validate
      * @return bool True if the move is legal, false otherwise
      */
-    [[nodiscard]] static bool _validateMove(const std::vector<cuda_Move>& validMoves, cuda_Move move);
+    [[nodiscard]] static bool _validateMove(const std::vector<cuda_Move> &validMoves, cuda_Move move);
 
     /**
      * @brief Runs a progress bar animation during move search
@@ -167,7 +173,7 @@ private:
      *
      * Blocks execution until "stop" command is received
      */
-    static void _waitForInfiniteStop(const MctsEngine <EngineType::GPU0> &engine);
+    static void _waitForInfiniteStop(const MctsEngine<EngineType::GPU0> &engine);
 
     template<class ENGINE_T1, class ENGINE_T2>
     void _runCVC(uint32_t moveTime);

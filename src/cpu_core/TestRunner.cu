@@ -43,7 +43,7 @@ void TestRunner::_displayWelcomeMessage() {
 
     std::cout << MSG << std::endl;
 
-    for (const auto &test: CudaTestsMap) {
+    for (const auto &test: g_CudaTestsMap) {
         const auto &[name, desc, _] = test.second;
 
         std::cout << "Code: " << test.first << std::endl;
@@ -66,11 +66,11 @@ TestRunner::TestParseResult TestRunner::_parseTestInput(TestFunc &out_testFunc) 
         return TestRunner::TestParseResult::EXIT;
     }
 
-    if (CudaTestsMap.find(input) == CudaTestsMap.end()) {
+    if (g_CudaTestsMap.find(input) == g_CudaTestsMap.end()) {
         return TestRunner::TestParseResult::FAILURE;
     }
 
-    const auto &[_, __, testFunc] = CudaTestsMap.at(input);
+    const auto &[_, __, testFunc] = g_CudaTestsMap.at(input);
     out_testFunc = testFunc;
     return TestRunner::TestParseResult::SUCCESS;
 }

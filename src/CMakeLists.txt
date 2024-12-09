@@ -32,43 +32,82 @@ set_target_properties(CudaEngine
 
 # Compilation options for different build types
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    if(MSVC)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        message("Using MSVC...")
 
-    else()
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message("Using Clang...")
+
         set_source_files_properties(
                 ${CUDA_SOURCES}
                 PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
         )
+
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message("Using GCC...")
+
+        set_source_files_properties(
+                ${CUDA_SOURCES}
+                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
+        )
+    else ()
+        message(FATAL_ERROR "Unsupported compiler.")
     endif()
 else()
-    if(MSVC)
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        message("Using MSVC...")
 
-    else()
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        message("Using Clang...")
+
         set_source_files_properties(
                 ${CUDA_SOURCES}
                 PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
         )
+
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        message("Using GCC...")
+
+        set_source_files_properties(
+                ${CUDA_SOURCES}
+                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
+        )
+    else ()
+        message(FATAL_ERROR "Unsupported compiler.")
     endif()
 endif()
 
-# Linking CheckmateChariotLib
-find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message("Linking CheckmateChariotLib with MSVC...")
 
-if (CHECKMATE_CHARIOT_LIB)
-    target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
+    # Linking CheckmateChariotLib
+    find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
+
+    if (CHECKMATE_CHARIOT_LIB)
+        target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
+    else ()
+        message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
+    endif ()
+
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    message("Linking CheckmateChariotLib with Clang...")
+
+    # Linking CheckmateChariotLib
+    find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
+
+    if (CHECKMATE_CHARIOT_LIB)
+        target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
+    else ()
+        message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
+    endif ()
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    message("Linking CheckmateChariotLib with GCC...")
+
+    add_subdirectory(ported)
+    target_link_libraries(CudaEngine PRIVATE CheckmateChariotLib)
 else ()
-    message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
+    message(FATAL_ERROR "Unsupported compiler.")
 endif ()
-
 
 # Allows usage of __forceinline__ keyword
 target_compile_definitions(CudaEngine PRIVATE -DAGGRESSIVE_INLINE=1)
-
-# Autostarts given test without CLI
-# target_compile_definitions(CudaEngine PRIVATE -DTESTING=\"move_gen\")
-
-# Enable extensive stdout logging
-# target_compile_definitions(CudaEngine PRIVATE -DWRITE_OUT=1)
-
-# Enable to save DOT files for graph visualization each engine iteration
- target_compile_definitions(CudaEngine PRIVATE -DWRITE_DOT=1)

@@ -18,7 +18,7 @@
 #include <iomanip>
 #include <memory>
 
-static constexpr double UCB_COEF = 2.0;
+static constexpr double UCB_COEF = 1.5;
 
 /**
  * @brief Represents a node in the Monte Carlo Tree Search (MCTS) algorithm
