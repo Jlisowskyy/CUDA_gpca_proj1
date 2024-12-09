@@ -5,6 +5,8 @@
 #include "GlobalState.cuh"
 #include "../tests/CudaTests.cuh"
 
+#include <iostream>
+
 GlobalState g_GlobalState{};
 
 std::unordered_map<std::string, std::function<void ()> > g_GlobalStateCommands = [
@@ -13,6 +15,12 @@ std::unordered_map<std::string, std::function<void ()> > g_GlobalStateCommands =
                 {"write_ext_info", []() { g_GlobalState.WriteExtensiveInfo = true; }},
                 {"write_dot_files", []() { g_GlobalState.WriteDotFiles = true; }},
                 {"write_times", []() { g_GlobalState.WriteTimes = true; }},
+                {
+                    "help", []() {
+                        DisplayHelp();
+                        exit(0);
+                    }
+                }
             };
 
             for (const auto &[testName, _]: g_CudaTestsMap) {
@@ -24,3 +32,10 @@ std::unordered_map<std::string, std::function<void ()> > g_GlobalStateCommands =
 
             return rv;
         }();
+
+void DisplayHelp() {
+    std::cout << "Available commands:" << std::endl;
+    for (const auto &[command, _]: g_GlobalStateCommands) {
+        std::cout << '\t' << command << std::endl;
+    }
+}

@@ -20,4 +20,6 @@ struct GlobalState {
 extern GlobalState g_GlobalState;
 extern std::unordered_map<std::string, std::function<void()> > g_GlobalStateCommands;
 
+void DisplayHelp();
+
 #endif //GLOBALSTATE_HPP
