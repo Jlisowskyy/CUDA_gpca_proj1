@@ -24,8 +24,8 @@ static constexpr uint32_t SINGLE_RUN_BLOCK_SIZE = 100;
 static constexpr uint32_t SINGLE_RUN_BOARDS_SIZE = SINGLE_RUN_BLOCK_SIZE * SINGLE_BATCH_BOARD_SIZE;
 static constexpr uint32_t SPLIT_MAX_STACK_MOVES = 80;
 
-static __device__ __constant__ constexpr uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 6;
-static __device__ __constant__ constexpr uint32_t MATERIAL_ADVANTAGE_TO_WIN = 900;
+static __device__ __constant__ constexpr uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 20;
+static __device__ __constant__ constexpr uint32_t MATERIAL_ADVANTAGE_TO_WIN = 1000;
 static __device__ __constant__ constexpr uint32_t HALF_MOVES_TO_DRAW = 50;
 
 // --------------------------------

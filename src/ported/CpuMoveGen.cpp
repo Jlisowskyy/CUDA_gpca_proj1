@@ -191,7 +191,7 @@ namespace cpu {
             const auto nextMove = moves[seed % moves.size];
             s->PopAggregate(moves);
             Move::MakeMove(nextMove, bd);
-
+            
             uint32_t eval{};
 
             for (uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
@@ -203,8 +203,6 @@ namespace cpu {
             evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
 
             if (evalCounters[bd.MovingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-                s->PopAggregate(moves);
-
                 GlobalStacks.push(s);
                 return bd.MovingColor;
             }
