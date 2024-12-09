@@ -191,7 +191,7 @@ namespace cpu {
             const auto nextMove = moves[seed % moves.size];
             s->PopAggregate(moves);
             Move::MakeMove(nextMove, bd);
-            
+
             uint32_t eval{};
 
             for (uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
