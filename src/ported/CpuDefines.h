@@ -18,7 +18,7 @@ namespace cpu {
     using MapPerformanceRecordsPack = std::tuple<uint64_t, std::vector<uint64_t>, std::vector<uint64_t>>;
 
     using external_move = std::array<uint16_t, 3>;
-    using external_board = std::array<uint64_t, 15>;
+    using external_board = std::array<uint64_t, 16>;
 }
 
 #endif //SRC_CPUDEFINES_H

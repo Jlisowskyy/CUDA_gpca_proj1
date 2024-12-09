@@ -19,6 +19,7 @@ enum EVAL_RESULTS : uint32_t {
     BLACK_WIN = BLACK,
     DRAW = 2,
 };
+
 static constexpr uint32_t NUM_EVAL_RESULTS = 3;
 
 static_assert((uint32_t) DRAW != (uint32_t) WHITE && (uint32_t) DRAW != (uint32_t) BLACK);
@@ -67,44 +68,45 @@ __device__ __constant__ static constexpr uint32_t BIT_BOARDS_PER_COLOR = 6;
 __device__ __constant__ static constexpr uint32_t KING_POS_COUNT = 2;
 __device__ __constant__ static constexpr uint32_t CASTLINGS_PER_COLOR = 2;
 __device__ __constant__ static constexpr uint64_t INVALID_EL_PASSANT_FIELD = 1;
-__device__ __constant__ static constexpr uint64_t INVALID_EL_PASSANT_BIT_BOARD = cuda_MaxMsbPossible >> INVALID_EL_PASSANT_FIELD;
+__device__ __constant__ static constexpr uint64_t INVALID_EL_PASSANT_BIT_BOARD =
+        cuda_MaxMsbPossible >> INVALID_EL_PASSANT_FIELD;
 __device__ __constant__ static constexpr uint32_t SENTINEL_BOARD_INDEX = 12;
 __device__ __constant__ static constexpr uint32_t SENTINEL_CASTLING_INDEX = 4;
 
 __device__ __constant__ static constexpr uint64_t DEFAULT_KING_BOARDS[KING_POS_COUNT]{
-        cuda_MaxMsbPossible >> ConvertToReversedPos(4), cuda_MaxMsbPossible >> ConvertToReversedPos(60)
+    cuda_MaxMsbPossible >> ConvertToReversedPos(4), cuda_MaxMsbPossible >> ConvertToReversedPos(60)
 };
 
 __device__ __constant__ static constexpr int32_t CASTLING_NEW_KING_POS[CASTLING_COUNT]{
-        ConvertToReversedPos(6), ConvertToReversedPos(2), ConvertToReversedPos(62), ConvertToReversedPos(58)
+    ConvertToReversedPos(6), ConvertToReversedPos(2), ConvertToReversedPos(62), ConvertToReversedPos(58)
 };
 
 __device__ __constant__ static constexpr uint64_t CASTLING_ROOK_MAPS[CASTLING_COUNT]{
-        cuda_MinMsbPossible << 7, cuda_MinMsbPossible, cuda_MinMsbPossible << 63, cuda_MinMsbPossible << 56
+    cuda_MinMsbPossible << 7, cuda_MinMsbPossible, cuda_MinMsbPossible << 63, cuda_MinMsbPossible << 56
 };
 
 __device__ __constant__ static constexpr uint64_t CASTLING_NEW_ROOK_MAPS[CASTLING_COUNT]{
-        cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 3, cuda_MinMsbPossible << 61, cuda_MinMsbPossible << 59
+    cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 3, cuda_MinMsbPossible << 61, cuda_MinMsbPossible << 59
 };
 
 __device__ __constant__ static constexpr uint64_t CASTLING_SENSITIVE_FIELDS[CASTLING_COUNT]{
-        cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3,
-        cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62, cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59
+    cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5, cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3,
+    cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62, cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59
 };
 
 __device__ __constant__ static constexpr uint64_t CASTLING_TOUCHED_FIELDS[CASTLING_COUNT]{
-        cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5,
-        cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3 | cuda_MinMsbPossible << 1,
-        cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62,
-        cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
+    cuda_MinMsbPossible << 6 | cuda_MinMsbPossible << 5,
+    cuda_MinMsbPossible << 2 | cuda_MinMsbPossible << 3 | cuda_MinMsbPossible << 1,
+    cuda_MinMsbPossible << 61 | cuda_MinMsbPossible << 62,
+    cuda_MinMsbPossible << 58 | cuda_MinMsbPossible << 59 | cuda_MinMsbPossible << 57
 };
 
 __device__ __constant__ static constexpr int32_t FIG_VALUES[BIT_BOARDS_GUARDED_COUNT]{
-        100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+    100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
 };
 
 static constexpr int32_t FIG_VALUES_CPU[BIT_BOARDS_GUARDED_COUNT]{
-        100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+    100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
 };
 
 
@@ -131,6 +133,7 @@ public:
         Castlings = board[13];
         MovingColor = board[14];
         MaterialEval = EvaluateMaterial();
+        HalfMoves = board[15];
 
         assert(MovingColor == WHITE || MovingColor == BLACK);
         assert(Castlings <= (1 << (CASTLING_COUNT + 1)));
@@ -150,6 +153,7 @@ public:
         rv[12] = ElPassantField;
         rv[13] = Castlings;
         rv[14] = MovingColor;
+        rv[15] = HalfMoves;
 
         return rv;
     }
@@ -191,6 +195,7 @@ public:
     uint32_t Castlings;
     uint32_t MovingColor;
     int32_t MaterialEval;
+    uint32_t HalfMoves;
 };
 
 #endif // CUDA_BOARD_CUH

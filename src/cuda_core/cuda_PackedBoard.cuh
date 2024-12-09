@@ -15,7 +15,6 @@ struct alignas(128) cuda_PackedBoard {
     // ------------------------------
 
     struct BoardFetcher {
-
         BoardFetcher() = default;
 
         HYBRID explicit BoardFetcher(uint32_t idx, cuda_PackedBoard *__restrict__ packedBoard) : _idx(idx),
@@ -25,6 +24,14 @@ struct alignas(128) cuda_PackedBoard {
         // ------------------------------
         // Getters
         // ------------------------------
+
+        [[nodiscard]] FAST_CALL_ALWAYS constexpr uint32_t &HalfMoves() {
+            return _packedBoard->HalfMoves[_idx];
+        }
+
+        [[nodiscard]] FAST_CALL_ALWAYS constexpr const uint32_t &HalfMoves() const {
+            return _packedBoard->HalfMoves[_idx];
+        }
 
         [[nodiscard]] FAST_CALL_ALWAYS constexpr uint32_t &MovingColor() {
             return _packedBoard->MovingColor[_idx];
@@ -162,6 +169,7 @@ struct alignas(128) cuda_PackedBoard {
         }
 
         fetcher.MaterialEval() = board.EvaluateMaterial();
+        fetcher.HalfMoves() = board.HalfMoves;
     }
 
     [[nodiscard]] FAST_CALL_ALWAYS constexpr BoardFetcher operator[](uint32_t boardIdx) {
@@ -185,6 +193,7 @@ struct alignas(128) cuda_PackedBoard {
     alignas(32) cuda_Array<uint32_t, NUM_BOARDS> Castlings;
     alignas(32) cuda_Array<uint32_t, NUM_BOARDS> MovingColor;
     alignas(32) cuda_Array<int32_t, NUM_BOARDS> MaterialEval;
+    alignas(32) cuda_Array<uint32_t, NUM_BOARDS> HalfMoves;
 };
 
 using DefaultPackedBoardT = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>;

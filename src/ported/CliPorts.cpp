@@ -8,37 +8,28 @@
 #include "engine/Checkmate-Chariot/include/Interface/FenTranslator.h"
 #include "engine/Checkmate-Chariot/include/ParseTools.h"
 
+static cpu::external_board TraslateToExternal(const Board &bd) {
+    cpu::external_board eBd{};
+
+    for (size_t i = 0; i < Board::BitBoardsCount; ++i) {
+        eBd[i] = bd.BitBoards[i];
+    }
+
+    eBd[12] = bd.ElPassantField;
+    eBd[13] = bd.Castlings.to_ullong();
+    eBd[14] = bd.MovingColor;
+    eBd[15] = bd.HalfMoves;
+
+    return eBd;
+}
+
 namespace cpu {
     external_board TranslateFromFen(const std::string &fen) {
-        external_board eBd{};
-
-        const Board bd = FenTranslator::GetTranslated(fen);
-
-        for (size_t i = 0; i < Board::BitBoardsCount; ++i) {
-            eBd[i] = bd.BitBoards[i];
-        }
-
-        eBd[12] = bd.ElPassantField;
-        eBd[13] = bd.Castlings.to_ullong();
-        eBd[14] = bd.MovingColor;
-
-        return eBd;
+        return TraslateToExternal(FenTranslator::GetTranslated(fen));
     }
 
     external_board GetDefaultBoard() {
-        external_board eBd{};
-
-        const Board bd = FenTranslator::GetDefault();
-
-        for (size_t i = 0; i < Board::BitBoardsCount; ++i) {
-            eBd[i] = bd.BitBoards[i];
-        }
-
-        eBd[12] = bd.ElPassantField;
-        eBd[13] = bd.Castlings.to_ullong();
-        eBd[14] = bd.MovingColor;
-
-        return eBd;
+        return TraslateToExternal(FenTranslator::GetDefault());
     }
 
     bool Translate(const std::string &fen, external_board &board) {
@@ -48,21 +39,12 @@ namespace cpu {
             return false;
         }
 
-        external_board eBd{};
-        for (size_t i = 0; i < Board::BitBoardsCount; ++i) {
-            eBd[i] = bd.BitBoards[i];
-        }
-
-        eBd[12] = bd.ElPassantField;
-        eBd[13] = bd.Castlings.to_ullong();
-        eBd[14] = bd.MovingColor;
-
-        board = eBd;
+        board = TraslateToExternal(bd);
         return true;
     }
 
     std::string TranslateToFen(const external_board &board) {
-        Board bd = TranslateToInternalBoard(board);
+        const Board bd = TranslateToInternalBoard(board);
         return FenTranslator::Translate(bd);
     }
 
@@ -71,7 +53,7 @@ namespace cpu {
     }
 
     void DisplayBoard(const external_board &board) {
-        Board bd = TranslateToInternalBoard(board);
+        const Board bd = TranslateToInternalBoard(board);
         DisplayBoard(bd);
         std::cout << "Position: " << FenTranslator::Translate(bd) << std::endl;
     }

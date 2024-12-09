@@ -106,20 +106,20 @@ using st = Stack<Move, DEFAULT_STACK_SIZE>;
 ThreadSafeStack<st *, 1024> GlobalStacks{};
 
 namespace cpu {
-    uint64_t AccessCpuRookMap(int msbInd, uint64_t fullMap) {
+    uint64_t AccessCpuRookMap(const int msbInd, const uint64_t fullMap) {
         return RookMap::GetMoves(msbInd, fullMap);
     }
 
-    uint64_t AccessCpuBishopMap(int msbInd, uint64_t fullMap) {
+    uint64_t AccessCpuBishopMap(const int msbInd, const uint64_t fullMap) {
         return BishopMap::GetMoves(msbInd, fullMap);
     }
 
-    int ExtractMsbPosCPU(uint64_t map) {
+    int ExtractMsbPosCPU(const uint64_t map) {
         return ExtractMsbPos(map);
     }
 
     std::vector<external_move> GenerateMoves(const external_board &board) {
-        Board bd = TranslateToInternalBoard(board);
+        const Board bd = TranslateToInternalBoard(board);
 
         st *s;
         const bool stackResult = GlobalStacks.pop(s);
@@ -142,7 +142,7 @@ namespace cpu {
     }
 
     bool IsCheck(const external_board &board) {
-        Board bd = TranslateToInternalBoard(board);
+        const Board bd = TranslateToInternalBoard(board);
         ChessMechanics mech{bd};
         return mech.IsCheck();
     }
@@ -179,11 +179,6 @@ namespace cpu {
 
         Board bd = TranslateToInternalBoard(board);
         MoveGenerator mech{bd, *s};
-        uint32_t eval{};
-
-        for (uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
-            eval += CountOnesInBoard(bd.BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
-        }
 
         for (uint32_t depth = 0; depth < MAX_DEPTH; ++depth) {
             auto moves = mech.GetMovesFast();
@@ -193,7 +188,17 @@ namespace cpu {
                 return mech.IsCheck() ? SwapColor(bd.MovingColor) : DRAW;
             }
 
-            uint32_t correctedEval = bd.MovingColor == BLACK ? -eval : eval;
+            const auto nextMove = moves[seed % moves.size];
+            s->PopAggregate(moves);
+            Move::MakeMove(nextMove, bd);
+
+            uint32_t eval{};
+
+            for (uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
+                eval += CountOnesInBoard(bd.BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
+            }
+
+            const uint32_t correctedEval = bd.MovingColor == BLACK ? -eval : eval;
             const bool isInWinningRange = correctedEval >= MATERIAL_ADVANTAGE_TO_WIN;
             evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
 
@@ -204,10 +209,7 @@ namespace cpu {
                 return bd.MovingColor;
             }
 
-            const auto nextMove = moves[seed % moves.size];
-            s->PopAggregate(moves);
 
-            Move::MakeMove(nextMove, bd);
             simpleRand(seed);
         }
 
@@ -215,13 +217,13 @@ namespace cpu {
         return DRAW;
     }
 
-    void AllocateStacks(uint32_t count) {
+    void AllocateStacks(const uint32_t count) {
         for (uint32_t i = 0; i < count; ++i) {
             GlobalStacks.push(new st{});
         }
     }
 
-    void DeallocStacks(uint32_t count) {
+    void DeallocStacks(const uint32_t count) {
         for (uint32_t i = 0; i < count; ++i) {
             st *ptr;
             GlobalStacks.pop(ptr);

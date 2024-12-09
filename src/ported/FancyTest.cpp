@@ -51,13 +51,11 @@ static void simpleRand(uint64_t &state) {
  */
 template<class MapT>
 void runTest_(const char *title, const uint64_t seed) {
-    const uint64_t idx = 0;
-
     std::cout << "Running fancy magic " << title << " test on the CPU!" << std::endl;
 
     auto t1 = std::chrono::high_resolution_clock::now();
 
-    unsigned randomPos = idx;
+    unsigned randomPos = seed & 63;
     uint64_t board = seed;
     uint64_t control = 0;
     for (unsigned i = 0; i < TEST_SIZE; ++i) {

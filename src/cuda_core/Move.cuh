@@ -197,23 +197,18 @@ private:
 
 /* Class used to preserve some crucial board state between moves */
 struct VolatileBoardData {
-    using _fetcher_t = cuda_PackedBoard<PACKED_BOARD_DEFAULT_SIZE>::BoardFetcher;
-
     VolatileBoardData() = delete;
 
     FAST_CALL explicit VolatileBoardData(const cuda_Board &bd)
-        : Castlings(bd.Castlings), OldElPassant(bd.ElPassantField) {
+        : Castlings(bd.Castlings), OldHalfMoves(bd.HalfMoves), OldElPassant(bd.ElPassantField) {
     }
 
-    FAST_CALL explicit VolatileBoardData(uint32_t c, uint64_t ep)
-        : Castlings(c), OldElPassant(ep) {
-    }
-
-    FAST_CALL explicit VolatileBoardData(const _fetcher_t &fetcher)
-        : Castlings(fetcher.Castlings()), OldElPassant(fetcher.ElPassantField()) {
+    FAST_CALL explicit VolatileBoardData(uint32_t c, uint32_t hm, uint64_t ep)
+        : Castlings(c), OldHalfMoves(hm), OldElPassant(ep) {
     }
 
     const uint32_t Castlings;
+    const uint32_t OldHalfMoves;
     const uint64_t OldElPassant;
 };
 
@@ -322,6 +317,10 @@ public:
 
         fetcher.ChangePlayingColor();
 
+        fetcher.HalfMoves() = (fetcher.HalfMoves() + 1) * (!(mv.GetStartBoardIndex() == W_PAWN_INDEX ||
+                                                             mv.GetStartBoardIndex() == B_PAWN_INDEX || mv.
+                                                             IsAttackingMove()));
+
         ASSERT_EVAL_DEV(fetcher.EvaluateMaterial(), fetcher.MaterialEval(), mv.GetPackedMove().Dump());
     }
 
@@ -352,6 +351,9 @@ public:
 
         bd.MaterialEval -= mv.IsAttackingMove() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
         bd.MaterialEval += FIG_VALUES_CPU[mv.GetTargetBoardIndexCPU()] - FIG_VALUES_CPU[mv.GetStartBoardIndexCPU()];
+
+        bd.HalfMoves = (bd.HalfMoves + 1) * (!(mv.GetStartBoardIndexCPU() == W_PAWN_INDEX ||
+                                               mv.GetStartBoardIndexCPU() == B_PAWN_INDEX || mv.IsAttackingMove()));
 
         ASSERT_EVAL(bd.EvaluateMaterial(), bd.MaterialEval);
     }
@@ -395,6 +397,7 @@ public:
         fetcher.MaterialEval() += mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
         fetcher.MaterialEval() -= FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
 
+        fetcher.HalfMoves() = data.OldHalfMoves;
 
         ASSERT_EVAL_DEV(fetcher.EvaluateMaterial(), fetcher.MaterialEval(), mv.GetPackedMove().Dump());
     }
@@ -426,6 +429,8 @@ public:
 
         bd.MaterialEval += mv.IsAttackingMove() * FIG_VALUES_CPU[mv.GetKilledBoardIndexCPU()];
         bd.MaterialEval -= FIG_VALUES_CPU[mv.GetTargetBoardIndexCPU()] - FIG_VALUES_CPU[mv.GetStartBoardIndexCPU()];
+
+        bd.HalfMoves = data.OldHalfMoves;
 
         ASSERT_EVAL(bd.EvaluateMaterial(), bd.MaterialEval);
     }
