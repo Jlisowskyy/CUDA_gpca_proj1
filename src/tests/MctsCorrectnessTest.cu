@@ -127,8 +127,8 @@ static void TestMctsCorrectnessAssertBigRun_() {
 void TestMctsCorrectness([[maybe_unused]] uint32_t threadsAvailable,
                          [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     try {
-        // TestMctsCorrectnessAssertBigRun_();
         TestMctsCorrectnessExpectedMove_();
+        TestMctsCorrectnessAssertBigRun_();
     } catch (const std::exception &e) {
         std::cout << "TestMctsCorrectness failed: " << e.what() << std::endl;
     }

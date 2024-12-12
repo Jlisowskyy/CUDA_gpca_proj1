@@ -291,6 +291,7 @@ namespace mcts {
                     );
                     node = nullptr;
                     g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
+                    ++numRetries;
                     continue;
                 }
 
@@ -305,12 +306,12 @@ namespace mcts {
                     );
                     node = nullptr;
                     g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
+                    ++numRetries;
                     continue;
                 }
 
                 /* we have proper node selected continue work ... */
                 node = expandedNode;
-                ++numRetries;
             }
 
             selectedNodes[idx] = node;
