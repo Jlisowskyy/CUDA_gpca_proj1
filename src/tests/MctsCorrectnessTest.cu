@@ -95,7 +95,7 @@ static void TestMctsCorrectnessExpectedMove_() {
     std::cout << "Running MctsCorrectness test on move == expected move case...\n" << std::endl;
 
     bool result{};
-    ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
     for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
         result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0> >(fen, expectedMove, desc, bar);

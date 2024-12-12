@@ -262,7 +262,7 @@ namespace mcts {
     }
 
     template<EngineType ENGINE_TYPE, bool USE_TIMERS = false>
-    void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
+    void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream, const volatile bool& workCond) {
         static_assert(ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0);
         static constexpr uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0
                                                    ? EVAL_SPLIT_KERNEL_BOARDS
@@ -274,7 +274,12 @@ namespace mcts {
         for (uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
             MctsNode *node{};
 
+            uint32_t numRetries{};
             while (!node) {
+                if (!workCond && numRetries > 64) {
+                    return;
+                }
+
                 node = SelectNode(root);
 
                 /* We selected node already extended but without any children roll back */
@@ -305,6 +310,7 @@ namespace mcts {
 
                 /* we have proper node selected continue work ... */
                 node = expandedNode;
+                ++numRetries;
             }
 
             selectedNodes[idx] = node;

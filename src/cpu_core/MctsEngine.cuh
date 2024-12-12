@@ -226,7 +226,7 @@ protected:
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
             if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
-                mcts::ExpandTreeGPU<ENGINE_TYPE, USE_TIMERS>(workspace->m_root, stream);
+                mcts::ExpandTreeGPU<ENGINE_TYPE, USE_TIMERS>(workspace->m_root, stream, workspace->m_shouldWork);
             } else if constexpr (ENGINE_TYPE == EngineType::CPU) {
                 mcts::ExpandTreeCPU(workspace->m_root);
             } else {
