@@ -53,9 +53,8 @@ namespace mcts {
         results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
 
         /* Memory preprocessing */
-
-        float memcpyTime;
-        cudaEvent_t memcpyStart, memcpyStop;
+        [[maybe_unused]] float memcpyTime;
+        [[maybe_unused]] cudaEvent_t memcpyStart, memcpyStop;
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStart));
@@ -88,8 +87,8 @@ namespace mcts {
         }
 
         /* kernel run */
-        float kernelTime;
-        cudaEvent_t kernelStart, kernelStop;
+        [[maybe_unused]] float kernelTime;
+        [[maybe_unused]] cudaEvent_t kernelStart, kernelStop;
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStart));
@@ -111,8 +110,8 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
         /* memory operations cleanup operations */
-        float memcpyBackTime;
-        cudaEvent_t memcpyBackStart, memcpyBackStop;
+        [[maybe_unused]] float memcpyBackTime;
+        [[maybe_unused]] cudaEvent_t memcpyBackStart, memcpyBackStop;
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStart));
@@ -160,8 +159,8 @@ namespace mcts {
         results_t<EVAL_PLAIN_KERNEL_BOARDS> hResults{};
 
         /* Memory preprocessing */
-        float memcpyTime;
-        cudaEvent_t memcpyStart, memcpyStop;
+        [[maybe_unused]] float memcpyTime;
+        [[maybe_unused]] cudaEvent_t memcpyStart, memcpyStop;
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyStart));
@@ -196,8 +195,8 @@ namespace mcts {
         }
 
         /* kernel run */
-        float kernelTime;
-        cudaEvent_t kernelStart, kernelStop;
+        [[maybe_unused]] float kernelTime;
+        [[maybe_unused]] cudaEvent_t kernelStart, kernelStop;
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventCreate(&kernelStart));
@@ -218,8 +217,8 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaGetLastError());
 
         /* memory operations cleanup operations */
-        float memcpyBackTime;
-        cudaEvent_t memcpyBackStart, memcpyBackStop;
+        [[maybe_unused]] float memcpyBackTime;
+        [[maybe_unused]] cudaEvent_t memcpyBackStart, memcpyBackStop;
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventCreate(&memcpyBackStart));

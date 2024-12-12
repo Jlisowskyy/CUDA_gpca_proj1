@@ -19,10 +19,10 @@ public:
 
     constexpr ~BaseMoveHashMap() = default;
 
-    HYBRID constexpr explicit BaseMoveHashMap(const cuda_Array<uint64_t, MASKS_COUNT> &nMasks, uint64_t nMagic,
-                                              uint64_t nShift)
-            : m_masks(nMasks), m_magic(nMagic), m_shift(nShift),
-              m_fullMask(nMasks[0] | nMasks[1] | nMasks[2] | nMasks[3]), m_map{0} {
+    HYBRID constexpr explicit BaseMoveHashMap(const cuda_Array<uint64_t, MASKS_COUNT> &nMasks, const uint64_t nMagic,
+                                              const uint64_t nShift)
+            : m_magic(nMagic), m_shift(nShift), m_fullMask(nMasks[0] | nMasks[1] | nMasks[2] | nMasks[3]),
+              m_masks(nMasks), m_map{0} {
     }
 
     constexpr BaseMoveHashMap(const BaseMoveHashMap &) = default;

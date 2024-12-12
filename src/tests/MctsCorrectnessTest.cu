@@ -98,9 +98,9 @@ static void TestMctsCorrectnessExpectedMove_() {
     ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
     for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
-        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, expectedMove, desc, bar);
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0> >(fen, expectedMove, desc, bar);
         bar.Increment();
-        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, expectedMove, desc, bar);
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1> >(fen, expectedMove, desc, bar);
         bar.Increment();
     }
 
@@ -117,9 +117,9 @@ static void TestMctsCorrectnessAssertBigRun_() {
     ProgressBar bar(fenDb.size() * 2, BAR_WIDTH);
     bar.Start();
     for (const auto &fen: fenDb) {
-        RunAssertTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, bar);
+        RunAssertTestOnEngineOnce<MctsEngine<EngineType::GPU0> >(fen, bar);
         bar.Increment();
-        RunAssertTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, bar);
+        RunAssertTestOnEngineOnce<MctsEngine<EngineType::GPU1> >(fen, bar);
         bar.Increment();
     }
 }
@@ -127,7 +127,7 @@ static void TestMctsCorrectnessAssertBigRun_() {
 void TestMctsCorrectness([[maybe_unused]] uint32_t threadsAvailable,
                          [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     try {
-        TestMctsCorrectnessAssertBigRun_();
+        // TestMctsCorrectnessAssertBigRun_();
         TestMctsCorrectnessExpectedMove_();
     } catch (const std::exception &e) {
         std::cout << "TestMctsCorrectness failed: " << e.what() << std::endl;

@@ -19,12 +19,12 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint32_t GetBoardIndex(uint32_t color) {
+    [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint32_t GetBoardIndex(const uint32_t color) {
         return BIT_BOARDS_PER_COLOR * color + BISHOP_INDEX;
     }
 
     [[nodiscard]] FAST_DCALL_ALWAYS static constexpr uint64_t
-    GetMoves(uint32_t msbInd, uint64_t fullBoard, [[maybe_unused]] uint64_t = 0) {
+    GetMoves(const uint32_t msbInd, const uint64_t fullBoard, [[maybe_unused]] uint64_t = 0) {
         return G_BISHOP_FANCY_MAP_INSTANCE.GetMoves(msbInd, fullBoard);
     }
 

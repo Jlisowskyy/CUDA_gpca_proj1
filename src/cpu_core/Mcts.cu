@@ -65,18 +65,6 @@ namespace mcts {
             }
         }
 
-        if (node == nullptr) {
-            std::cout << "XD\n";
-            auto vec = root->GetChildren();
-            for (const auto child: vec) {
-                std::cout << child->m_move.GetPackedMove().GetLongAlgebraicNotationCPU() << " ";
-                std::cout << child->CalculateUCB() << std::endl;
-            }
-            std::cout << std::endl;
-
-            std::cout << "XD\n";
-        }
-
         return SelectNode(node);
     }
 
