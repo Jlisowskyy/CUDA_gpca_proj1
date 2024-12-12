@@ -177,8 +177,10 @@ public:
 
         const double averageScore = CalculateWinRate();
         const uint64_t parentNumSamples = m_parent->GetNumSamples();
+        const double materialScore = CalculateMaterialValue();
 
-        return averageScore + UCB_COEF * std::sqrt(std::log(parentNumSamples) / double(GetNumSamples()));
+        return materialScore + averageScore + UCB_COEF *
+               std::sqrt(std::log(parentNumSamples) / double(GetNumSamples()));
     }
 
     /**
@@ -191,6 +193,14 @@ public:
 
         const uint64_t score = GetScore(SwapColor(m_board.MovingColor)) + (GetScore(DRAW) + 1) / 2;
         return double(score) / double(GetNumSamples());
+    }
+
+    [[nodiscard]] double CalculateMaterialValue() const {
+        /* Note: value revers to parents perspective */
+        const double materialEval = (m_board.MovingColor == BLACK ? 1.0 : -1.0) * double(m_board.MaterialEval);
+        const double materialSum = double(m_board.SumMaterial());
+
+        return materialEval / materialSum;
     }
 
     /**

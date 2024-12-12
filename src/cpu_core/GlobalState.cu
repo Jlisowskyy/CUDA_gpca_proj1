@@ -20,7 +20,8 @@ std::unordered_map<std::string, std::function<void ()> > g_GlobalStateCommands =
                         DisplayHelp();
                         exit(0);
                     }
-                }
+                },
+                {"preserve_boards", []() { g_GlobalState.PreserveBoards = true; }},
             };
 
             for (const auto &[testName, _]: g_CudaTestsMap) {

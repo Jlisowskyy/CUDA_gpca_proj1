@@ -102,11 +102,11 @@ __device__ __constant__ static constexpr uint64_t CASTLING_TOUCHED_FIELDS[CASTLI
 };
 
 __device__ __constant__ static constexpr int32_t FIG_VALUES[BIT_BOARDS_GUARDED_COUNT]{
-    100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+    100, 330, 330, 500, 900, 0, -100, -330, -330, -500, -900, -0, 0
 };
 
 static constexpr int32_t FIG_VALUES_CPU[BIT_BOARDS_GUARDED_COUNT]{
-    100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
+    100, 330, 330, 500, 900, 0, -100, -330, -330, -500, -900, -0, 0
 };
 
 
@@ -181,6 +181,16 @@ public:
 
         for (uint32_t bIdx = 0; bIdx < BIT_BOARDS_COUNT; ++bIdx) {
             eval += std::popcount(BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
+        }
+
+        return eval;
+    }
+
+    [[nodiscard]] int32_t SumMaterial() const {
+        int32_t eval{};
+
+        for (uint32_t bIdx = 0; bIdx < BIT_BOARDS_COUNT; ++bIdx) {
+            eval += std::popcount(BitBoards[bIdx]) * std::abs(FIG_VALUES_CPU[bIdx]);
         }
 
         return eval;

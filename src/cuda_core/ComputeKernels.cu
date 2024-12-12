@@ -154,8 +154,6 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
              // evalCounters[resourceIdx][movingColor] = isInWinningRange ? evalCounters[resourceIdx][movingColor] + 1 : 0;
         }
 
-        __syncthreads();
-
         /* ASSUME win and die */
         // if (evalCounters[resourceIdx][movingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
         //     if (figIdx == 0) {

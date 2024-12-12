@@ -15,6 +15,7 @@ struct GlobalState {
     bool WriteTimes{};
     bool RunTestsOnStart{};
     std::string TestName{};
+    bool PreserveBoards{};
 };
 
 extern GlobalState g_GlobalState;
