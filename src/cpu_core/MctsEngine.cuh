@@ -217,7 +217,7 @@ protected:
      * @param workspace Pointer to the MctsEngine instance
      */
     static void _worker(uint32_t idx, MctsEngine *workspace) {
-        cudaStream_t stream;
+        cudaStream_t stream{};
 
         if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
             CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
@@ -358,7 +358,7 @@ protected:
     MctsNode *m_root{};
 
     uint32_t m_numWorkers{};
-    bool m_shouldWork{};
+    volatile bool m_shouldWork{};
     ThreadPool m_pool;
 };
 

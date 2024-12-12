@@ -106,7 +106,7 @@ __device__ __constant__ static constexpr int32_t FIG_VALUES[BIT_BOARDS_GUARDED_C
 };
 
 static constexpr int32_t FIG_VALUES_CPU[BIT_BOARDS_GUARDED_COUNT]{
-    100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -0, 10000
+    100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
 };
 
 

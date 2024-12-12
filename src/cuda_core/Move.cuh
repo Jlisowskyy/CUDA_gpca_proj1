@@ -70,7 +70,6 @@ inline std::pair<char, char> ConvertToCharPos(const int boardPosMsb) {
 #define ASSERT_EVAL_DEV(expected, actual, mv)  \
 { \
     if (expected != actual) { \
-        printLock(); \
         printf("Expected: %d, Actual: %d on move: %u\n", expected, actual, mv); \
         assert(false); \
     }  \

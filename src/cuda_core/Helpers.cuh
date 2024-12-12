@@ -120,10 +120,6 @@ FAST_DCALL_ALWAYS void unlock(int *mutex) {
     atomicExch(mutex, 0);
 }
 
-__device__ void printLock();
-
-__device__ void printUnlock();
-
 #define GUARDED_SYNC()                                              \
 {                                                                   \
     const auto rc = cudaDeviceSynchronize();                        \

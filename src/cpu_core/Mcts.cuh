@@ -53,6 +53,7 @@ namespace mcts {
         results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
 
         /* Memory preprocessing */
+
         [[maybe_unused]] float memcpyTime;
         [[maybe_unused]] cudaEvent_t memcpyStart, memcpyStop;
 
@@ -72,13 +73,13 @@ namespace mcts {
 
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
-                                            cudaMemcpyHostToDevice, stream));
+            cudaMemcpyHostToDevice, stream));
 
         const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
         assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
-                                            cudaMemcpyHostToDevice, stream));
+            cudaMemcpyHostToDevice, stream));
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStop, stream));
@@ -98,7 +99,7 @@ namespace mcts {
 
         EvaluateBoardsSplitKernel<<<EVAL_SPLIT_KERNEL_BOARDS / WARP_SIZE, WARP_SIZE *
                                                                           BIT_BOARDS_PER_COLOR, 0, stream>>>(
-                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
+            dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, nullptr
         );
 
         if constexpr (USE_TIMERS) {
@@ -120,8 +121,8 @@ namespace mcts {
         }
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
-                                            sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
-                                            stream));
+            sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+            stream));
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStop, stream));
@@ -177,16 +178,16 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, stream));
         CUDA_ASSERT_SUCCESS(
-                cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE * EVAL_PLAIN_KERNEL_BOARDS, stream));
+            cudaMallocAsync(&dBytes, sizeof(cuda_Move) * DEFAULT_STACK_SIZE * EVAL_PLAIN_KERNEL_BOARDS, stream));
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>),
-                                            cudaMemcpyHostToDevice, stream));
+            cudaMemcpyHostToDevice, stream));
 
         const auto seeds = GenSeeds(EVAL_PLAIN_KERNEL_BOARDS);
         assert(seeds.size() == EVAL_PLAIN_KERNEL_BOARDS);
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
-                                            cudaMemcpyHostToDevice, stream));
+            cudaMemcpyHostToDevice, stream));
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyStop, stream));
@@ -205,7 +206,7 @@ namespace mcts {
         }
 
         EvaluateBoardsPlainKernel<EVAL_PLAIN_KERNEL_BOARDS><<<1, EVAL_PLAIN_KERNEL_BOARDS, 0, stream>>>(
-                dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, dBytes
+            dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, dBytes
         );
 
         if constexpr (USE_TIMERS) {
@@ -227,8 +228,8 @@ namespace mcts {
         }
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
-                                            sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
-                                            stream));
+            sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
+            stream));
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStop, stream));
@@ -263,8 +264,9 @@ namespace mcts {
     template<EngineType ENGINE_TYPE, bool USE_TIMERS = false>
     void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream) {
         static_assert(ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0);
-        static constexpr uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0 ? EVAL_SPLIT_KERNEL_BOARDS :
-                                                 EVAL_PLAIN_KERNEL_BOARDS;
+        static constexpr uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0
+                                                   ? EVAL_SPLIT_KERNEL_BOARDS
+                                                   : EVAL_PLAIN_KERNEL_BOARDS;
 
         cuda_PackedBoard<BATCH_SIZE> batch;
         std::array<MctsNode *, BATCH_SIZE> selectedNodes;
@@ -278,8 +280,9 @@ namespace mcts {
                 /* We selected node already extended but without any children roll back */
                 if (node->HasChildrenAssigned()) {
                     PropagateResult(node,
-                                    ported_translation::IsCheck(node->m_board) ?
-                                    SwapColor(node->m_board.MovingColor) : DRAW
+                                    ported_translation::IsCheck(node->m_board)
+                                        ? SwapColor(node->m_board.MovingColor)
+                                        : DRAW
                     );
                     node = nullptr;
                     g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
@@ -291,8 +294,9 @@ namespace mcts {
                 if (!expandedNode) {
                     /* Selected node was not expanded yet, but we found out that it is a dead end indeed */
                     PropagateResult(node,
-                                    ported_translation::IsCheck(node->m_board) ?
-                                    SwapColor(node->m_board.MovingColor) : DRAW
+                                    ported_translation::IsCheck(node->m_board)
+                                        ? SwapColor(node->m_board.MovingColor)
+                                        : DRAW
                     );
                     node = nullptr;
                     g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
