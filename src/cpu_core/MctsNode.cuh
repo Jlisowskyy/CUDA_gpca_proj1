@@ -86,6 +86,18 @@ public:
         m_numSamples.fetch_add(1, std::memory_order_relaxed);
     }
 
+    [[nodiscard]] uint32_t CalcDepth() const {
+        uint32_t depth = 0;
+
+        if (HasChildrenAssigned()) {
+            for (const auto child: GetChildren()) {
+                depth = std::max(depth, child->CalcDepth() + 1);
+            }
+        }
+
+        return depth;
+    }
+
     /**
      * @brief Perform compare and swap operation on children vector pointer, returns false when assignment failed
      *

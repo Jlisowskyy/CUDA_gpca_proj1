@@ -17,8 +17,8 @@
 #include <array>
 #include <atomic>
 
-static constexpr uint32_t MIN_SAMPLES_TO_EXPAND = 8;
-static constexpr uint32_t MAX_SIMULATION_DEPTH = 100;
+static constexpr uint32_t MIN_SAMPLES_TO_EXPAND = 2;
+static constexpr uint32_t MAX_SIMULATION_DEPTH = 150;
 
 enum class EngineType {
     CPU,

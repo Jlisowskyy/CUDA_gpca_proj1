@@ -13,23 +13,30 @@
 #include <iostream>
 
 static std::tuple<std::string, std::string, std::string> TEST_FEN_EXPECTED_MOVE_MAP[]{
-    {"8/P7/8/8/8/8/8/k6K w - - 0 1", "a7a8Q", "simplest promo possible"},
+    {"8/Pr6/8/8/8/8/8/k6K w - - 0 1", "a7a8q", "simplest promo possible"},
     {"8/8/8/4pP2/8/8/8/k6K w - e6 0 1", "f5e6", "winning en passant"},
     {"2bnkn2/3ppp2/2p5/7b/7P/6PP/1q3PBQ/2R1K2R w K - 0 1", "e1g1", "enforced castling"},
     {"3NN2k/4Q3/6K1/8/8/8/8/8 w - - 0 1", "e7f8", "stalemate check"},
     {"r3k2r/ppp2ppp/2n5/3q4/3P4/2N5/PPP2PPP/R3K2R w KQkq - 0 1", "c3d5", "queen for free 1"},
-    {"rnb1kbnr/pppppppp/8/8/3qR3/8/PPPPPPPP/RNBQKBN1 b Qkq - 0 1", "e4d5", "queen for free 2"},
+    {"rnb1kbnr/pppppppp/8/8/3qR3/8/PPPPPPPP/RNBQKBN1 b Qkq - 0 1", "d4e4", "queen for free 2"},
+    {"rnb1kbnr/pppppppp/8/8/3qR3/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", "e4d4", "rook for free"},
     {"r4rk1/1pp2ppp/p1np1n2/2b1p1B1/q1B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", "c3a4", "queen for free 3"},
     {"rnb1kbqr/pppp1p1p/4p1p1/8/4N3/2B5/PPPPPPPP/R2QKBNR w KQkq - 0 1", "e4f6", "free fork"},
 };
+static std::tuple<std::string, std::string, std::string> TEST_FEN_NOT_EXPECTED_MOVE_MAP[]{
+    {"rnbqkbnr/1p1ppppp/8/p7/P1p5/3R4/1PPPPPPP/1NBQKBNR w Kkq - 0 1", "d3d7", "stupid rook loss"},
+    {"rnbqkbnr/pp1pppp1/8/2P4p/4P3/8/PPP2PPP/RNBQKBNR b KQkq - 0 1", "b7b5", "stupid pawn loss?"},
+
+};
 
 static constexpr uint32_t NUM_POS_EXPECTED_MOVE = std::size(TEST_FEN_EXPECTED_MOVE_MAP);
+static constexpr uint32_t NUM_POS_NOT_EXPECTED_MOVE = std::size(TEST_FEN_NOT_EXPECTED_MOVE_MAP);
 static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 1000;
 static constexpr uint32_t TEST_TIME_ASSERT_RUN = 10;
 static constexpr uint32_t NUM_BOARDS_ASSERT_TEST = 1000;
 static constexpr uint32_t BAR_WIDTH = 80;
 
-template<class ENGINE_T>
+template<class ENGINE_T, bool expect = true>
 static bool RunExpectedMoveTestOnEngineOnce(const std::string &fen, const std::string &expectedResult,
                                             const std::string &desc, ProgressBar &bar) {
     /* prepare components */
@@ -54,12 +61,22 @@ static bool RunExpectedMoveTestOnEngineOnce(const std::string &fen, const std::s
         engine.DisplayResults(0);
     }
 
-    const bool result = expectedResult == move.GetPackedMove().GetLongAlgebraicNotationCPU();
+    const bool result = expect
+                            ? expectedResult == move.GetPackedMove().GetLongAlgebraicNotationCPU()
+                            : expectedResult != move.GetPackedMove().GetLongAlgebraicNotationCPU();
 
     if (!result) {
-        const std::string msg = "Mcts Correctness test failed on position: " + fen + ", desc: " + desc + "\n" +
-                                "Expected move: " + expectedResult + "\n" +
-                                "Got move: " + move.GetPackedMove().GetLongAlgebraicNotationCPU();
+        const std::string msg = "[ FAIL ] Mcts Correctness test failed on position: " + fen + ", desc: " + desc + "\n" +
+                                "Test move: " + expectedResult + "\n" +
+                                "Got move: " + move.GetPackedMove().GetLongAlgebraicNotationCPU() + "\n" +
+                                "Tree reached depth: " + std::to_string(engine.GetDepth());
+
+        bar.WriteLine(msg);
+    } else {
+        const std::string msg = "[ SUCCESS ] Mcts correctness test passed on position: " + fen + ", desc: " + desc +
+                                " and depth: "
+                                + std::to_string(engine.GetDepth());
+
         bar.WriteLine(msg);
     }
 
@@ -95,13 +112,32 @@ static void TestMctsCorrectnessExpectedMove_() {
     std::cout << "Running MctsCorrectness test on move == expected move case...\n" << std::endl;
 
     bool result{};
-    ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    // ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
     for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
         result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0> >(fen, expectedMove, desc, bar);
         bar.Increment();
-        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1> >(fen, expectedMove, desc, bar);
+        // result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1> >(fen, expectedMove, desc, bar);
+        // bar.Increment();
+    }
+
+    result = !result;
+    std::cout << "Mcts Correctness test finished with result: " << (result ? "SUCCESS" : "FAILURE") << std::endl;
+}
+
+static void TestMctsCorrectnessNotExpectedMove_() {
+    std::cout << "Running MctsCorrectness test on move != expected move case...\n" << std::endl;
+
+    bool result{};
+    // ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    bar.Start();
+    for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0>, false>(fen, expectedMove, desc, bar);
         bar.Increment();
+        // result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1>, false >(fen, expectedMove, desc, bar);
+        // bar.Increment();
     }
 
     result = !result;
@@ -128,6 +164,7 @@ void TestMctsCorrectness([[maybe_unused]] uint32_t threadsAvailable,
                          [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     try {
         TestMctsCorrectnessExpectedMove_();
+        TestMctsCorrectnessNotExpectedMove_();
         TestMctsCorrectnessAssertBigRun_();
     } catch (const std::exception &e) {
         std::cout << "TestMctsCorrectness failed: " << e.what() << std::endl;

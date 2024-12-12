@@ -145,6 +145,10 @@ public:
                 << " milliseconds" << std::endl;
     }
 
+    [[nodiscard]] uint32_t GetDepth() const {
+        return m_root->CalcDepth();
+    }
+
     /**
      * @brief Returns string representing the name of the engine, used in various logging functions
      *

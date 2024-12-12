@@ -122,6 +122,11 @@ struct alignas(128) cuda_PackedBoard {
             return eval;
         }
 
+        [[nodiscard]] int32_t FAST_DCALL_ALWAYS EvaluateMaterial(const uint32_t color) const {
+            const int32_t eval = EvaluateMaterial();
+            return color == BLACK ? -eval : eval;
+        }
+
 
         // ------------------------------
         // Class fields
