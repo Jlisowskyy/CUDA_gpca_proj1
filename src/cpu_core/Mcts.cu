@@ -21,8 +21,7 @@ namespace mcts {
         /* We selected node already extended but without any children roll back */
         if (node->HasChildrenAssigned()) {
             PropagateResult(node,
-                            ported_translation::IsCheck(node->m_board) ?
-                            SwapColor(node->m_board.MovingColor) : DRAW
+                            ported_translation::IsCheck(node->m_board) ? SwapColor(node->m_board.MovingColor) : DRAW
             );
             g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
             return;
@@ -33,8 +32,7 @@ namespace mcts {
         /* Selected node was not expanded yet, but we found out that it is a dead end indeed */
         if (expandedNode == nullptr) {
             PropagateResult(node,
-                            ported_translation::IsCheck(node->m_board) ?
-                            SwapColor(node->m_board.MovingColor) : DRAW
+                            ported_translation::IsCheck(node->m_board) ? SwapColor(node->m_board.MovingColor) : DRAW
             );
             g_SimulationCounter.fetch_add(1, std::memory_order::relaxed);
             return;
@@ -57,7 +55,7 @@ namespace mcts {
             return root;
         }
 
-        double bestScore = std::numeric_limits<double>::min();
+        double bestScore = -std::numeric_limits<double>::max();
         MctsNode *node{};
 
         for (const auto child: root->GetChildren()) {
@@ -65,6 +63,18 @@ namespace mcts {
                 bestScore = score;
                 node = child;
             }
+        }
+
+        if (node == nullptr) {
+            std::cout << "XD\n";
+            auto vec = root->GetChildren();
+            for (const auto child: vec) {
+                std::cout << child->m_move.GetPackedMove().GetLongAlgebraicNotationCPU() << " ";
+                std::cout << child->CalculateUCB() << std::endl;
+            }
+            std::cout << std::endl;
+
+            std::cout << "XD\n";
         }
 
         return SelectNode(node);
@@ -98,8 +108,9 @@ namespace mcts {
             delete pChildren;
         }
 
-        return root->GetChildren().empty() ? nullptr :
-               root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
+        return root->GetChildren().empty()
+                   ? nullptr
+                   : root->GetChildren()[root->GetNumSamples() % root->GetChildren().size()];
     }
 
     void PropagateResult(MctsNode *const node, const uint32_t result) {
@@ -110,5 +121,4 @@ namespace mcts {
         node->ScoreNode(result);
         PropagateResult(node->m_parent, result);
     }
-
 }

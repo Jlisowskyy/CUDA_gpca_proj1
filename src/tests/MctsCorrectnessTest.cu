@@ -23,25 +23,29 @@ static std::tuple<std::string, std::string, std::string> TEST_FEN_EXPECTED_MOVE_
     {"rnb1kbqr/pppp1p1p/4p1p1/8/4N3/2B5/PPPPPPPP/R2QKBNR w KQkq - 0 1", "e4f6", "free fork"},
 };
 
-static constexpr uint32_t NUM_POS = std::size(TEST_FEN_EXPECTED_MOVE_MAP);
-static constexpr uint32_t TEST_TIME = 1000;
+static constexpr uint32_t NUM_POS_EXPECTED_MOVE = std::size(TEST_FEN_EXPECTED_MOVE_MAP);
+static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 1000;
+static constexpr uint32_t TEST_TIME_ASSERT_RUN = 10;
+static constexpr uint32_t NUM_BOARDS_ASSERT_TEST = 1000;
 static constexpr uint32_t BAR_WIDTH = 80;
 
 template<class ENGINE_T>
-static bool RunTestOnEngineOnce(const std::string &fen, const std::string &expectedResult, const std::string &desc) {
+static bool RunExpectedMoveTestOnEngineOnce(const std::string &fen, const std::string &expectedResult,
+                                            const std::string &desc, ProgressBar &bar) {
     /* prepare components */
     auto board = cuda_Board(cpu::TranslateFromFen(fen));
 
     if (g_GlobalState.WriteExtensiveInfo) {
-        std::cout << "Running test on engine: " << ENGINE_T::GetName() << " on position: " << fen << std::endl;
-        cpu::DisplayBoard(board.DumpToExternal());
+        const std::string msg = "Running expected move test on engine: " + std::string(ENGINE_T::GetName()) +
+                                " on position: " + fen + " with desc: " + desc;
+        bar.WriteLine(msg);
     }
 
     G_USE_DEFINED_SEED = true;
 
     ENGINE_T engine{board, ENGINE_T::GetPreferredThreadsCount()};
     engine.MoveSearchStart();
-    std::this_thread::sleep_for(std::chrono::milliseconds(TEST_TIME));
+    std::this_thread::sleep_for(std::chrono::milliseconds(TEST_TIME_EXPECTED_MOVE));
     const cuda_Move move = engine.MoveSearchWait();
 
     G_USE_DEFINED_SEED = false;
@@ -53,24 +57,50 @@ static bool RunTestOnEngineOnce(const std::string &fen, const std::string &expec
     const bool result = expectedResult == move.GetPackedMove().GetLongAlgebraicNotationCPU();
 
     if (!result) {
-        std::cout << "Mcts Correctness test failed on position: " << fen << std::endl;
-        std::cout << "Expected move: " << expectedResult << std::endl;
-        std::cout << "Got move: " << move.GetPackedMove().GetLongAlgebraicNotationCPU() << std::endl;
+        const std::string msg = "Mcts Correctness test failed on position: " + fen + ", desc: " + desc + "\n" +
+                                "Expected move: " + expectedResult + "\n" +
+                                "Got move: " + move.GetPackedMove().GetLongAlgebraicNotationCPU();
+        bar.WriteLine(msg);
     }
 
     return result;
 }
 
-static void TestMctsCorrectness_() {
-    std::cout << "Running MctsCorrectness test...\n" << std::endl;
+template<class ENGINE_T>
+static void RunAssertTestOnEngineOnce(const std::string &fen, ProgressBar &bar) {
+    /* prepare components */
+    auto board = cuda_Board(cpu::TranslateFromFen(fen));
+
+    if (g_GlobalState.WriteExtensiveInfo) {
+        const std::string msg = "Running assert test on engine: " + std::string(ENGINE_T::GetName()) + " on position: "
+                                + fen;
+        bar.WriteLine(msg);
+    }
+
+    G_USE_DEFINED_SEED = true;
+
+    ENGINE_T engine{board, ENGINE_T::GetPreferredThreadsCount()};
+    engine.MoveSearchStart();
+    std::this_thread::sleep_for(std::chrono::milliseconds(TEST_TIME_ASSERT_RUN));
+    [[maybe_unused]] const auto move = engine.MoveSearchWait();
+
+    G_USE_DEFINED_SEED = false;
+
+    if (g_GlobalState.WriteExtensiveInfo) {
+        bar.WriteLine("Finished assert test on engine: " + std::string(ENGINE_T::GetName()) + " on position: " + fen);
+    }
+}
+
+static void TestMctsCorrectnessExpectedMove_() {
+    std::cout << "Running MctsCorrectness test on move == expected move case...\n" << std::endl;
 
     bool result{};
-    ProgressBar bar(NUM_POS, BAR_WIDTH);
+    ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
     for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
-        result |= RunTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, expectedMove, desc);
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, expectedMove, desc, bar);
         bar.Increment();
-        result |= RunTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, expectedMove, desc);
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, expectedMove, desc, bar);
         bar.Increment();
     }
 
@@ -78,10 +108,27 @@ static void TestMctsCorrectness_() {
     std::cout << "Mcts Correctness test finished with result: " << (result ? "SUCCESS" : "FAILURE") << std::endl;
 }
 
+static void TestMctsCorrectnessAssertBigRun_() {
+    std::cout << "Running MctsCorrectness test on assert test case...\n" << std::endl;
+
+    auto fenDb = LoadFenDb();
+    fenDb.resize(NUM_BOARDS_ASSERT_TEST);
+
+    ProgressBar bar(fenDb.size() * 2, BAR_WIDTH);
+    bar.Start();
+    for (const auto &fen: fenDb) {
+        RunAssertTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, bar);
+        bar.Increment();
+        RunAssertTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, bar);
+        bar.Increment();
+    }
+}
+
 void TestMctsCorrectness([[maybe_unused]] uint32_t threadsAvailable,
                          [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     try {
-        TestMctsCorrectness_();
+        TestMctsCorrectnessAssertBigRun_();
+        TestMctsCorrectnessExpectedMove_();
     } catch (const std::exception &e) {
         std::cout << "TestMctsCorrectness failed: " << e.what() << std::endl;
     }

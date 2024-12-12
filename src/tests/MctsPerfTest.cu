@@ -22,7 +22,7 @@ static constexpr std::array TestFEN{
 };
 
 //static constexpr uint32_t TEST_TIME = 5000;
-static constexpr uint32_t TEST_TIME = 1000;
+static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 1000;
 
 static void RunProcessingAnim(const uint32_t moveTime) {
     static constexpr uint32_t PROG_BAR_STEP_MS = 50;
@@ -81,9 +81,9 @@ static std::vector<double> RunTestsGroup(const uint32_t moveTime) {
 }
 
 static void TestMCTSEngines_() {
-    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true> >(TEST_TIME);
-    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true> >(TEST_TIME);
-    const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true> >(TEST_TIME);
+    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true> >(TEST_TIME_EXPECTED_MOVE);
+    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true> >(TEST_TIME_EXPECTED_MOVE);
+    const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true> >(TEST_TIME_EXPECTED_MOVE);
 
     // Pretty print results as a table
     std::cout << std::left << std::setw(30) << "FEN Position"

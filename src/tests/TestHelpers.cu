@@ -41,8 +41,6 @@ void PolluteCache() {
 }
 
 std::vector<std::string> LoadFenDb() {
-//    const auto sourcePath = std::filesystem::path(__FILE__).parent_path();
-//    const auto fenDbPath = sourcePath / "./test_data/fen_db.txt";
     const auto fenDbPath = "./test_data/fen_db.txt";
 
     const auto fenDb = cpu::LoadFenDb(fenDbPath);

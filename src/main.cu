@@ -5,14 +5,13 @@
 #include "cpu_core/Cli.cuh"
 #include "cpu_core/CpuCore.cuh"
 #include "cpu_core/Utils.cuh"
+#include "cpu_core/GlobalState.cuh"
+
+#include "cuda_core/Move.cuh"
 
 #include "tests/CudaTests.cuh"
-#include "ported/CpuUtils.h"
 
-#include <string>
 #include <iostream>
-
-#include "cpu_core/GlobalState.cuh"
 
 int main(const int argc, const char *argv[]) {
     CpuCore::parseFlags(argc, argv);
