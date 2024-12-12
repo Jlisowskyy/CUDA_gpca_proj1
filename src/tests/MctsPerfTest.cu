@@ -16,10 +16,10 @@
 #include <iomanip>
 
 static constexpr std::array TestFEN{
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-        "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
-        "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
+    "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1",
+    "7k/r2q1ppp/1p1p4/p1bPrPPb/P1PNPR1P/1PQ5/2B5/R5K1 w - - 23 16",
 };
 
 //static constexpr uint32_t TEST_TIME = 5000;
@@ -42,7 +42,6 @@ static void RunProcessingAnim(uint32_t moveTime) {
 
 template<class ENGINE_T1>
 double RunTestOnEngineOnce(uint32_t moveTime, const std::string &fen) {
-
     /* prepare components */
     cuda_Board board = cuda_Board(cpu::TranslateFromFen(fen));
 
@@ -62,8 +61,8 @@ double RunTestOnEngineOnce(uint32_t moveTime, const std::string &fen) {
     const double scoreS = scoreMS * 1000.0;
 
     std::cout << "ENGINE: " << ENGINE_T1::GetName() << " made: " << simulations << " simulations in " << moveTime
-              << "ms that gives us: " << scoreS << " simulations per S and " << scoreMS << " simulations per MS"
-              << std::endl;
+            << "ms that gives us: " << scoreS << " simulations per S and " << scoreMS << " simulations per MS"
+            << std::endl;
 
 
     G_USE_DEFINED_SEED = false;
@@ -83,26 +82,26 @@ std::vector<double> RunTestsGroup(uint32_t moveTime) {
 }
 
 void TestMCTSEngines_() {
-    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true>>(TEST_TIME);
-    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true>>(TEST_TIME);
-    const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true>>(TEST_TIME);
+    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true> >(TEST_TIME);
+    const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true> >(TEST_TIME);
+    const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true> >(TEST_TIME);
 
     // Pretty print results as a table
     std::cout << std::left << std::setw(30) << "FEN Position"
-              << std::setw(20) << "GPU0 (sim/ms)"
-              << std::setw(20) << "GPU1 (sim/ms)"
-              << std::setw(20) << "CPU (sim/ms)"
-              << std::endl;
+            << std::setw(20) << "GPU0 (sim/ms)"
+            << std::setw(20) << "GPU1 (sim/ms)"
+            << std::setw(20) << "CPU (sim/ms)"
+            << std::endl;
 
     std::cout << std::string(90, '-') << std::endl;
 
     for (size_t i = 0; i < TestFEN.size(); ++i) {
         std::cout << std::left
-                  << std::setw(30) << (std::string(TestFEN[i]).substr(0, 27) + "...")
-                  << std::setw(20) << std::fixed << std::setprecision(2) << resultGPU0[i]
-                  << std::setw(20) << std::fixed << std::setprecision(2) << resultGPU1[i]
-                  << std::setw(20) << std::fixed << std::setprecision(2) << resultCPU[i]
-                  << std::endl;
+                << std::setw(30) << (std::string(TestFEN[i]).substr(0, 27) + "...")
+                << std::setw(20) << std::fixed << std::setprecision(2) << resultGPU0[i]
+                << std::setw(20) << std::fixed << std::setprecision(2) << resultGPU1[i]
+                << std::setw(20) << std::fixed << std::setprecision(2) << resultCPU[i]
+                << std::endl;
     }
 
     // Calculate and print averages
@@ -113,11 +112,11 @@ void TestMCTSEngines_() {
     double avgCPU = std::accumulate(resultCPU.begin(), resultCPU.end(), 0.0) / resultCPU.size();
 
     std::cout << std::left
-              << std::setw(30) << "Average"
-              << std::setw(20) << std::fixed << std::setprecision(2) << avgGPU0
-              << std::setw(20) << std::fixed << std::setprecision(2) << avgGPU1
-              << std::setw(20) << std::fixed << std::setprecision(2) << avgCPU
-              << std::endl;
+            << std::setw(30) << "Average"
+            << std::setw(20) << std::fixed << std::setprecision(2) << avgGPU0
+            << std::setw(20) << std::fixed << std::setprecision(2) << avgGPU1
+            << std::setw(20) << std::fixed << std::setprecision(2) << avgCPU
+            << std::endl;
 }
 
 void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {

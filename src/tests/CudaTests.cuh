@@ -75,6 +75,10 @@ inline void MoveGenCorPerfTest(uint32_t threadsAvailable, const cudaDeviceProp &
 
 void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
+void TestRandomGen(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+
+void TestMctsCorrectness(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
+
 // ------------------------------
 // Test map
 // ------------------------------
@@ -98,47 +102,63 @@ void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProp
  * - "magic_test" runs FancyMagicTest()
  * - "move_gen" runs MoveGenTest()
  */
-static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc>> g_CudaTestsMap = {
-        {
-                "magic_test",
-                std::make_tuple(
-                        "Fancy Magic Test",
-                        "Measures average access times of Fancy mappings on the GPU as well as correctness",
-                        &FancyMagicTest
-                )
-        },
-        {
-                "move_gen",
-                std::make_tuple(
-                        "MoveGen Test",
-                        "Tests the correctness of the move generation on the GPU",
-                        &MoveGenTest
-                )
-        },
-        {
-                "move_perf",
-                std::make_tuple(
-                        "MoveGen Performance Test",
-                        "Tests the performance of the move generation on the GPU",
-                        &MoveGenPerfTest
-                )
-        },
-        {
-                "move_gen_perf",
-                std::make_tuple(
-                        "MoveGen Performance and Correctness Test",
-                        "Tests first the correctness of the move generation and performance after it",
-                        &MoveGenCorPerfTest
-                )
-        },
-        {
-                "mcts_perf",
-                std::make_tuple(
-                        "Mcts Engine Performance Test",
-                        "Tests number of simulation played inside MCTS search of various implementations",
-                        &TestMCTSEngines
-                )
-        },
+static const std::unordered_map<std::string, std::tuple<std::string, std::string, TestFunc> > g_CudaTestsMap = {
+    {
+        "magic_test",
+        std::make_tuple(
+            "Fancy Magic Test",
+            "Measures average access times of Fancy mappings on the GPU as well as correctness",
+            &FancyMagicTest
+        )
+    },
+    {
+        "move_gen",
+        std::make_tuple(
+            "MoveGen Test",
+            "Tests the correctness of the move generation on the GPU",
+            &MoveGenTest
+        )
+    },
+    {
+        "move_perf",
+        std::make_tuple(
+            "MoveGen Performance Test",
+            "Tests the performance of the move generation on the GPU",
+            &MoveGenPerfTest
+        )
+    },
+    {
+        "move_gen_perf",
+        std::make_tuple(
+            "MoveGen Performance and Correctness Test",
+            "Tests first the correctness of the move generation and performance after it",
+            &MoveGenCorPerfTest
+        )
+    },
+    {
+        "mcts_perf",
+        std::make_tuple(
+            "Mcts Engine Performance Test",
+            "Tests number of simulation played inside MCTS search of various implementations",
+            &TestMCTSEngines
+        )
+    },
+    {
+        "random_gen",
+        std::make_tuple(
+            "Random Generator Test",
+            "Tests the correctness of the random generator on the GPU",
+            &TestRandomGen
+        )
+    },
+    {
+        "mcts_correctness",
+        std::make_tuple(
+            "MCTS Correctness Test",
+            "Tests the correctness of the MCTS implementation",
+            &TestMctsCorrectness
+        )
+    },
 };
 
 // ------------------------------

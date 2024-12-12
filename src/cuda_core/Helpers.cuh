@@ -78,7 +78,7 @@ HYBRID constexpr T cuda_max(T a, T b) {
 
 
 template<class NumT>
-FAST_DCALL_ALWAYS void simpleRand(NumT &state) {
+FAST_CALL_ALWAYS void simpleRand(NumT &state) {
     static constexpr NumT COEF1 = 36969;
     static constexpr NumT COEF2 = 65535;
     static constexpr NumT COEF3 = 17;
