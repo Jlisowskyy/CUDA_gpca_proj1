@@ -5,7 +5,6 @@
 #include "CudaTests.cuh"
 
 #include "../cuda_core/cuda_Board.cuh"
-#include "../cuda_core/cuda_Board.cuh"
 #include "../cpu_core/ProgressBar.cuh"
 #include "../cpu_core/Mcts.cuh"
 #include "../ported/CpuUtils.h"
@@ -25,7 +24,7 @@ static constexpr std::array TestFEN{
 //static constexpr uint32_t TEST_TIME = 5000;
 static constexpr uint32_t TEST_TIME = 1000;
 
-static void RunProcessingAnim(uint32_t moveTime) {
+static void RunProcessingAnim(const uint32_t moveTime) {
     static constexpr uint32_t PROG_BAR_STEP_MS = 50;
     uint32_t timeLeft = moveTime;
 
@@ -41,9 +40,9 @@ static void RunProcessingAnim(uint32_t moveTime) {
 }
 
 template<class ENGINE_T1>
-double RunTestOnEngineOnce(uint32_t moveTime, const std::string &fen) {
+static double RunTestOnEngineOnce(const uint32_t moveTime, const std::string &fen) {
     /* prepare components */
-    cuda_Board board = cuda_Board(cpu::TranslateFromFen(fen));
+    auto board = cuda_Board(cpu::TranslateFromFen(fen));
 
     std::cout << "Running test on engine: " << ENGINE_T1::GetName() << " on position: " << fen << std::endl;
     cpu::DisplayBoard(board.DumpToExternal());
@@ -71,7 +70,7 @@ double RunTestOnEngineOnce(uint32_t moveTime, const std::string &fen) {
 }
 
 template<class ENGINE_T1>
-std::vector<double> RunTestsGroup(uint32_t moveTime) {
+static std::vector<double> RunTestsGroup(const uint32_t moveTime) {
     std::vector<double> rv{};
     for (const std::string &fen: TestFEN) {
         const double result = RunTestOnEngineOnce<ENGINE_T1>(moveTime, fen);
@@ -81,7 +80,7 @@ std::vector<double> RunTestsGroup(uint32_t moveTime) {
     return rv;
 }
 
-void TestMCTSEngines_() {
+static void TestMCTSEngines_() {
     const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true> >(TEST_TIME);
     const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true> >(TEST_TIME);
     const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true> >(TEST_TIME);
@@ -119,7 +118,7 @@ void TestMCTSEngines_() {
             << std::endl;
 }
 
-void TestMCTSEngines(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+void TestMCTSEngines([[maybe_unused]] uint32_t threadsAvailable, [[maybe_unused]] const cudaDeviceProp &deviceProps) {
     try {
         TestMCTSEngines_();
     } catch (const std::exception &e) {

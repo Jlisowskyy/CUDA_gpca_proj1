@@ -11,6 +11,8 @@
 #include <mutex>
 #include <tuple>
 
+#include "../cpu_core/ProgressBar.cuh"
+
 /**
  * @brief Pre-generated set of totally random numbers for testing purposes.
  */
@@ -221,18 +223,21 @@ static constexpr uint64_t NUM_NUMBERS = std::size(RandomNumbers);
 static constexpr uint64_t NUM_TRIES = 1'000'000;
 static constexpr double MAX_DEVIATION = 1.1;
 static constexpr uint64_t MAX_NUM_MOVES = 80;
+static constexpr uint64_t BAR_WIDTH = 80;
 
-std::tuple<bool, double> RunSingleTest_(const uint32_t seed, std::mutex &mut) {
+std::tuple<bool, double> RunSingleTest_(const uint32_t seed, ProgressBar &bar) {
     bool result{};
     double totalMaxDeviation{1.0};
 
     if (g_GlobalState.WriteExtensiveInfo) {
-        std::cout << "Running test with seed: " << seed << std::endl;
+        const std::string msg = "Running test with seed: " + std::to_string(seed);
+        bar.WriteLine(msg);
     }
 
     for (uint64_t numMoves = 2; numMoves < MAX_NUM_MOVES; ++numMoves) {
         if (g_GlobalState.WriteExtensiveInfo) {
-            std::cout << "Running test with numMoves: " << numMoves << std::endl;
+            const std::string msg = "Running test with numMoves: " + std::to_string(numMoves);
+            bar.WriteLine(msg);
         }
 
         uint32_t curSeed = seed;
@@ -243,10 +248,6 @@ std::tuple<bool, double> RunSingleTest_(const uint32_t seed, std::mutex &mut) {
             simpleRand(curSeed);
 
             ++samples[curSeed % numMoves];
-        }
-
-        if (g_GlobalState.WriteExtensiveInfo) {
-            std::cout << "Probabilities acquired:" << std::endl;
         }
 
         /* calculate probabilities */
@@ -273,21 +274,23 @@ std::tuple<bool, double> RunSingleTest_(const uint32_t seed, std::mutex &mut) {
         }
 
         if (g_GlobalState.WriteExtensiveInfo) {
-            std::cout << "Max deviation: " << maxDeviation << std::endl;
+            const std::string msg = "Max deviation: " + std::to_string(maxDeviation);
+            bar.WriteLine(msg);
         }
 
         if (maxDeviation > MAX_DEVIATION) {
-            std::lock_guard lock(mut);
-
-            std::cout << "Test failed with seed: " << seed << " and numMoves: " << numMoves << std::endl;
-            std::cout << "Max deviation: " << maxDeviation << std::endl;
-            std::cout << "Max deviation moves: " << maxDeviationMoves << std::endl;
-
-            std::cout << "Probabilities and samples:" << std::endl;
+            std::string msg{};
+            msg += "Test failed with seed: " + std::to_string(seed) + " and numMoves: " + std::to_string(numMoves) +
+                    "\n";
+            msg += "Max deviation: " + std::to_string(maxDeviation) + "\n";
+            msg += "Max deviation moves: " + std::to_string(maxDeviationMoves) + "\n";
+            msg += "Probabilities and samples:\n";
             for (uint64_t i = 0; i < numMoves; ++i) {
-                std::cout << "{" << i << ", " << samples[i] << ", " << probabilities[i] << "} ";
+                msg += "{" + std::to_string(i) + ", " + std::to_string(samples[i]) + ", " + std::to_string(
+                    probabilities[i]) + "} ";
             }
-            std::cout << std::endl;
+            msg += "\n";
+            bar.WriteLine(msg);
 
             result |= true;
         }
@@ -305,15 +308,20 @@ static void TestRandomGen_() {
     bool testResult{};
     double maxDeviation{};
     std::mutex mut{};
+    ProgressBar bar(NUM_NUMBERS, BAR_WIDTH);
 
+    std::cout << "Running RandomGen test" << std::endl;
+    bar.Start();
     pool.RunThreads([&](const uint32_t tIdx) {
         for (uint32_t idx = tIdx; idx < NUM_NUMBERS; idx += numThreads) {
-            const auto [result,dev] = RunSingleTest_(RandomNumbers[idx], mut);
+            const auto [result,dev] = RunSingleTest_(RandomNumbers[idx], bar);
 
             mut.lock();
-            testResult |= result;
+            testResult |= !result;
             maxDeviation = std::max(maxDeviation, dev);
             mut.unlock();
+
+            bar.Increment();
         }
     });
 
