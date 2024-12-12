@@ -219,7 +219,7 @@ static constexpr uint32_t RandomNumbers[]{
 
 static constexpr uint64_t NUM_NUMBERS = std::size(RandomNumbers);
 static constexpr uint64_t NUM_TRIES = 1'000'000;
-static constexpr double MAX_DEVIATION = 1.3;
+static constexpr double MAX_DEVIATION = 1.1;
 static constexpr uint64_t MAX_NUM_MOVES = 80;
 
 std::tuple<bool, double> RunSingleTest_(const uint32_t seed, std::mutex &mut) {
