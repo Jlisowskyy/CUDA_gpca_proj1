@@ -12,8 +12,15 @@
 #include <string>
 #include <iostream>
 
-static std::tuple<std::string, std::string> TEST_FEN_EXPECTED_MOVE_MAP[]{
-    {"", ""}
+static std::tuple<std::string, std::string, std::string> TEST_FEN_EXPECTED_MOVE_MAP[]{
+    {"8/P7/8/8/8/8/8/k6K w - - 0 1", "a7a8Q", "simplest promo possible"},
+    {"8/8/8/4pP2/8/8/8/k6K w - e6 0 1", "f5e6", "winning en passant"},
+    {"2bnkn2/3ppp2/2p5/7b/7P/6PP/1q3PBQ/2R1K2R w K - 0 1", "e1g1", "enforced castling"},
+    {"3NN2k/4Q3/6K1/8/8/8/8/8 w - - 0 1", "e7f8", "stalemate check"},
+    {"r3k2r/ppp2ppp/2n5/3q4/3P4/2N5/PPP2PPP/R3K2R w KQkq - 0 1", "c3d5", "queen for free 1"},
+    {"rnb1kbnr/pppppppp/8/8/3qR3/8/PPPPPPPP/RNBQKBN1 b Qkq - 0 1", "e4d5", "queen for free 2"},
+    {"r4rk1/1pp2ppp/p1np1n2/2b1p1B1/q1B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", "c3a4", "queen for free 3"},
+    {"rnb1kbqr/pppp1p1p/4p1p1/8/4N3/2B5/PPPPPPPP/R2QKBNR w KQkq - 0 1", "e4f6", "free fork"},
 };
 
 static constexpr uint32_t NUM_POS = std::size(TEST_FEN_EXPECTED_MOVE_MAP);
@@ -21,7 +28,7 @@ static constexpr uint32_t TEST_TIME = 1000;
 static constexpr uint32_t BAR_WIDTH = 80;
 
 template<class ENGINE_T>
-static bool RunTestOnEngineOnce(const std::string &fen, const std::string &expectedResult) {
+static bool RunTestOnEngineOnce(const std::string &fen, const std::string &expectedResult, const std::string &desc) {
     /* prepare components */
     auto board = cuda_Board(cpu::TranslateFromFen(fen));
 
@@ -34,6 +41,7 @@ static bool RunTestOnEngineOnce(const std::string &fen, const std::string &expec
 
     ENGINE_T engine{board, ENGINE_T::GetPreferredThreadsCount()};
     engine.MoveSearchStart();
+    std::this_thread::sleep_for(std::chrono::milliseconds(TEST_TIME));
     const cuda_Move move = engine.MoveSearchWait();
 
     G_USE_DEFINED_SEED = false;
@@ -54,15 +62,15 @@ static bool RunTestOnEngineOnce(const std::string &fen, const std::string &expec
 }
 
 static void TestMctsCorrectness_() {
-    std::cout << "Running MctsCorrectness test" << std::endl;
+    std::cout << "Running MctsCorrectness test...\n" << std::endl;
 
     bool result{};
     ProgressBar bar(NUM_POS, BAR_WIDTH);
     bar.Start();
-    for (const auto &[fen, expectedMove]: TEST_FEN_EXPECTED_MOVE_MAP) {
-        result |= RunTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, expectedMove);
+    for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
+        result |= RunTestOnEngineOnce<MctsEngine<EngineType::GPU0, true> >(fen, expectedMove, desc);
         bar.Increment();
-        result |= RunTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, expectedMove);
+        result |= RunTestOnEngineOnce<MctsEngine<EngineType::GPU1, true> >(fen, expectedMove, desc);
         bar.Increment();
     }
 

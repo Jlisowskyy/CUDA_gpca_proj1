@@ -310,7 +310,7 @@ static void TestRandomGen_() {
     std::mutex mut{};
     ProgressBar bar(NUM_NUMBERS, BAR_WIDTH);
 
-    std::cout << "Running RandomGen test" << std::endl;
+    std::cout << "Running RandomGen test...\n" << std::endl;
     bar.Start();
     pool.RunThreads([&](const uint32_t tIdx) {
         for (uint32_t idx = tIdx; idx < NUM_NUMBERS; idx += numThreads) {
