@@ -22,7 +22,7 @@ static constexpr std::array TestFEN{
 };
 
 //static constexpr uint32_t TEST_TIME = 5000;
-static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 1000;
+static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 20;
 
 static void RunProcessingAnim(const uint32_t moveTime) {
     static constexpr uint32_t PROG_BAR_STEP_MS = 50;

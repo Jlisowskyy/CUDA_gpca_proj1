@@ -134,7 +134,7 @@ __global__ void EvaluateBoardsPlainKernel(
 
 #ifdef NDEBUG
 
-static constexpr uint32_t EVAL_SPLIT_KERNEL_BOARDS = 64;
+static constexpr uint32_t EVAL_SPLIT_KERNEL_BOARDS = 640;
 
 #else
 

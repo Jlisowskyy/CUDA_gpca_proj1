@@ -45,7 +45,7 @@ SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const uint32_t *seeds
     while (maxDepth-- > 0) {
         __syncthreads();
 
-        Stack<cuda_Move> stack((cuda_Move *) stacks[CalcResourceIdx(threadIdx.x)],
+        Stack<cuda_Move> stack(reinterpret_cast<cuda_Move *>(stacks[CalcResourceIdx(threadIdx.x)]),
                                counters + CalcResourceIdx(threadIdx.x), false);
 
         if (CalcFigIdx(threadIdx.x) == 0) {
@@ -61,7 +61,7 @@ SimulateGamesKernelSplitMoves(DefaultPackedBoardT *boards, const uint32_t *seeds
         __syncthreads();
 
         if (CalcFigIdx(threadIdx.x) == 0) {
-            auto result = (uint32_t *) (results + CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x));
+            auto result = reinterpret_cast<uint32_t *>(results + CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x));
             ++result[0];
             result[1] += stack.Size();
         }
@@ -98,8 +98,8 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
         char bytes[sizeof(cuda_Move)];
     };
 
-    __shared__ uint32_t counters[EVAL_SPLIT_KERNEL_BOARDS];
-    __shared__ stub stacks[EVAL_SPLIT_KERNEL_BOARDS][SPLIT_MAX_STACK_MOVES];
+    __shared__ uint32_t counters[WARP_SIZE];
+    __shared__ stub stacks[WARP_SIZE][SPLIT_MAX_STACK_MOVES];
 
     const uint32_t boardIdx = CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x);
     const uint32_t figIdx = CalcFigIdx(threadIdx.x);

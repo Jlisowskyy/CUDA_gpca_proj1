@@ -27,9 +27,7 @@ static constexpr uint32_t PROG_BAR_STEP_MS = 50;
 static constexpr uint32_t NUM_CPU_WORKERS = 128;
 
 void InitializeRookMap() {
-    FancyMagicRookMap hostMap{
-        false
-    }; /* WORKAROUND: This is a workaround for the fact that the constructor is not constexpr */
+    const FancyMagicRookMap hostMap = FancyMagicRookMap::Create();
     CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
 
     cpu::AllocateStacks(5);
