@@ -100,16 +100,10 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
 
     __shared__ uint32_t counters[EVAL_SPLIT_KERNEL_BOARDS];
     __shared__ stub stacks[EVAL_SPLIT_KERNEL_BOARDS][SPLIT_MAX_STACK_MOVES];
-    // __shared__ uint16_t evalCounters[EVAL_SPLIT_KERNEL_BOARDS][2];
 
     const uint32_t boardIdx = CalcBoardIdx(threadIdx.x, blockIdx.x, blockDim.x);
     const uint32_t figIdx = CalcFigIdx(threadIdx.x);
     const uint32_t resourceIdx = CalcResourceIdx(threadIdx.x);
-
-    // if (figIdx == 0) {
-    //     evalCounters[resourceIdx][1] = 0;
-    //     evalCounters[resourceIdx][0] = 0;
-    // }
 
     uint32_t seed = seeds[boardIdx];
 
@@ -145,24 +139,7 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
         if (figIdx == 0) {
             const auto nextMove = stack[seed % stack.Size()];
             cuda_Move::MakeMove<EVAL_SPLIT_KERNEL_BOARDS>(nextMove, (*boards)[boardIdx]);
-
-            /* Check if board is enough rounds in winning position to assume that's a win */
-            // int32_t eval = (*boards)[boardIdx].MaterialEval();
-            // assert(eval == (*boards)[boardIdx].EvaluateMaterial());
-            // eval = movingColor == BLACK ? -eval : eval;
-            // const bool isInWinningRange = eval >= MATERIAL_ADVANTAGE_TO_WIN;
-            //
-            // evalCounters[resourceIdx][movingColor] = isInWinningRange ? evalCounters[resourceIdx][movingColor] + 1 : 0;
         }
-
-        /* ASSUME win and die */
-        // if (evalCounters[resourceIdx][movingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-        //     if (figIdx == 0) {
-        //         results[boardIdx] = movingColor;
-        //     }
-        //
-        //     return;
-        // }
 
         simpleRand(seed);
     }

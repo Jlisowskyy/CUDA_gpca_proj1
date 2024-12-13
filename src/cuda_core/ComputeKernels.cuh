@@ -95,10 +95,6 @@ __global__ void EvaluateBoardsPlainKernel(
     uint32_t seed = seeds[idx];
 
     __shared__ uint32_t counters[SIZE_BOARDS];
-    // __shared__ uint16_t evalCounters[SIZE_BOARDS][2];
-    //
-    // evalCounters[threadIdx.x][1] = 0;
-    // evalCounters[threadIdx.x][0] = 0;
 
     int depth{};
     while (depth < maxDepth) {
@@ -127,19 +123,6 @@ __global__ void EvaluateBoardsPlainKernel(
         /* Apply random generated move */
         const auto nextMove = stack[seed % stack.Size()];
         cuda_Move::MakeMove<SIZE_BOARDS>(nextMove, (*boards)[idx]);
-
-        /* Check if board is enough rounds in winning position to assume that's a win */
-        // int32_t eval = (*boards)[idx].MaterialEval();
-        // eval = movingColor == BLACK ? -eval : eval;
-        // const bool isInWinningRange = eval >= MATERIAL_ADVANTAGE_TO_WIN;
-        //
-        // evalCounters[threadIdx.x][movingColor] = isInWinningRange ? evalCounters[threadIdx.x][movingColor] + 1 : 0;
-        //
-        // /* ASSUME win and die */
-        // if (evalCounters[threadIdx.x][movingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-        //     results[idx] = movingColor;
-        //     return;
-        // }
 
         /* shuffle the seed */
         simpleRand(seed);
