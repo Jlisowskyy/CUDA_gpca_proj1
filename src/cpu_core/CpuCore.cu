@@ -6,6 +6,7 @@
 
 #include "../cuda_core/Helpers.cuh"
 #include "../cuda_core/RookMap.cuh"
+#include "../cuda_core/TextureRookMap.cuh"
 
 #include "Utils.cuh"
 #include "MctsEngine.cuh"
@@ -29,6 +30,7 @@ static constexpr uint32_t NUM_CPU_WORKERS = 128;
 void InitializeRookMap() {
     const FancyMagicRookMap hostMap = FancyMagicRookMap::Create();
     CUDA_ASSERT_SUCCESS(cudaMemcpyToSymbol(G_ROOK_FANCY_MAP_INSTANCE, &hostMap, sizeof(FancyMagicRookMap)));
+    InitRookMapTexture();
 
     cpu::AllocateStacks(5);
 }

@@ -163,6 +163,8 @@ public:
                 boardIndex
             );
         }
+
+        return map;
     }
 
     constexpr FancyMagicRookMap(const FancyMagicRookMap &) = default;

@@ -37,21 +37,25 @@ public:
     // Class interaction
     // ------------------------------
 
-    [[nodiscard]] HYBRID constexpr uint64_t hashFunc(const uint64_t val) const {
+    [[nodiscard]] FAST_CALL_ALWAYS constexpr uint64_t hashFunc(const uint64_t val) const {
         return (val * m_magic) >> (64LLU - m_shift);
     }
 
-    [[nodiscard]] HYBRID constexpr const uint64_t &operator[](const uint64_t neighbors) const {
+    [[nodiscard]] FAST_CALL_ALWAYS constexpr const uint64_t &operator[](const uint64_t neighbors) const {
         return m_map[hashFunc(neighbors)];
     }
 
-    [[nodiscard]] HYBRID constexpr uint64_t &operator[](const uint64_t neighbors) {
+    [[nodiscard]] FAST_CALL_ALWAYS constexpr uint64_t &operator[](const uint64_t neighbors) {
         return m_map[hashFunc(neighbors)];
     }
 
-    [[nodiscard]] HYBRID constexpr uint64_t getFullMask() const { return m_fullMask; }
+    [[nodiscard]] FAST_CALL_ALWAYS constexpr uint64_t getFullMask() const { return m_fullMask; }
 
-    [[nodiscard]] HYBRID constexpr const cuda_Array<uint64_t, MASKS_COUNT> &getMasks() const { return m_masks; }
+    [[nodiscard]] FAST_CALL_ALWAYS constexpr const cuda_Array<uint64_t, MASKS_COUNT> &getMasks() const { return m_masks; }
+
+    [[nodiscard]] FAST_CALL_ALWAYS constexpr const uint64_t* data() const {
+        return m_map.data();
+    }
 
     // ------------------------------
     // Class fields

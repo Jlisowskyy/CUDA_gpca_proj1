@@ -197,7 +197,7 @@ public:
      *
      * Provides direct access to the array's internal storage
      */
-    FAST_CALL_ALWAYS constexpr T *data() { return m_data; }
+    FAST_CALL_ALWAYS constexpr const T *data() const { return m_data; }
 
     // ------------------------------
     // Class fields
