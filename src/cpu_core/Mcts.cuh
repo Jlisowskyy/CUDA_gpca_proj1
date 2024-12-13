@@ -27,12 +27,6 @@ enum class EngineType {
 };
 
 namespace mcts {
-    template<uint32_t BATCH_SIZE>
-    using results_t = std::array<uint32_t, BATCH_SIZE>;
-
-    template<uint32_t BATCH_SIZE>
-    using sim_t = results_t<BATCH_SIZE> (*)(const cuda_PackedBoard<BATCH_SIZE> &, cudaStream_t &);
-
     extern std::atomic<uint32_t> g_ExpandRacesCounter;
     extern std::atomic<uint64_t> g_SimulationCounter;
     extern std::atomic<double> g_CopyTimes;
@@ -48,10 +42,9 @@ namespace mcts {
     void PropagateResult(MctsNode *node, uint32_t result);
 
     template<bool USE_TIMERS = false>
-    results_t<EVAL_SPLIT_KERNEL_BOARDS>
-    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
-        results_t<EVAL_SPLIT_KERNEL_BOARDS> hResults{};
-
+    void
+    SimulateSplit(const cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS> &boards, uint32_t *hSeeds, uint32_t *hResults,
+                  cudaStream_t &stream) {
         /* Memory preprocessing */
 
         [[maybe_unused]] float memcpyTime;
@@ -71,14 +64,13 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dSeeds, sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
         CUDA_ASSERT_SUCCESS(cudaMallocAsync(&dResults, sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, stream));
 
-
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOARDS>),
             cudaMemcpyHostToDevice, stream));
 
-        const auto seeds = GenSeeds(EVAL_SPLIT_KERNEL_BOARDS);
+        GenSeeds(hSeeds, EVAL_SPLIT_KERNEL_BOARDS);
         assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, hSeeds, sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
             cudaMemcpyHostToDevice, stream));
 
         if constexpr (USE_TIMERS) {
@@ -120,7 +112,7 @@ namespace mcts {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStart, stream));
         }
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults, dResults,
             sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
             stream));
 
@@ -150,15 +142,12 @@ namespace mcts {
             g_CopyTimes.fetch_add(double(memcpyTime));
             g_CopyBackTimes.fetch_add(double(memcpyBackTime));
         }
-
-        return hResults;
     }
 
     template<bool USE_TIMERS = false>
-    results_t<EVAL_PLAIN_KERNEL_BOARDS>
-    SimulatePlain(const cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> &boards, cudaStream_t &stream) {
-        results_t<EVAL_PLAIN_KERNEL_BOARDS> hResults{};
-
+    void
+    SimulatePlain(const cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS> &boards, uint32_t *hSeeds, uint32_t *hResults,
+                  cudaStream_t &stream) {
         /* Memory preprocessing */
         [[maybe_unused]] float memcpyTime;
         [[maybe_unused]] cudaEvent_t memcpyStart, memcpyStop;
@@ -183,10 +172,9 @@ namespace mcts {
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dBoards, &boards, sizeof(cuda_PackedBoard<EVAL_PLAIN_KERNEL_BOARDS>),
             cudaMemcpyHostToDevice, stream));
 
-        const auto seeds = GenSeeds(EVAL_PLAIN_KERNEL_BOARDS);
-        assert(seeds.size() == EVAL_PLAIN_KERNEL_BOARDS);
+        GenSeeds(hSeeds, EVAL_PLAIN_KERNEL_BOARDS);
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, seeds.data(), sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, hSeeds, sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS,
             cudaMemcpyHostToDevice, stream));
 
         if constexpr (USE_TIMERS) {
@@ -227,7 +215,7 @@ namespace mcts {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(memcpyBackStart, stream));
         }
 
-        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults.data(), dResults,
+        CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(hResults, dResults,
             sizeof(uint32_t) * EVAL_PLAIN_KERNEL_BOARDS, cudaMemcpyDeviceToHost,
             stream));
 
@@ -257,18 +245,17 @@ namespace mcts {
             g_CopyTimes.fetch_add(double(memcpyTime));
             g_CopyBackTimes.fetch_add(double(memcpyBackTime));
         }
-
-        return hResults;
     }
 
     template<EngineType ENGINE_TYPE, bool USE_TIMERS = false>
-    void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream, const volatile bool &workCond) {
+    void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream, uint32_t *hSeeds, uint32_t *hResults, void *hBoard,
+                       const volatile bool &workCond) {
         static_assert(ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0);
         static constexpr uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0
                                                    ? EVAL_SPLIT_KERNEL_BOARDS
                                                    : EVAL_PLAIN_KERNEL_BOARDS;
 
-        cuda_PackedBoard<BATCH_SIZE> batch;
+        auto *batch = new(hBoard) cuda_PackedBoard<BATCH_SIZE>();
         std::array<MctsNode *, BATCH_SIZE> selectedNodes;
 
         for (uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
@@ -315,22 +302,19 @@ namespace mcts {
             }
 
             selectedNodes[idx] = node;
-            batch.saveBoard(idx, node->m_board);
+            batch->saveBoard(idx, node->m_board);
         }
 
-        results_t<BATCH_SIZE> results;
-
         if constexpr (ENGINE_TYPE == EngineType::GPU0) {
-            results = SimulateSplit<USE_TIMERS>(batch, stream);
+            SimulateSplit<USE_TIMERS>(*batch, hSeeds, hResults, stream);
             g_SimulationCounter.fetch_add(EVAL_SPLIT_KERNEL_BOARDS, std::memory_order::relaxed);
         } else {
-            results = SimulatePlain<USE_TIMERS>(batch, stream);
+            SimulatePlain<USE_TIMERS>(*batch, hSeeds, hResults, stream);
             g_SimulationCounter.fetch_add(EVAL_PLAIN_KERNEL_BOARDS, std::memory_order::relaxed);
         }
 
-        assert(results.size() == selectedNodes.size());
         for (uint32_t idx = 0; idx < BATCH_SIZE; ++idx) {
-            PropagateResult(selectedNodes[idx], results[idx]);
+            PropagateResult(selectedNodes[idx], hResults[idx]);
         }
     }
 }

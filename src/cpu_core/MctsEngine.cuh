@@ -21,6 +21,8 @@
 
 #include "GlobalState.cuh"
 
+static constexpr uint32_t THREAD_HARDWARE_CONCURRENCY_COEF = 4;
+
 /**
  * @brief Monte Carlo Tree Search (MCTS) Engine template class for game AI
  *
@@ -176,9 +178,9 @@ public:
     [[nodiscard]] static uint32_t GetPreferredThreadsCount() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU0:
-                return std::thread::hardware_concurrency() * 6;
+                return std::thread::hardware_concurrency() * THREAD_HARDWARE_CONCURRENCY_COEF;
             case EngineType::GPU1:
-                return std::thread::hardware_concurrency() * 6;
+                return std::thread::hardware_concurrency() * THREAD_HARDWARE_CONCURRENCY_COEF;
             case EngineType::CPU:
                 return 1;
             default:
@@ -222,15 +224,26 @@ protected:
      */
     static void _worker(uint32_t idx, MctsEngine *workspace) {
         cudaStream_t stream{};
+        uint32_t *hSeeds{};
+        uint32_t *hResults{};
+        void *hBoards{};
 
         if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
+            static constexpr uint32_t sizeElems = ENGINE_TYPE == EngineType::GPU0
+                                                      ? EVAL_SPLIT_KERNEL_BOARDS
+                                                      : EVAL_PLAIN_KERNEL_BOARDS;
+
             CUDA_ASSERT_SUCCESS(cudaStreamCreate(&stream));
+            CUDA_ASSERT_SUCCESS(cudaHostAlloc(&hResults, sizeElems * sizeof(uint32_t), cudaHostAllocDefault));
+            CUDA_ASSERT_SUCCESS(cudaHostAlloc(&hSeeds, sizeElems * sizeof(uint32_t), cudaHostAllocDefault));
+            CUDA_ASSERT_SUCCESS(cudaHostAlloc(&hBoards, sizeof(cuda_PackedBoard<sizeElems>), cudaHostAllocDefault));
         }
 
         /* expand the tree until action is revoked */
         while (workspace->m_shouldWork) {
             if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
-                mcts::ExpandTreeGPU<ENGINE_TYPE, USE_TIMERS>(workspace->m_root, stream, workspace->m_shouldWork);
+                mcts::ExpandTreeGPU<ENGINE_TYPE, USE_TIMERS>(workspace->m_root, stream, hSeeds, hResults, hBoards,
+                                                             workspace->m_shouldWork);
             } else if constexpr (ENGINE_TYPE == EngineType::CPU) {
                 mcts::ExpandTreeCPU(workspace->m_root);
             } else {
@@ -240,6 +253,9 @@ protected:
 
         if constexpr (ENGINE_TYPE == EngineType::GPU0 || ENGINE_TYPE == EngineType::GPU1) {
             CUDA_ASSERT_SUCCESS(cudaStreamDestroy(stream));
+            CUDA_ASSERT_SUCCESS(cudaFreeHost(hResults));
+            CUDA_ASSERT_SUCCESS(cudaFreeHost(hSeeds));
+            CUDA_ASSERT_SUCCESS(cudaFreeHost(hBoards));
         }
 
         if (g_GlobalState.WriteExtensiveInfo) {
@@ -294,9 +310,9 @@ protected:
         }
 
         /* todo: temporary solution */
-        delete m_root;
-        m_root = nullptr;
-        return;
+        // delete m_root;
+        // m_root = nullptr;
+        // return;
 
         MctsNode *newParent{};
         for (const auto child: m_root->GetChildren()) {

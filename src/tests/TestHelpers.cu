@@ -31,10 +31,10 @@ void PolluteCache() {
     thrust::device_vector<uint32_t> dResult(POLLUTE_SIZE);
 
     PolluteCache<<<blocks, 1024>>>(
-            thrust::raw_pointer_cast(dData.data()),
-            thrust::raw_pointer_cast(dSeeds.data()),
-            thrust::raw_pointer_cast(dResult.data()),
-            ROUNDS
+        thrust::raw_pointer_cast(dData.data()),
+        thrust::raw_pointer_cast(dSeeds.data()),
+        thrust::raw_pointer_cast(dResult.data()),
+        ROUNDS
     );
     CUDA_ASSERT_SUCCESS(cudaGetLastError());
     GUARDED_SYNC();
@@ -58,6 +58,13 @@ std::vector<uint32_t> GenSeeds(const uint32_t size) {
         seeds.push_back(rng());
     }
     return seeds;
+}
+
+void GenSeeds(uint32_t *out, const uint32_t size) {
+    std::mt19937 rng{G_USE_DEFINED_SEED ? DEFAULT_TEST_SEED : std::random_device{}()};
+    for (uint32_t i = 0; i < size; ++i) {
+        out[i] = rng();
+    }
 }
 
 std::tuple<uint32_t, uint32_t> GetDims(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {

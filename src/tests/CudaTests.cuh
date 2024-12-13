@@ -202,6 +202,8 @@ std::vector<std::string> LoadFenDb();
  */
 std::vector<uint32_t> GenSeeds(uint32_t size);
 
+void GenSeeds(uint32_t *out, const uint32_t size);
+
 /**
  * @brief Pollutes the CPU and GPU caches to minimize performance interference in benchmarking.
  *

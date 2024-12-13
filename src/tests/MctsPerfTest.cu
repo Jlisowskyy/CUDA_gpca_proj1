@@ -81,8 +81,8 @@ static std::vector<double> RunTestsGroup(const uint32_t moveTime) {
 }
 
 static void TestMCTSEngines_() {
-    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true> >(TEST_TIME_EXPECTED_MOVE);
     const auto resultGPU1 = RunTestsGroup<MctsEngine<EngineType::GPU1, true> >(TEST_TIME_EXPECTED_MOVE);
+    const auto resultGPU0 = RunTestsGroup<MctsEngine<EngineType::GPU0, true> >(TEST_TIME_EXPECTED_MOVE);
     const auto resultCPU = RunTestsGroup<MctsEngine<EngineType::CPU, true> >(TEST_TIME_EXPECTED_MOVE);
 
     // Pretty print results as a table
