@@ -262,7 +262,7 @@ namespace mcts {
     }
 
     template<EngineType ENGINE_TYPE, bool USE_TIMERS = false>
-    void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream, const volatile bool& workCond) {
+    void ExpandTreeGPU(MctsNode *root, cudaStream_t &stream, const volatile bool &workCond) {
         static_assert(ENGINE_TYPE == EngineType::GPU1 || ENGINE_TYPE == EngineType::GPU0);
         static constexpr uint32_t BATCH_SIZE = ENGINE_TYPE == EngineType::GPU0
                                                    ? EVAL_SPLIT_KERNEL_BOARDS

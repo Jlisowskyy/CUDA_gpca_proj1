@@ -18,7 +18,7 @@
 #include <iomanip>
 #include <memory>
 
-static constexpr double UCB_COEF = 1.5;
+static constexpr double UCB_COEF = 1.0;
 
 /**
  * @brief Represents a node in the Monte Carlo Tree Search (MCTS) algorithm
@@ -210,9 +210,8 @@ public:
     [[nodiscard]] double CalculateMaterialValue() const {
         /* Note: value revers to parents perspective */
         const double materialEval = (m_board.MovingColor == BLACK ? 1.0 : -1.0) * double(m_board.MaterialEval);
-        const double materialSum = double(m_board.SumMaterial());
 
-        return materialEval / materialSum;
+        return materialEval / 10000.0;
     }
 
     /**
@@ -246,8 +245,9 @@ public:
             /* preventing usage of std::format due to GIANT compatibility issues */
             if (currentNode->m_parent) {
                 snprintf(label, BUFF_SIZE,
-                         "Move: %s\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f",
+                         "Move: %s\nColor:%d\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f\nEval points: %.2f\nEval: %d",
                          currentNode->m_move.GetPackedMove().GetLongAlgebraicNotationCPU().c_str(),
+                         currentNode->m_board.MovingColor,
                          currentNode->GetNumSamples(),
                          currentNode->GetScore(WHITE),
                          currentNode->GetScore(BLACK),
@@ -255,7 +255,9 @@ public:
                          currentNode->GetNumSamples() == 0 ? 0 : currentNode->CalculateWinRate(),
                          currentNode->CalculateUCB() == std::numeric_limits<double>::max()
                              ? 0
-                             : currentNode->CalculateUCB()
+                             : currentNode->CalculateUCB(),
+                         currentNode->CalculateMaterialValue(),
+                         currentNode->m_board.MaterialEval
                 );
             } else {
                 snprintf(label, BUFF_SIZE,

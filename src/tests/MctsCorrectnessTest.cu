@@ -131,9 +131,9 @@ static void TestMctsCorrectnessNotExpectedMove_() {
 
     bool result{};
     // ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
-    ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    ProgressBar bar(NUM_POS_NOT_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
-    for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
+    for (const auto &[fen, expectedMove, desc]: TEST_FEN_NOT_EXPECTED_MOVE_MAP) {
         result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0>, false>(fen, expectedMove, desc, bar);
         bar.Increment();
         // result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1>, false >(fen, expectedMove, desc, bar);
