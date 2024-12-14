@@ -65,14 +65,16 @@ static bool RunExpectedMoveTestOnEngineOnce(const std::string &fen, const std::s
                             : expectedResult != move.GetPackedMove().GetLongAlgebraicNotationCPU();
 
     if (!result) {
-        const std::string msg = "[ FAIL ] Mcts Correctness test failed on position: " + fen + ", desc: " + desc + "\n" +
+        const std::string msg = "[ FAIL ] Mcts Correctness test failed with engine: " + std::string(ENGINE_T::GetName())
+                                + " on position: " + fen + ", desc: " + desc + "\n" +
                                 "Test move: " + expectedResult + "\n" +
                                 "Got move: " + move.GetPackedMove().GetLongAlgebraicNotationCPU() + "\n" +
                                 "Tree reached depth: " + std::to_string(engine.GetDepth());
 
         bar.WriteLine(msg);
     } else {
-        const std::string msg = "[ SUCCESS ] Mcts correctness test passed on position: " + fen + ", desc: " + desc +
+        const std::string msg = "[ SUCCESS ] Mcts correctness test with engine: " + std::string(ENGINE_T::GetName()) +
+                                " passed on position: " + fen + ", desc: " + desc +
                                 " and depth: "
                                 + std::to_string(engine.GetDepth());
 
@@ -111,14 +113,13 @@ static void TestMctsCorrectnessExpectedMove_() {
     std::cout << "Running MctsCorrectness test on move == expected move case...\n" << std::endl;
 
     bool result{};
-    // ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
-    ProgressBar bar(NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
+    ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
     for (const auto &[fen, expectedMove, desc]: TEST_FEN_EXPECTED_MOVE_MAP) {
         result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0> >(fen, expectedMove, desc, bar);
         bar.Increment();
-        // result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1> >(fen, expectedMove, desc, bar);
-        // bar.Increment();
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1> >(fen, expectedMove, desc, bar);
+        bar.Increment();
     }
 
     result = !result;
@@ -129,14 +130,13 @@ static void TestMctsCorrectnessNotExpectedMove_() {
     std::cout << "Running MctsCorrectness test on move != expected move case...\n" << std::endl;
 
     bool result{};
-    // ProgressBar bar(2 * NUM_POS_EXPECTED_MOVE, BAR_WIDTH);
-    ProgressBar bar(NUM_POS_NOT_EXPECTED_MOVE, BAR_WIDTH);
+    ProgressBar bar(2 * NUM_POS_NOT_EXPECTED_MOVE, BAR_WIDTH);
     bar.Start();
     for (const auto &[fen, expectedMove, desc]: TEST_FEN_NOT_EXPECTED_MOVE_MAP) {
         result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU0>, false>(fen, expectedMove, desc, bar);
         bar.Increment();
-        // result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1>, false >(fen, expectedMove, desc, bar);
-        // bar.Increment();
+        result |= RunExpectedMoveTestOnEngineOnce<MctsEngine<EngineType::GPU1>, false>(fen, expectedMove, desc, bar);
+        bar.Increment();
     }
 
     result = !result;

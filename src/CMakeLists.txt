@@ -40,7 +40,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 
         set_source_files_properties(
                 ${CUDA_SOURCES}
-                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
+                PROPERTIES COMPILE_OPTIONS "-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
         )
 
     elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -48,7 +48,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
 
         set_source_files_properties(
                 ${CUDA_SOURCES}
-                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
+                PROPERTIES COMPILE_OPTIONS "-Xptxas;-O3;-Xcompiler;-O3;-Xcompiler;-march=native"
         )
     else ()
         message(FATAL_ERROR "Unsupported compiler.")
@@ -62,7 +62,7 @@ else()
 
         set_source_files_properties(
                 ${CUDA_SOURCES}
-                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
+                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-g3;-fno-omit-frame-pointer;-G"
         )
 
     elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
@@ -70,44 +70,46 @@ else()
 
         set_source_files_properties(
                 ${CUDA_SOURCES}
-                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-lineinfo;-g3;-fno-omit-frame-pointer;-G"
+                PROPERTIES COMPILE_OPTIONS "-v;--generate-line-info;-g3;-fno-omit-frame-pointer;-G"
         )
     else ()
         message(FATAL_ERROR "Unsupported compiler.")
     endif()
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    message("Linking CheckmateChariotLib with MSVC...")
+# Linking CheckmateChariotLib
+find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
 
-    # Linking CheckmateChariotLib
-    find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
-
-    if (CHECKMATE_CHARIOT_LIB)
-        target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
-    else ()
-        message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
-    endif ()
-
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    message("Linking CheckmateChariotLib with Clang...")
-
-    # Linking CheckmateChariotLib
-    find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
-
-    if (CHECKMATE_CHARIOT_LIB)
-        target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
-    else ()
-        message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
-    endif ()
-elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    message("Linking CheckmateChariotLib with GCC...")
-
-    add_subdirectory(ported)
-    target_link_libraries(CudaEngine PRIVATE CheckmateChariotLib)
+if (CHECKMATE_CHARIOT_LIB)
+    target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
 else ()
-    message(FATAL_ERROR "Unsupported compiler.")
+    message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
 endif ()
+
+#if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+#    message("Linking CheckmateChariotLib with MSVC...")
+#
+#
+#
+#elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+#    message("Linking CheckmateChariotLib with Clang...")
+#
+#    # Linking CheckmateChariotLib
+#    find_library(CHECKMATE_CHARIOT_LIB CheckmateChariotLib PATHS ${CMAKE_SOURCE_DIR}/ported/lib)
+#
+#    if (CHECKMATE_CHARIOT_LIB)
+#        target_link_libraries(CudaEngine PRIVATE ${CHECKMATE_CHARIOT_LIB})
+#    else ()
+#        message(FATAL_ERROR "CheckmateChariotLib not found. Ensure it is built and located in ported/lib.")
+#    endif ()
+#elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+#    message("Linking CheckmateChariotLib with GCC...")
+#
+#    add_subdirectory(ported)
+#    target_link_libraries(CudaEngine PRIVATE CheckmateChariotLib)
+#else ()
+#    message(FATAL_ERROR "Unsupported compiler.")
+#endif ()
 
 # Allows usage of __forceinline__ keyword
 target_compile_definitions(CudaEngine PRIVATE -DAGGRESSIVE_INLINE=1)

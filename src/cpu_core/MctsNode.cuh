@@ -190,9 +190,9 @@ public:
 
         const double averageScore = CalculateWinRate();
         const uint64_t parentNumSamples = m_parent->GetNumSamples();
-        // const double materialScore = CalculateMaterialValue();
+        const double evalScore = CalculateMaterialValue();
 
-        return averageScore + UCB_COEF *
+        return evalScore + averageScore + UCB_COEF *
                std::sqrt(std::log(parentNumSamples) / double(GetNumSamples()));
     }
 
@@ -309,7 +309,7 @@ public:
     // ------------------------------
     // Class fields
     // ------------------------------
-public:
+
     MctsNode *m_parent{};
 
     cuda_Move m_move{};

@@ -161,7 +161,7 @@ void Cli::_displayGameTypeMessage() {
 Choose game type:
 - 'cvc'      for Computer vs Computer (Best GPU vs Best GPU)
 - 'cvc1'     for Computer vs Computer (Best GPU vs CPU)
-- 'cvc2'     for Computer vs Computer (GPU0 (BEST) vs GPU1)
+- 'cvc2'     for Computer vs Computer (GPU0 vs GPU1 (BEST))
 - 'pvc'      for Player vs Computer
 - 'infinite' for infinite search on given position
 - 'test'     to enter test suite

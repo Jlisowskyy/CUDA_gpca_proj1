@@ -156,7 +156,7 @@ public:
      *
      * @return Name of the engine
      */
-    [[nodiscard]] static constexpr const char *GetName() {
+    [[nodiscard]] static const char *GetName() {
         switch (ENGINE_TYPE) {
             case EngineType::GPU0:
                 return "GPU0";
