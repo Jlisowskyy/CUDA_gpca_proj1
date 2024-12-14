@@ -347,7 +347,7 @@ void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU0> &engine) {
 }
 
 void CpuCore::runCVC1(const uint32_t moveTime) {
-    _runCVC<MctsEngine<EngineType::GPU0>, MctsEngine<EngineType::CPU> >(moveTime);
+    _runCVC<MctsEngine<EngineType::GPU1>, MctsEngine<EngineType::CPU> >(moveTime);
 }
 
 void CpuCore::runCVC2(const uint32_t moveTime) {

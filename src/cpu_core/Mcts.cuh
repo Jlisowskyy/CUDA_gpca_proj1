@@ -192,9 +192,12 @@ namespace mcts {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStart, stream));
         }
 
-        EvaluateBoardsPlainKernel<EVAL_PLAIN_KERNEL_BOARDS><<<1, EVAL_PLAIN_KERNEL_BOARDS, 0, stream>>>(
-            dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, dBytes
-        );
+        EvaluateBoardsPlainKernel<EVAL_PLAIN_KERNEL_BOARDS><<<
+                EVAL_PLAIN_KERNEL_BOARDS / EVAL_PLAIN_KERNEL_SINGLE_BATCH_BOARDS,
+                EVAL_PLAIN_KERNEL_SINGLE_BATCH_BOARDS,
+                0, stream>>>(
+                    dBoards, dSeeds, dResults, MAX_SIMULATION_DEPTH, dBytes
+                );
 
         if constexpr (USE_TIMERS) {
             CUDA_ASSERT_SUCCESS(cudaEventRecord(kernelStop, stream));

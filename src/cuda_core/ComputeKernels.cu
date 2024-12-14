@@ -141,24 +141,10 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
             return;
         }
 
-        /* Almost not losable position - decide on label and die */
-        if (abs((*boards)[boardIdx].MaterialEval()) > FIG_VALUES[W_QUEEN_INDEX] + FIG_VALUES[W_ROOK_INDEX] + FIG_VALUES[
-                W_BISHOP_INDEX]) {
-            if (figIdx == 0) {
-                results[boardIdx] = (*boards)[boardIdx].MaterialEval() > 0 ? WHITE : BLACK;
-            }
-            return;
-        }
-
         simpleRand(seed);
     }
 
     if (figIdx == 0) {
-        if (abs((*boards)[boardIdx].MaterialEval()) > FIG_VALUES[W_QUEEN_INDEX] + FIG_VALUES[W_ROOK_INDEX] + FIG_VALUES[
-                W_BISHOP_INDEX]) {
-            results[boardIdx] = (*boards)[boardIdx].MaterialEval() > 0 ? WHITE : BLACK;
-        } else {
-            results[boardIdx] = DRAW;
-        }
+        results[boardIdx] = DRAW;
     }
 }
