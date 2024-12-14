@@ -181,7 +181,7 @@ public:
             return 1;
         }
 
-        Stack<cuda_Move> localStack((cuda_Move *) (ptr) + curDepth * DEFAULT_STACK_SIZE, false);
+        Stack<cuda_Move> localStack((void *) (ptr) + curDepth * DEFAULT_STACK_SIZE, false);
 
         if (figIdx == 0) {
             localStack.Clear();
@@ -436,7 +436,7 @@ private:
         return true;
     }
 
-    // TODO: Consider different solution?
+    // TODO: Possibly should be optimized, but it's not a critical path
     template<class MapT>
     FAST_DCALL bool _processElPassantMoves(
         const uint32_t movingColor, const uint64_t fullMap, const uint64_t pinnedFigMap, const bool isCheck,
@@ -540,8 +540,6 @@ private:
             pinnedOnes &= figureSelector;
             unpinnedOnes &= figureSelector;
         }
-
-        // saving results of previous el passant field, used only when the figure is not a pawn
 
         // processing unpinned moves
         while (unpinnedOnes) {
@@ -782,12 +780,12 @@ private:
         return true;
     }
 
-    // TODO: simplify ifs??
-    // TODO: cleanup left castling available when rook is dead then propagate no castling checking?
+    // TODO: Possibly should be optimized, it's not a critical path, but still more relevant than en passant
     FAST_DCALL bool _processKingCastlings(const uint32_t movingColor, const uint64_t blockedFigMap,
                                           const uint64_t fullMap) {
         ASSERT(fullMap != 0, "Full map is empty!");
 
+#pragma unroll
         for (uint32_t i = 0; i < CASTLINGS_PER_COLOR; ++i) {
             if (const uint32_t castlingIndex = movingColor * CASTLINGS_PER_COLOR + i;
                 _boardFetcher.GetCastlingRight(castlingIndex) &&
@@ -813,7 +811,7 @@ private:
                 mv.SetKilledFigureField(ExtractMsbPos(CASTLING_ROOK_MAPS[castlingIndex]));
                 mv.SetElPassantField(INVALID_EL_PASSANT_FIELD);
                 mv.SetCastlingRights(castlings);
-                mv.SetCastlingType(1 + castlingIndex); // God only knows why I made a sentinel at index 0 at this moment
+                mv.SetCastlingType(1 + castlingIndex); // sentinel value
                 mv.SetMoveType(CastlingFlag);
 
                 if (!stack.Push<STACK_SIZE>(mv)) {

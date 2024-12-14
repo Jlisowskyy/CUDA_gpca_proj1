@@ -37,7 +37,7 @@ struct ChessMechanics {
     // Class inner types
     // ------------------------------
 
-    using _fetcher_t = cuda_PackedBoard<NUM_BOARDS>::BoardFetcher;
+    using _fetcher_t = typename cuda_PackedBoard<NUM_BOARDS>::BoardFetcher;
 
     enum checkType {
         slidingFigCheck,
@@ -120,6 +120,7 @@ struct ChessMechanics {
     [[nodiscard]] FAST_DCALL uint64_t GetFullBitMap() const {
         uint64_t map = 0;
 
+        #pragma unroll
         for (uint32_t i = 0; i < BIT_BOARDS_COUNT; ++i) {
             map |= _boardFetcher.BitBoard(i);
         }
@@ -132,6 +133,7 @@ struct ChessMechanics {
         ASSERT(col == 1 || col == 0, "col == 1 || col == 0");
         uint64_t map = 0;
 
+        #pragma unroll
         for (uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
             map |= _boardFetcher.GetFigBoard(col, i);
         }
@@ -144,6 +146,7 @@ struct ChessMechanics {
     GetIndexOfContainingBitBoard(const uint64_t map, const uint32_t col) const {
         uint32_t rv = 0;
 
+        #pragma unroll
         for (uint32_t i = 0; i < BIT_BOARDS_PER_COLOR; ++i) {
             rv += ((_boardFetcher.GetFigBoard(col, i) & map) != 0) * i;
         }

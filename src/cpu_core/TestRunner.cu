@@ -16,13 +16,12 @@ TestRunner::TestRunner(CpuCore *cpuCore) : m_cpuCore(cpuCore) {
 TestRunner::~TestRunner() = default;
 
 void TestRunner::runTests() {
-    _displayWelcomeMessage();
-
     TestParseResult parseResult = TestParseResult::SUCCESS;
 
     while (parseResult != TestParseResult::EXIT) {
         TestFunc testFunc{};
 
+        _displayWelcomeMessage();
         while ((parseResult = _parseTestInput(testFunc)) == TestParseResult::FAILURE) {
             std::cout << "Invalid input, please try again" << std::endl;
         }
@@ -74,4 +73,3 @@ TestRunner::TestParseResult TestRunner::_parseTestInput(TestFunc &out_testFunc) 
     out_testFunc = testFunc;
     return TestRunner::TestParseResult::SUCCESS;
 }
-

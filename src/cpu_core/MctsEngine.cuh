@@ -309,11 +309,6 @@ protected:
             return;
         }
 
-        /* todo: temporary solution */
-        // delete m_root;
-        // m_root = nullptr;
-        // return;
-
         MctsNode *newParent{};
         for (const auto child: m_root->GetChildren()) {
             if (child->m_move.GetPackedMove() == move.GetPackedMove()) {

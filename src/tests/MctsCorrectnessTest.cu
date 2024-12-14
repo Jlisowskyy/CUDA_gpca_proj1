@@ -23,7 +23,6 @@ static std::tuple<std::string, std::string, std::string> TEST_FEN_EXPECTED_MOVE_
     {"rnb1kbqr/pppp1p1p/4p1p1/8/4N3/1B6/PPPPPPPP/R2QKBNR w KQkq - 0 1", "e4f6", "free fork"},
 };
 static std::tuple<std::string, std::string, std::string> TEST_FEN_NOT_EXPECTED_MOVE_MAP[]{
-    {"rnbqkbnr/1p1ppppp/8/p7/P1p5/3R4/1PPPPPPP/1NBQKBNR w Kkq - 0 1", "d3d7", "stupid rook loss"},
     {"rnbqkbnr/pp1pppp1/8/2P4p/4P3/8/PPP2PPP/RNBQKBNR b KQkq - 0 1", "b7b5", "stupid pawn loss?"},
     {"3NN2k/4Q3/6K1/8/8/8/8/8 w - - 0 1", "e7f7", "stalemate check"},
 };

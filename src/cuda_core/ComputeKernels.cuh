@@ -74,15 +74,17 @@ __global__ void PolluteCache(uint32_t *data, const uint32_t *seeds, uint32_t *ou
 
 /* Engine kernels */
 
+static constexpr uint32_t EVAL_PLAIN_KERNEL_BOARDS = 15*384;
+
+
 #ifdef NDEBUG
 
-static constexpr uint32_t EVAL_PLAIN_KERNEL_BOARDS = 15*384;
 static constexpr uint32_t EVAL_PLAIN_KERNEL_SINGLE_BATCH_BOARDS = 384;
 
 
 #else
 
-static constexpr uint32_t EVAL_PLAIN_KERNEL_BOARDS = 384 / 2;
+static constexpr uint32_t EVAL_PLAIN_KERNEL_SINGLE_BATCH_BOARDS = 384 / 2;
 
 #endif
 

@@ -79,6 +79,13 @@ void TestRandomGen(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps)
 
 void TestMctsCorrectness(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps);
 
+inline void TestFullCorrectness(uint32_t threadsAvailable, const cudaDeviceProp &deviceProps) {
+    TestMctsCorrectness(threadsAvailable, deviceProps);
+    MoveGenTest(threadsAvailable, deviceProps);
+    TestRandomGen(threadsAvailable, deviceProps);
+    FancyMagicTest(threadsAvailable, deviceProps);
+}
+
 // ------------------------------
 // Test map
 // ------------------------------
@@ -159,6 +166,14 @@ static const std::unordered_map<std::string, std::tuple<std::string, std::string
             &TestMctsCorrectness
         )
     },
+    {
+        "full_correctness",
+        std::make_tuple(
+            "Full Correctness Test",
+            "Tests the correctness of all implemented algorithms",
+            &TestFullCorrectness
+        )
+    }
 };
 
 // ------------------------------
@@ -202,7 +217,7 @@ std::vector<std::string> LoadFenDb();
  */
 std::vector<uint32_t> GenSeeds(uint32_t size);
 
-void GenSeeds(uint32_t *out, const uint32_t size);
+void GenSeeds(uint32_t *out, uint32_t size);
 
 /**
  * @brief Pollutes the CPU and GPU caches to minimize performance interference in benchmarking.

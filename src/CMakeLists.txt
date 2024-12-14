@@ -112,4 +112,4 @@ endif ()
 #endif ()
 
 # Allows usage of __forceinline__ keyword
-target_compile_definitions(CudaEngine PRIVATE -DAGGRESSIVE_INLINE=1)
+#target_compile_definitions(CudaEngine PRIVATE -DAGGRESSIVE_INLINE=1)
