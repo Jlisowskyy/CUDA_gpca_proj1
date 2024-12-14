@@ -145,6 +145,14 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
     }
 
     if (figIdx == 0) {
-        results[boardIdx] = DRAW;
+        static constexpr int32_t MIN_EVAL_TO_WIN =
+                FIG_VALUES[W_ROOK_INDEX] + FIG_VALUES[W_QUEEN_INDEX] + FIG_VALUES[W_PAWN_INDEX];
+        const int32_t eval = (*boards)[boardIdx].EvaluateMaterial();
+
+        if (abs(eval) >= MIN_EVAL_TO_WIN) {
+            results[boardIdx] = eval > 0 ? WHITE_WIN : BLACK_WIN;
+        } else {
+            results[boardIdx] = DRAW;
+        }
     }
 }

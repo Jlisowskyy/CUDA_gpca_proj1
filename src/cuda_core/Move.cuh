@@ -284,7 +284,7 @@ public:
     [[nodiscard]] bool IsOkayMoveCPU() const { return _packedMove.IsOkayMoveCPU(); }
 
     template<uint32_t NUM_BOARDS = PACKED_BOARD_DEFAULT_SIZE>
-    FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher) {
+    FAST_DCALL_ALWAYS static void MakeMove(const cuda_Move mv, typename cuda_PackedBoard<NUM_BOARDS>::BoardFetcher fetcher) {
         assert(mv.IsOkayMove() && "Given move is not valid!");
 
         // removing the old piece from the board
@@ -310,9 +310,9 @@ public:
         const uint64_t newKingPos = move_CastlingNewKingPos[mv.GetCastlingType()];
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) | newKingPos, boardIndex);
 
-        /* Update material value */
-        fetcher.MaterialEval() -= mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
-        fetcher.MaterialEval() += FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
+        /* Update material value - not used currently */
+        // fetcher.MaterialEval() -= mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
+        // fetcher.MaterialEval() += FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
 
         fetcher.ChangePlayingColor();
 
@@ -392,9 +392,9 @@ public:
 
         fetcher.SetBitBoard(fetcher.BitBoard(boardIndex) ^ newKingPos, boardIndex);
 
-        /* Update material value */
-        fetcher.MaterialEval() += mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
-        fetcher.MaterialEval() -= FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
+        /* Update material value - not used currently */
+        // fetcher.MaterialEval() += mv.IsAttackingMove() * FIG_VALUES[mv.GetKilledBoardIndex()];
+        // fetcher.MaterialEval() -= FIG_VALUES[mv.GetTargetBoardIndex()] - FIG_VALUES[mv.GetStartBoardIndex()];
 
         fetcher.HalfMoves() = data.OldHalfMoves;
 

@@ -290,7 +290,7 @@ void CpuCore::_runProcessingAnim(const uint32_t moveTime) {
 
 void CpuCore::runInfinite() {
     cuda_Board board = *m_board;
-    MctsEngine<EngineType::GPU0> engine{board, NUM_CPU_WORKERS};
+    MctsEngine<EngineType::GPU1> engine{board, NUM_CPU_WORKERS};
 
     auto t1 = std::chrono::steady_clock::now();
     engine.MoveSearchStart();
@@ -309,7 +309,7 @@ void CpuCore::runInfinite() {
     std::cout << "After " << (t2 - t1).count() / 1'000'000 << "ms of thinking..." << std::endl;
 }
 
-void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU0> &engine) {
+void CpuCore::_waitForInfiniteStop(const MctsEngine<EngineType::GPU1> &engine) {
     static constexpr uint32_t SYNC_INTERVAL = 500;
 
     std::string input{};

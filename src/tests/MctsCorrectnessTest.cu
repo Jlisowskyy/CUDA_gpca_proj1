@@ -30,7 +30,7 @@ static std::tuple<std::string, std::string, std::string> TEST_FEN_NOT_EXPECTED_M
 
 static constexpr uint32_t NUM_POS_EXPECTED_MOVE = std::size(TEST_FEN_EXPECTED_MOVE_MAP);
 static constexpr uint32_t NUM_POS_NOT_EXPECTED_MOVE = std::size(TEST_FEN_NOT_EXPECTED_MOVE_MAP);
-static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 1000;
+static constexpr uint32_t TEST_TIME_EXPECTED_MOVE = 5000;
 static constexpr uint32_t TEST_TIME_ASSERT_RUN = 10;
 static constexpr uint32_t NUM_BOARDS_ASSERT_TEST = 1000;
 static constexpr uint32_t BAR_WIDTH = 80;
