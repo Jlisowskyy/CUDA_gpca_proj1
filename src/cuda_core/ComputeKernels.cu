@@ -129,6 +129,11 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
             return;
         }
 
+        if (figIdx == 0) {
+            const auto nextMove = stack[seed % stack.Size()];
+            cuda_Move::MakeMove<EVAL_SPLIT_KERNEL_BOARDS>(nextMove, (*boards)[boardIdx]);
+        }
+
         if ((*boards)[boardIdx].HalfMoves() >= HALF_MOVES_TO_DRAW) {
             if (figIdx == 0) {
                 results[boardIdx] = DRAW;
@@ -136,15 +141,24 @@ __global__ void EvaluateBoardsSplitKernel(cuda_PackedBoard<EVAL_SPLIT_KERNEL_BOA
             return;
         }
 
-        if (figIdx == 0) {
-            const auto nextMove = stack[seed % stack.Size()];
-            cuda_Move::MakeMove<EVAL_SPLIT_KERNEL_BOARDS>(nextMove, (*boards)[boardIdx]);
+        /* Almost not losable position - decide on label and die */
+        if (abs((*boards)[boardIdx].MaterialEval()) > FIG_VALUES[W_QUEEN_INDEX] + FIG_VALUES[W_ROOK_INDEX] + FIG_VALUES[
+                W_BISHOP_INDEX]) {
+            if (figIdx == 0) {
+                results[boardIdx] = (*boards)[boardIdx].MaterialEval() > 0 ? WHITE : BLACK;
+            }
+            return;
         }
 
         simpleRand(seed);
     }
 
     if (figIdx == 0) {
-        results[boardIdx] = DRAW;
+        if (abs((*boards)[boardIdx].MaterialEval()) > FIG_VALUES[W_QUEEN_INDEX] + FIG_VALUES[W_ROOK_INDEX] + FIG_VALUES[
+                W_BISHOP_INDEX]) {
+            results[boardIdx] = (*boards)[boardIdx].MaterialEval() > 0 ? WHITE : BLACK;
+        } else {
+            results[boardIdx] = DRAW;
+        }
     }
 }

@@ -159,17 +159,10 @@ namespace cpu {
         return bd;
     }
 
-    static constexpr int32_t FIG_VALUES_CPU[Board::BitBoardsCount + 1]{
-            100, 330, 330, 500, 900, 10000, -100, -330, -330, -500, -900, -10000, 0
-    };
-
     uint32_t SimulateGame(const external_board &board) {
-        static constexpr uint32_t MAX_DEPTH = 100;
+        static constexpr uint32_t MAX_DEPTH = 400;
         static constexpr uint32_t DRAW = 2;
-        static constexpr uint32_t NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN = 5;
-        static constexpr uint32_t MATERIAL_ADVANTAGE_TO_WIN = 500;
 
-        uint32_t evalCounters[2]{};
         uint32_t seed = std::mt19937{
                 static_cast<uint64_t>(std::chrono::steady_clock::now().time_since_epoch().count())}();
 
@@ -191,22 +184,6 @@ namespace cpu {
             const auto nextMove = moves[seed % moves.size];
             s->PopAggregate(moves);
             Move::MakeMove(nextMove, bd);
-
-            uint32_t eval{};
-
-            for (uint32_t bIdx = 0; bIdx < Board::BitBoardsCount; ++bIdx) {
-                eval += CountOnesInBoard(bd.BitBoards[bIdx]) * FIG_VALUES_CPU[bIdx];
-            }
-
-            const uint32_t correctedEval = bd.MovingColor == BLACK ? -eval : eval;
-            const bool isInWinningRange = correctedEval >= MATERIAL_ADVANTAGE_TO_WIN;
-            evalCounters[bd.MovingColor] = isInWinningRange ? evalCounters[bd.MovingColor] + 1 : 0;
-
-            if (evalCounters[bd.MovingColor] >= NUM_ROUNDS_IN_MATERIAL_ADVANTAGE_TO_WIN) {
-                GlobalStacks.push(s);
-                return bd.MovingColor;
-            }
-
 
             simpleRand(seed);
         }

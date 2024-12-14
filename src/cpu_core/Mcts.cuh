@@ -18,7 +18,7 @@
 #include <atomic>
 
 static constexpr uint32_t MIN_SAMPLES_TO_EXPAND = 2;
-static constexpr uint32_t MAX_SIMULATION_DEPTH = 150;
+static constexpr uint32_t MAX_SIMULATION_DEPTH = 400;
 
 enum class EngineType {
     CPU,
@@ -68,7 +68,6 @@ namespace mcts {
             cudaMemcpyHostToDevice, stream));
 
         GenSeeds(hSeeds, EVAL_SPLIT_KERNEL_BOARDS);
-        assert(seeds.size() == EVAL_SPLIT_KERNEL_BOARDS);
 
         CUDA_ASSERT_SUCCESS(cudaMemcpyAsync(dSeeds, hSeeds, sizeof(uint32_t) * EVAL_SPLIT_KERNEL_BOARDS,
             cudaMemcpyHostToDevice, stream));

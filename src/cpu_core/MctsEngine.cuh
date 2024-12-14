@@ -356,7 +356,8 @@ protected:
                 continue;
             }
 
-            if (const double winRate = child->CalculateWinRate(); winRate > bestWinRate) {
+            if (const double winRate = child->CalculateFinalWinRate();
+                winRate > bestWinRate) {
                 bestWinRate = winRate;
                 bestMove = child->m_move;
             }

@@ -16,17 +16,16 @@ static std::tuple<std::string, std::string, std::string> TEST_FEN_EXPECTED_MOVE_
     {"8/Pr6/8/8/8/8/8/k6K w - - 0 1", "a7a8q", "simplest promo possible"},
     {"8/8/8/4pP2/8/8/8/k6K w - e6 0 1", "f5e6", "winning en passant"},
     {"2bnkn2/3ppp2/2p5/7b/7P/6PP/1q3PBQ/2R1K2R w K - 0 1", "e1g1", "enforced castling"},
-    {"3NN2k/4Q3/6K1/8/8/8/8/8 w - - 0 1", "e7f8", "stalemate check"},
     {"r3k2r/ppp2ppp/2n5/3q4/3P4/2N5/PPP2PPP/R3K2R w KQkq - 0 1", "c3d5", "queen for free 1"},
     {"rnb1kbnr/pppppppp/8/8/3qR3/8/PPPPPPPP/RNBQKBN1 b Qkq - 0 1", "d4e4", "queen for free 2"},
     {"rnb1kbnr/pppppppp/8/8/3qR3/8/PPPPPPPP/RNBQKBN1 w Qkq - 0 1", "e4d4", "rook for free"},
     {"r4rk1/1pp2ppp/p1np1n2/2b1p1B1/q1B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", "c3a4", "queen for free 3"},
-    {"rnb1kbqr/pppp1p1p/4p1p1/8/4N3/2B5/PPPPPPPP/R2QKBNR w KQkq - 0 1", "e4f6", "free fork"},
+    {"rnb1kbqr/pppp1p1p/4p1p1/8/4N3/1B6/PPPPPPPP/R2QKBNR w KQkq - 0 1", "e4f6", "free fork"},
 };
 static std::tuple<std::string, std::string, std::string> TEST_FEN_NOT_EXPECTED_MOVE_MAP[]{
     {"rnbqkbnr/1p1ppppp/8/p7/P1p5/3R4/1PPPPPPP/1NBQKBNR w Kkq - 0 1", "d3d7", "stupid rook loss"},
     {"rnbqkbnr/pp1pppp1/8/2P4p/4P3/8/PPP2PPP/RNBQKBNR b KQkq - 0 1", "b7b5", "stupid pawn loss?"},
-
+    {"3NN2k/4Q3/6K1/8/8/8/8/8 w - - 0 1", "e7f7", "stalemate check"},
 };
 
 static constexpr uint32_t NUM_POS_EXPECTED_MOVE = std::size(TEST_FEN_EXPECTED_MOVE_MAP);

@@ -19,6 +19,7 @@
 #include <memory>
 
 static constexpr double UCB_COEF = 1.0;
+static constexpr double HONSETY_COEF = 0.02;
 
 /**
  * @brief Represents a node in the Monte Carlo Tree Search (MCTS) algorithm
@@ -189,10 +190,17 @@ public:
 
         const double averageScore = CalculateWinRate();
         const uint64_t parentNumSamples = m_parent->GetNumSamples();
-        const double materialScore = CalculateMaterialValue();
+        // const double materialScore = CalculateMaterialValue();
 
-        return materialScore + averageScore + UCB_COEF *
+        return averageScore + UCB_COEF *
                std::sqrt(std::log(parentNumSamples) / double(GetNumSamples()));
+    }
+
+    [[nodiscard]] double CalculateFinalWinRate() const {
+        assert(m_numSamples.load() == (m_scores[0].load() + m_scores[1].load() + m_scores[2].load()) &&
+            "MCTS NODE: DETECTED INCONSISTENT SAMPLE COUNT");
+
+        return CalculateWinRate() + CalculateWinRateHonesty();
     }
 
     /**
@@ -205,6 +213,10 @@ public:
 
         const uint64_t score = GetScore(SwapColor(m_board.MovingColor)) + (GetScore(DRAW) + 1) / 2;
         return double(score) / double(GetNumSamples());
+    }
+
+    [[nodiscard]] double CalculateWinRateHonesty() const {
+        return HONSETY_COEF * (double(GetNumSamples()) / double(m_parent->GetNumSamples()));
     }
 
     [[nodiscard]] double CalculateMaterialValue() const {
@@ -220,7 +232,7 @@ public:
      * @param filename - name of file to dump tree to
      */
     void DumpTreeToDotFormat(const std::string &filename, uint32_t maxDep = 10) {
-        static constexpr uint64_t BUFF_SIZE = 512;
+        static constexpr uint64_t BUFF_SIZE = 200;
 
         std::ofstream dotFile(filename);
         if (!dotFile.is_open()) {
@@ -245,7 +257,7 @@ public:
             /* preventing usage of std::format due to GIANT compatibility issues */
             if (currentNode->m_parent) {
                 snprintf(label, BUFF_SIZE,
-                         "Move: %s\nColor:%d\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.2f\nUCB: %.2f\nEval points: %.2f\nEval: %d",
+                         "Move: %s\nColor:%d\nSamples: %lu\n[W WINS: %lu, B WINS: %lu, DRAWS: %lu]\nWinrate: %.5f\nUCB: %.5f\nEval points: %.5f\nEval: %d\nFinal eval: %.5f",
                          currentNode->m_move.GetPackedMove().GetLongAlgebraicNotationCPU().c_str(),
                          currentNode->m_board.MovingColor,
                          currentNode->GetNumSamples(),
@@ -257,7 +269,8 @@ public:
                              ? 0
                              : currentNode->CalculateUCB(),
                          currentNode->CalculateMaterialValue(),
-                         currentNode->m_board.MaterialEval
+                         currentNode->m_board.MaterialEval,
+                         currentNode->CalculateFinalWinRate()
                 );
             } else {
                 snprintf(label, BUFF_SIZE,
